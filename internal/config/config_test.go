@@ -17,7 +17,7 @@ var configEnvKeys = []string{
 	"WVC_LOGIN_IP_MAX_FAILURES",
 	"WVC_LOGIN_GLOBAL_MAX_FAILURES", "WVC_ARGON2_CONCURRENCY", "WVC_JOB_RETENTION",
 	"WVC_AUDIT_RETENTION", "WVC_ALLOW_INSECURE_VNC", "WVC_LOG_LEVEL", "WVC_LOG_FORMAT",
-	"WVC_METRICS_TOKEN", "WVC_CONSOLE_LOOPBACK_ADDRESS", "WVC_AUDIT_VERIFY_TIMEOUT",
+	"WVC_ALLOW_INSECURE_CONSOLE", "WVC_METRICS_TOKEN", "WVC_CONSOLE_LOOPBACK_ADDRESS", "WVC_AUDIT_VERIFY_TIMEOUT",
 }
 
 func clearConfigEnv(t *testing.T) {
@@ -40,7 +40,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.MaxSessionsPerUser != DefaultMaxSessionsPerUser {
 		t.Fatalf("MaxSessionsPerUser = %d, want %d", cfg.MaxSessionsPerUser, DefaultMaxSessionsPerUser)
 	}
-	if cfg.MetricsToken != "" || cfg.AllowInsecureVNC {
+	if cfg.MetricsToken != "" || cfg.AllowInsecureVNC || cfg.AllowInsecureConsole {
 		t.Fatal("secure-by-default options are not secure")
 	}
 	if cfg.ConsoleMaxSessions != DefaultMaxConsoleSessions || cfg.LoginIPMaxFailures != DefaultLoginIPMaxFailures || cfg.LoginGlobalMaxFailures != 200 {
@@ -79,6 +79,7 @@ func TestLoadValidOverrides(t *testing.T) {
 	t.Setenv("WVC_METRICS_TOKEN", strings.Repeat("x", 32))
 	t.Setenv("WVC_CONSOLE_LOOPBACK_ADDRESS", "host.docker.internal")
 	t.Setenv("WVC_AUDIT_VERIFY_TIMEOUT", "45m")
+	t.Setenv("WVC_ALLOW_INSECURE_CONSOLE", "true")
 	t.Setenv("WVC_VIRT_INSTALL_BIN", "/opt/virt/bin/virt-install")
 	cfg, err := Load()
 	if err != nil {
@@ -98,6 +99,9 @@ func TestLoadValidOverrides(t *testing.T) {
 	}
 	if cfg.ConsoleLoopbackAddress != "host.docker.internal" || cfg.AuditVerifyTimeout != 45*time.Minute {
 		t.Fatalf("console/audit overrides not applied: %+v", cfg)
+	}
+	if !cfg.AllowInsecureConsole {
+		t.Fatal("WVC_ALLOW_INSECURE_CONSOLE override was not applied")
 	}
 	if len(cfg.TrustedProxyCIDRs) != 2 {
 		t.Fatalf("trusted proxy CIDRs = %v", cfg.TrustedProxyCIDRs)

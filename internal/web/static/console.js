@@ -1,5 +1,6 @@
 const screen = document.getElementById('screen');
 const status = document.getElementById('console-status');
+const allowInsecureConsole = screen?.dataset.allowInsecureConsole === 'true';
 let wsURL = screen?.dataset.ws || '';
 if (wsURL) {
   const resolved = new URL(wsURL, window.location.href);
@@ -15,7 +16,7 @@ const setStatus = (text, kind = 'warn') => {
   status.className = 'pill ' + kind;
 };
 
-const showInsecureContext = () => {
+const blockInsecureContext = () => {
   setStatus('需要 HTTPS', 'bad');
   const warning = document.getElementById('console-security-warning');
   if (warning) {
@@ -24,6 +25,13 @@ const showInsecureContext = () => {
   }
   screen?.classList.add('hidden');
   document.querySelector('.console-tools')?.classList.add('hidden');
+};
+
+const showInsecureConsoleWarning = () => {
+  const warning = document.getElementById('console-security-warning');
+  if (!warning) return;
+  warning.hidden = false;
+  warning.textContent = 'HTTP 内网模式已启用。登录凭据、会话和 VNC 流量未加密，请仅在可信内网或 VPN 中使用。';
 };
 
 const loadPassword = async () => {
@@ -44,10 +52,11 @@ const loadPassword = async () => {
 
 const connect = async () => {
   if (!screen || !wsURL) return;
-  if (!window.isSecureContext) {
-    showInsecureContext();
+  if (!window.isSecureContext && !allowInsecureConsole) {
+    blockInsecureContext();
     return;
   }
+  if (!window.isSecureContext) showInsecureConsoleWarning();
   try {
     const { default: RFB } = await import('/static/novnc/core/rfb.js');
     const options = {
@@ -82,5 +91,5 @@ document.getElementById('scale-toggle')?.addEventListener('click', () => {
   rfb.scaleViewport = !rfb.scaleViewport;
 });
 window.addEventListener('beforeunload', () => rfb?.disconnect());
-if (!window.isSecureContext) showInsecureContext();
+if (!window.isSecureContext && !allowInsecureConsole) blockInsecureContext();
 else connect();

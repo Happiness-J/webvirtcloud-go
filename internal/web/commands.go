@@ -660,6 +660,7 @@ func (s *Server) consolePage(w http.ResponseWriter, r *http.Request) {
 	passwordURL := "/console/" + url.PathEscape(host.ID) + "/" + url.PathEscape(vmName) + "/password?token=" + url.QueryEscape(passwordToken)
 	s.render(w, r, "console", pageData{Title: "控制台 · " + vmName, Nav: "vms", Data: map[string]any{
 		"HostID": host.ID, "HostName": host.Name, "VM": vmName, "WSURL": wsPath, "PasswordURL": passwordURL,
+		"AllowInsecureConsole": s.cfg.AllowInsecureConsole,
 	}})
 }
 

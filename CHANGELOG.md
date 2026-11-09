@@ -9,6 +9,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - `wvc version`, `wvc doctor`, `wvc reset-password`, and `wvc help` commands.
+- Trusted-intranet HTTP mode for noVNC via `WVC_ALLOW_INSECURE_CONSOLE`.
+- VM disk growth and offline grow/shrink controls with explicit destructive confirmation.
+- Storage pool refresh/start/autostart controls and volume create/clone/resize/delete operations.
+- Virtual-network start/stop/autostart controls.
 - GitHub CI, CodeQL, Dependabot, tagged release automation, checksums, and build provenance.
 - Contributor, security, support, operational, publishing, and threat-model documentation.
 - Complete noVNC and Go dependency license texts for source, release, and container distribution.

@@ -98,6 +98,8 @@ Open the panel through the resulting `https://<machine>.<tailnet>.ts.net/` URL f
 
 VNC has no transport encryption. Prefer local libvirt or `qemu+ssh` consoles. `WVC_ALLOW_INSECURE_VNC=true` weakens the default console boundary and should only be used when another encrypted network layer protects VNC.
 
+For a trusted intranet where the panel is intentionally served over plain HTTP, set `WVC_ALLOW_INSECURE_CONSOLE=true`. This allows noVNC to initialize outside a browser secure context. It does not encrypt login credentials, sessions, VNC passwords, or console traffic. The example systemd drop-in is `deploy/wvc-intranet-http.conf`.
+
 ## Logs and retention
 
 Use structured JSON logs in production when your log platform supports them:

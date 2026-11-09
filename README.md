@@ -96,7 +96,7 @@ flowchart TB
 
 > 程序本身只监听 HTTP，不终止 TLS。需要 HTTPS 时必须使用 Nginx、Caddy、Traefik 或云负载均衡器。没有反向代理时可以直接使用 `http://面板IP:8080`，但密码、会话和 VNC 流量不加密，只适合可信内网或 VPN。
 
-> noVNC 需要浏览器安全上下文。面板和浏览器在同一台机器时可使用 `http://localhost:8080`；其他设备访问 VNC 必须通过 HTTPS，否则页面会明确阻止 noVNC 初始化。
+> noVNC 需要浏览器安全上下文。面板和浏览器在同一台机器时可使用 `http://localhost:8080`。可信内网明确接受明文传输时，可设置 `WVC_ALLOW_INSECURE_CONSOLE=true` 允许普通 HTTP 地址初始化 noVNC；登录凭据、会话和 VNC 流量不会被加密。
 
 ### 部署前准备
 
@@ -496,6 +496,9 @@ make test-integration
 ### Web 页面
 
 - 概览、主机、虚拟机列表与详情、存储池/卷、虚拟网络、VNC 控制台。
+- 虚拟机磁盘在线扩容和关机态扩容/缩容，包含分区与文件系统前置风险提示。
+- 存储卷创建、克隆、扩容、缩容和删除，以及存储池刷新、启动和自启动管理。
+- 虚拟网络启动、停止和自启动管理。
 - 异步任务列表、详情、自动刷新输出、取消任务。
 - 用户创建、角色调整、禁用、密码重置。
 - 审计日志（登录、主机、用户、命令入队、任务结果）。
@@ -622,6 +625,7 @@ Web 控制台默认只允许本机 libvirt、`qemu+ssh`，或显式开启有风�
 | `WVC_REMOTE_PATH` | `/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin` | `qemu+ssh` 目标执行工具时使用的固定 PATH；远程工具按规范命令名查找 |
 | `WVC_VIRT_*_BIN` / `WVC_GUEST*_BIN` / `WVC_LIBGUESTFS_*_BIN` | 工具同名 | 54 个 virt/libguestfs 可执行文件路径；完整变量见 `.env.example` |
 | `WVC_ALLOW_INSECURE_VNC` | `false` | 允许远程 `qemu+tcp/tls` 的明文 VNC；仅用于受保护网络 |
+| `WVC_ALLOW_INSECURE_CONSOLE` | `false` | 允许浏览器通过普通 HTTP 页面初始化 noVNC；仅用于可信内网或 VPN |
 
 ## 生产加固与运维
 

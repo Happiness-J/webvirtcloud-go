@@ -24,13 +24,19 @@ case "$cmd" in
     esac
     ;;
   dominfo)
-    printf 'Id:             7\nName:           %s\nUUID:           11111111-2222-3333-4444-555555555555\nState:          running\nCPU(s):         4\nMax memory:     4194304 KiB\nUsed memory:    2097152 KiB\nAutostart:      disable\nPersistent:     yes\n'
+    printf 'Id:             7\nName:           %s\nUUID:           11111111-2222-3333-4444-555555555555\nState:          running\nCPU(s):         4\nMax memory:     4194304 KiB\nUsed memory:    2097152 KiB\nAutostart:      disable\nPersistent:     yes\n' "${1:-vm}"
     ;;
   dumpxml)
     printf '<domain type="kvm"><name>%s</name><devices><graphics type="vnc" port="5900" autoport="yes" listen="127.0.0.1" passwd="vnc-secret"/></devices></domain>\n' "${1:-vm}"
     ;;
   domblklist)
-    printf ' Target   Source\n------------------------------\n vda      /var/lib/libvirt/images/vm.qcow2\n'
+    case " $* " in
+      *" --details "*) printf ' Type   Device   Target   Source\n------------------------------------------------------------\n file   disk     vda      /var/lib/libvirt/images/vm.qcow2\n' ;;
+      *) printf ' Target   Source\n------------------------------\n vda      /var/lib/libvirt/images/vm.qcow2\n' ;;
+    esac
+    ;;
+  domblkinfo)
+    printf 'Capacity:       42949672960\nAllocation:     10737418240\nPhysical:       10737418240\n'
     ;;
   domiflist)
     printf ' Interface   Type      Source     Model    MAC\n--------------------------------------------------------------\n vnet0       network   default    virtio   52:54:00:00:00:01\n'
@@ -53,6 +59,9 @@ case "$cmd" in
   vol-list)
     printf ' Name          Path\n---------------------------------------------------------\n web.qcow2     /var/lib/libvirt/images/web.qcow2\n'
     ;;
+  vol-info)
+    printf 'Name:           web.qcow2\nType:           file\nCapacity:       20.00 GiB\nAllocation:     10.00 GiB\n'
+    ;;
   net-list)
     case " $* " in
       *" --name "*) printf 'default\n' ;;
@@ -62,7 +71,7 @@ case "$cmd" in
   net-info)
     printf 'Name:           default\nUUID:           11111111-2222-3333-4444-555555555555\nActive:         yes\nPersistent:     yes\nAutostart:      yes\nBridge:         virbr0\n'
     ;;
-  start|shutdown|reboot|destroy|suspend|resume|autostart|undefine|snapshot-create-as|snapshot-revert|snapshot-delete)
+  start|shutdown|reboot|destroy|suspend|resume|autostart|undefine|snapshot-create-as|snapshot-revert|snapshot-delete|blockresize|vol-create-as|vol-clone|vol-resize|vol-delete|pool-refresh|pool-start|pool-autostart|net-start|net-destroy|net-autostart)
     printf 'Domain operation accepted: %s\n' "$cmd"
     ;;
   slow)
