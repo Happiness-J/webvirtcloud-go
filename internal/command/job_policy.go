@@ -2,10 +2,15 @@ package command
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
+
+var scaledAmountPattern = regexp.MustCompile(`^[1-9][0-9]{0,15}[KMGTPE]?$`)
+var signedScaledAmountPattern = regexp.MustCompile(`^[+-][1-9][0-9]{0,15}[KMGTPE]?$`)
 
 const (
 	RoleAdmin    = "admin"
@@ -48,8 +53,188 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return RoleAdmin, nil
 		}
 		return RoleOperator, nil
+	case "storage-action":
+		if tool != "virsh" {
+			return "", fmt.Errorf("任务类型 storage-action 仅支持 virsh")
+		}
+		if err := validateStorageActionArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
+	case "network-action":
+		if tool != "virsh" {
+			return "", fmt.Errorf("任务类型 network-action 仅支持 virsh")
+		}
+		if err := validateNetworkActionArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
+	case "disk-action":
+		if err := validateDiskActionArgs(tool, args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	default:
 		return "", fmt.Errorf("未知任务类型 %q", kind)
+	}
+}
+
+func validateStorageActionArgs(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("存储操作缺少参数")
+	}
+	switch args[0] {
+	case "pool-refresh", "pool-start":
+		if len(args) != 2 {
+			return fmt.Errorf("存储池操作参数数量不正确")
+		}
+		return validateActionOperand(args[1])
+	case "pool-autostart":
+		if len(args) == 2 {
+			return validateActionOperand(args[1])
+		}
+		if len(args) == 3 && args[1] == "--disable" {
+			return validateActionOperand(args[2])
+		}
+		return fmt.Errorf("存储池自启动参数不正确")
+	case "vol-create-as":
+		if len(args) != 6 || args[4] != "--format" || !validVolumeFormatArg(args[5]) {
+			return fmt.Errorf("创建卷参数不正确")
+		}
+		if err := validateActionOperand(args[1]); err != nil {
+			return err
+		}
+		if err := validateActionOperand(args[2]); err != nil {
+			return err
+		}
+		return validateScaledAmount(args[3], false)
+	case "vol-clone":
+		if len(args) != 5 || args[1] != "--pool" {
+			return fmt.Errorf("克隆卷参数不正确")
+		}
+		for _, value := range args[2:] {
+			if err := validateActionOperand(value); err != nil {
+				return err
+			}
+		}
+		return nil
+	case "vol-resize":
+		if len(args) < 6 || args[1] != "--pool" || args[3] != "--delta" {
+			return fmt.Errorf("卷扩容参数不正确")
+		}
+		if err := validateActionOperand(args[2]); err != nil {
+			return err
+		}
+		if err := validateActionOperand(args[len(args)-2]); err != nil {
+			return err
+		}
+		if err := validateScaledAmount(args[len(args)-1], false); err != nil {
+			return err
+		}
+		if len(args) == 6 {
+			return nil
+		}
+		if len(args) == 7 && args[4] == "--shrink" {
+			return nil
+		}
+		return fmt.Errorf("卷缩容参数不正确")
+	case "vol-delete":
+		if len(args) != 4 || args[1] != "--pool" {
+			return fmt.Errorf("删除卷参数不正确")
+		}
+		if err := validateActionOperand(args[2]); err != nil {
+			return err
+		}
+		return validateActionOperand(args[3])
+	default:
+		return fmt.Errorf("不支持的存储操作 %q", args[0])
+	}
+}
+
+func validateNetworkActionArgs(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("网络操作缺少参数")
+	}
+	switch args[0] {
+	case "net-start", "net-destroy":
+		if len(args) != 2 {
+			return fmt.Errorf("网络操作参数数量不正确")
+		}
+		return validateActionOperand(args[1])
+	case "net-autostart":
+		if len(args) == 2 {
+			return validateActionOperand(args[1])
+		}
+		if len(args) == 3 && args[1] == "--disable" {
+			return validateActionOperand(args[2])
+		}
+		return fmt.Errorf("网络自启动参数不正确")
+	default:
+		return fmt.Errorf("不支持的网络操作 %q", args[0])
+	}
+}
+
+func validateDiskActionArgs(tool string, args []string) error {
+	switch tool {
+	case "virsh":
+		if len(args) != 4 || args[0] != "blockresize" {
+			return fmt.Errorf("在线磁盘扩容参数不正确")
+		}
+		if err := validateActionOperand(args[1]); err != nil {
+			return err
+		}
+		if err := validateActionOperand(args[2]); err != nil {
+			return err
+		}
+		size, err := strconv.ParseUint(args[3], 10, 64)
+		if err != nil || size == 0 {
+			return fmt.Errorf("在线磁盘容量无效")
+		}
+		return nil
+	case "qemu-img":
+		if len(args) == 3 && args[0] == "resize" {
+			return validateDiskResizePathAndAmount(args[1], args[2], false)
+		}
+		if len(args) == 4 && args[0] == "resize" && args[1] == "--shrink" {
+			return validateDiskResizePathAndAmount(args[2], args[3], true)
+		}
+		return fmt.Errorf("离线磁盘扩缩容参数不正确")
+	default:
+		return fmt.Errorf("磁盘操作不支持工具 %q", tool)
+	}
+}
+
+func validateDiskResizePathAndAmount(path, amount string, shrink bool) error {
+	if !strings.HasPrefix(path, "/") || strings.ContainsAny(path, "\x00\r\n") ||
+		len(path) > 4096 || strings.TrimSpace(path) != path {
+		return fmt.Errorf("磁盘路径无效")
+	}
+	if !signedScaledAmountPattern.MatchString(amount) {
+		return fmt.Errorf("磁盘调整容量无效")
+	}
+	if shrink != strings.HasPrefix(amount, "-") {
+		return fmt.Errorf("磁盘缩容标志与容量方向不一致")
+	}
+	return nil
+}
+
+func validateScaledAmount(value string, signed bool) error {
+	pattern := scaledAmountPattern
+	if signed {
+		pattern = signedScaledAmountPattern
+	}
+	if !pattern.MatchString(value) {
+		return fmt.Errorf("容量格式无效")
+	}
+	return nil
+}
+
+func validVolumeFormatArg(format string) bool {
+	switch format {
+	case "raw", "qcow", "qcow2", "qed", "vmdk", "iso":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -118,6 +118,11 @@ type Config struct {
 	// AllowInsecureVNC is intentionally opt-in. VNC itself has no transport
 	// encryption, so qemu+tcp/qemu+tls consoles are rejected by default.
 	AllowInsecureVNC bool
+	// AllowInsecureConsoleContext permits noVNC to initialize when the browser
+	// page itself is served over plain HTTP. It is separate from
+	// AllowInsecureVNC because a local libvirt console can still be exposed to
+	// an untrusted browser context.
+	AllowInsecureConsole bool
 	// ConsoleLoopbackAddress rewrites VNC endpoints that listen on loopback or
 	// all interfaces when the panel itself runs in a container. Leave empty for
 	// native deployments. Docker Compose sets this to host.docker.internal.
@@ -221,6 +226,9 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.AllowInsecureVNC, err = boolEnv("WVC_ALLOW_INSECURE_VNC", false); err != nil {
+		return Config{}, err
+	}
+	if cfg.AllowInsecureConsole, err = boolEnv("WVC_ALLOW_INSECURE_CONSOLE", false); err != nil {
 		return Config{}, err
 	}
 

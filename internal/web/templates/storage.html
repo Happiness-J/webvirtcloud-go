@@ -2,14 +2,55 @@
 <div class="page-head"><div><h1>存储 · {{.Data.Host.Name}}</h1><p class="muted">libvirt 存储池与卷清单。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}">返回主机</a></div>
 <section class="panel">
   <h2>存储池</h2>
-  {{if .Data.Pools}}<table><thead><tr><th>名称</th><th>状态</th><th>自启动</th><th>持久</th><th></th></tr></thead><tbody>{{range .Data.Pools}}<tr><td><a href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">{{.Name}}</a></td><td>{{.State}}</td><td>{{.Autostart}}</td><td>{{.Persistent}}</td><td><a class="btn small" href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">卷</a></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有存储池。</p>{{end}}
+  {{if .Data.Pools}}<table><thead><tr><th>名称</th><th>状态</th><th>自启动</th><th>持久</th><th>操作</th></tr></thead><tbody>{{range .Data.Pools}}<tr><td><a href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">{{.Name}}</a></td><td>{{.State}}</td><td>{{.Autostart}}</td><td>{{.Persistent}}</td><td class="actions"><a class="btn small" href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">卷</a>{{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-refresh"><button class="btn small">刷新</button></form>{{if ne .State "running"}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-start"><button class="btn small">启动</button></form>{{end}}{{if eq .Autostart "yes"}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-autostart-off"><button class="btn small">取消自启</button></form>{{else}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-autostart-on"><button class="btn small">设为自启</button></form>{{end}}{{end}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有存储池。</p>{{end}}
 </section>
 {{if .Data.SelectedPool}}
 <section class="panel">
   <h2>存储池 {{.Data.SelectedPool}}</h2>
   <dl class="kv">{{range .Data.PoolInfo}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
-  {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
+  {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
 </section>
+{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
+<section class="panel">
+  <h2>存储运维</h2>
+  <div class="grid two">
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+      <h3>新建卷</h3>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-create">
+      <label>卷名称<input name="name" required maxlength="128"></label>
+      <label>容量<input name="capacity" value="20G" required pattern="[1-9][0-9]*[KMGTPE]?"></label>
+      <label>格式<select name="format"><option value="qcow2">qcow2</option><option value="raw">raw</option><option value="qcow">qcow</option><option value="vmdk">vmdk</option><option value="qed">qed</option><option value="iso">iso</option></select></label>
+      <button class="btn primary">创建卷</button>
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+      <h3>克隆卷</h3>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-clone">
+      <label>源卷<select name="volume" required>{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
+      <label>新卷名称<input name="name" required maxlength="128"></label>
+      <button class="btn">克隆卷</button>
+    </form>
+  </div>
+  <div class="grid two">
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+      <h3>调整卷容量</h3>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-resize">
+      <label>卷<select name="volume" required>{{range .Data.ResizableVolumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
+      <label>操作<select name="resize_mode"><option value="grow">扩容</option><option value="shrink">缩容</option></select></label>
+      <label>调整量<input name="capacity" value="10G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]?"></label>
+      <label>缩容确认<input name="confirm_text" placeholder="缩容时输入 SHRINK"></label>
+      <p class="hint bad-text">卷缩容前必须先缩小 guest 文件系统和分区，并确保卷未被运行中的虚拟机使用；错误缩容可能破坏数据。</p>
+      <button class="btn danger" data-confirm="确定调整卷容量吗？">执行容量调整</button>
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+      <h3>删除卷</h3>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-delete">
+      <label>卷<select name="volume" required>{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
+      <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>我确认删除该卷</label>
+      <button class="btn danger" data-confirm="删除卷会永久删除其数据，确定继续吗？">删除卷</button>
+    </form>
+  </div>
+</section>
+{{end}}
 {{end}}
 {{if eq .User.Role "admin"}}<p class="hint">创建、删除、扩容卷等高级操作可在 <a href="/hosts/{{.Data.Host.ID}}/command">命令中心</a> 使用 <code>vol-create-as</code>、<code>vol-delete</code>、<code>vol-resize</code> 等完整参数执行。</p>{{end}}
 {{end}}

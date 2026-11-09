@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -236,9 +237,45 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 		}()
 	}
 	wg.Wait()
+	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
 	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr)
 	return detail, nil
+}
+
+func ParseBlockDevices(output string) []BlockDevice {
+	rows := ParseTable(output)
+	out := make([]BlockDevice, 0, len(rows))
+	for _, row := range rows {
+		if len(row) < 4 {
+			continue
+		}
+		device := BlockDevice{Type: row[0], Device: row[1], Target: row[2], Source: row[3]}
+		if device.Target == "" || device.Source == "-" {
+			continue
+		}
+		out = append(out, device)
+	}
+	return out
+}
+
+func (s *Service) BlockDeviceCapacity(ctx context.Context, hostID, name, target string) (uint64, error) {
+	if err := ValidateName(name); err != nil {
+		return 0, err
+	}
+	if err := ValidateName(target); err != nil {
+		return 0, fmt.Errorf("磁盘目标无效: %w", err)
+	}
+	res, err := s.run(ctx, hostID, []string{"domblkinfo", name, target}, 10*time.Second)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	info := ParseKeyValue(res.Stdout)
+	capacity, err := strconv.ParseUint(strings.TrimSpace(info["Capacity"]), 10, 64)
+	if err != nil || capacity == 0 {
+		return 0, fmt.Errorf("无法解析磁盘容量")
+	}
+	return capacity, nil
 }
 
 func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr error) []string {
@@ -317,6 +354,19 @@ func (s *Service) ListVolumes(ctx context.Context, hostID, pool string) ([]Volum
 		}
 		out = append(out, v)
 	}
+	forEachIndex(ctx, len(out), 8, func(i int) {
+		if ValidateName(out[i].Name) != nil {
+			return
+		}
+		infoRes, infoErr := s.run(ctx, hostID, []string{"vol-info", "--pool", pool, out[i].Name}, 10*time.Second)
+		if infoErr != nil {
+			return
+		}
+		info := ParseKeyValue(infoRes.Stdout)
+		out[i].Type = info["Type"]
+		out[i].Capacity = info["Capacity"]
+		out[i].Allocation = info["Allocation"]
+	})
 	return out, nil
 }
 

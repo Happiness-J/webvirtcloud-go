@@ -33,6 +33,13 @@ type Volume struct {
 	Allocation string
 }
 
+type BlockDevice struct {
+	Type   string
+	Device string
+	Target string
+	Source string
+}
+
 type Network struct {
 	Name       string
 	State      string
@@ -51,6 +58,7 @@ type DomainDetail struct {
 	Domain    Domain
 	Info      map[string]string
 	BlockDevs string
+	BlockList []BlockDevice
 	Ifaces    string
 	Snapshots []Snapshot
 	XML       string

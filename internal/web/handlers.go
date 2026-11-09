@@ -445,7 +445,7 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pools, err := s.libvirt.ListPools(r.Context(), host.ID)
-	data := map[string]any{"Host": host, "Pools": pools, "SelectedPool": "", "PoolInfo": []kvRow{}, "Volumes": []libvirt.Volume{}}
+	data := map[string]any{"Host": host, "Pools": pools, "SelectedPool": "", "PoolInfo": []kvRow{}, "Volumes": []libvirt.Volume{}, "ResizableVolumes": []libvirt.Volume{}}
 	page := pageData{Title: "存储", Nav: "hosts", Data: data}
 	if err != nil {
 		s.logRequestError(r, "load storage pools", err)
@@ -482,6 +482,15 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 			page.Flash, page.FlashType = "无法读取存储卷，请查看服务日志。", "error"
 		} else {
 			data["Volumes"] = volumes
+			resizable := make([]libvirt.Volume, 0, len(volumes))
+			for _, volume := range volumes {
+				name := strings.ToLower(volume.Name)
+				if !strings.HasSuffix(name, ".iso") &&
+					(strings.EqualFold(volume.Type, "file") || strings.EqualFold(volume.Type, "block")) {
+					resizable = append(resizable, volume)
+				}
+			}
+			data["ResizableVolumes"] = resizable
 		}
 	}
 	s.render(w, r, "storage", page)

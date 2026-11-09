@@ -360,6 +360,50 @@ func TestWebIntegration(t *testing.T) {
 		!strings.Contains(body, `"started_at"`) || !strings.Contains(body, `"finished_at"`) {
 		t.Fatalf("job API status=%d body=%s", status, body)
 	}
+
+	storagePath := "/hosts/" + host.ID + "/storage?pool=default"
+	status, body, _ = client.request(http.MethodGet, storagePath, nil)
+	if status != http.StatusOK || !strings.Contains(body, "存储运维") || !strings.Contains(body, "调整卷容量") {
+		t.Fatalf("storage operations page status=%d body=%s", status, body)
+	}
+	var operationJobs []string
+	for _, form := range []struct {
+		path string
+		form url.Values
+	}{
+		{
+			path: "/hosts/" + host.ID + "/storage/action",
+			form: url.Values{"_csrf": {csrf}, "pool": {"default"}, "action": {"volume-resize"}, "volume": {"web.qcow2"}, "resize_mode": {"grow"}, "capacity": {"10G"}},
+		},
+		{
+			path: "/hosts/" + host.ID + "/networks/action",
+			form: url.Values{"_csrf": {csrf}, "network": {"default"}, "action": {"net-autostart-on"}},
+		},
+		{
+			path: commandPath[:strings.Index(commandPath, "/command")] + "/vms/web-prod/disk-resize",
+			form: url.Values{"_csrf": {csrf}, "disk_target": {"vda"}, "disk_mode": {"grow"}, "disk_amount": {"10G"}},
+		},
+	} {
+		status, _, final = client.request(http.MethodPost, form.path, form.form)
+		if status != http.StatusOK || !strings.HasPrefix(final, "/jobs/job_") {
+			t.Fatalf("operation POST %s status=%d final=%s", form.path, status, final)
+		}
+		operationJobs = append(operationJobs, strings.TrimPrefix(strings.Split(final, "?")[0], "/jobs/"))
+	}
+	for _, operationID := range operationJobs {
+		deadline := time.Now().Add(10 * time.Second)
+		for time.Now().Before(deadline) {
+			job, err = db.GetJob(ctx, operationID)
+			if err == nil && (job.Status == "succeeded" || job.Status == "failed" || job.Status == "cancelled") {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		if job.Status != "succeeded" {
+			t.Fatalf("operation job %s status=%s output=%q error=%q", operationID, job.Status, job.Output, job.Error)
+		}
+	}
+
 	status, _, final = client.request(http.MethodPost, commandPath, url.Values{
 		"_csrf": {csrf}, "tool": {"virsh"}, "args": {"slow"}, "timeout": {"60"}, "confirm": {"yes"},
 	})

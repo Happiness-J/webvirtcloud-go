@@ -19,6 +19,11 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "vm undefine", kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm"}, want: RoleAdmin},
 		{name: "vm snapshot", kind: "vm-action", tool: "virsh", args: []string{"snapshot-create-as", "vm", "snap"}, want: RoleOperator},
 		{name: "vm autostart disable", kind: "vm-action", tool: "virsh", args: []string{"autostart", "--disable", "vm"}, want: RoleOperator},
+		{name: "storage grow", kind: "storage-action", tool: "virsh", args: []string{"vol-resize", "--pool", "images", "--delta", "disk.qcow2", "10G"}, want: RoleOperator},
+		{name: "storage shrink", kind: "storage-action", tool: "virsh", args: []string{"vol-resize", "--pool", "images", "--delta", "--shrink", "disk.qcow2", "10G"}, want: RoleOperator},
+		{name: "network start", kind: "network-action", tool: "virsh", args: []string{"net-start", "default"}, want: RoleOperator},
+		{name: "online disk grow", kind: "disk-action", tool: "virsh", args: []string{"blockresize", "vm", "vda", "50000000000"}, want: RoleOperator},
+		{name: "offline disk shrink", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "--shrink", "/var/lib/libvirt/images/vm.qcow2", "-10G"}, want: RoleOperator},
 		{name: "missing args", kind: "host-test", tool: "virsh", wantErr: true},
 		{name: "wrong command tool", kind: "command", tool: "unknown", args: []string{"list"}, wantErr: true},
 		{name: "wrong vm tool", kind: "vm-action", tool: "qemu-img", args: []string{"info", "a"}, wantErr: true},
@@ -27,6 +32,11 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "vm rejects extra arguments", kind: "vm-action", tool: "virsh", args: []string{"destroy", "vm", "--graceful"}, wantErr: true},
 		{name: "host test rejects other commands", kind: "host-test", tool: "virsh", args: []string{"nodeinfo"}, wantErr: true},
 		{name: "unknown kind", kind: "unknown", tool: "virsh", args: []string{"list"}, wantErr: true},
+		{name: "storage rejects unknown action", kind: "storage-action", tool: "virsh", args: []string{"vol-wipe", "disk"}, wantErr: true},
+		{name: "storage rejects invalid amount", kind: "storage-action", tool: "virsh", args: []string{"vol-resize", "--pool", "images", "--delta", "disk.qcow2", "10X"}, wantErr: true},
+		{name: "network rejects option injection", kind: "network-action", tool: "virsh", args: []string{"net-start", "--all"}, wantErr: true},
+		{name: "disk rejects sign mismatch", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "--shrink", "/var/lib/libvirt/images/vm.qcow2", "+10G"}, wantErr: true},
+		{name: "disk rejects relative path", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "vm.qcow2", "+10G"}, wantErr: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

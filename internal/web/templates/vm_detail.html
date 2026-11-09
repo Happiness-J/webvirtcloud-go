@@ -17,6 +17,20 @@
 </section>{{end}}
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
+  <h2>磁盘容量</h2>
+  {{if .Data.Detail.BlockList}}<table><thead><tr><th>类型</th><th>用途</th><th>目标</th><th>源</th></tr></thead><tbody>{{range .Data.Detail.BlockList}}<tr><td>{{.Type}}</td><td>{{.Device}}</td><td><code>{{.Target}}</code></td><td><code>{{.Source}}</code></td></tr>{{end}}</tbody></table>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/disk-resize" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <select name="disk_target" required>{{range .Data.Detail.BlockList}}{{if and (eq .Device "disk") (or (eq .Type "file") (eq .Type "block"))}}<option value="{{.Target}}">{{.Target}} · {{.Source}}</option>{{end}}{{end}}</select>
+    <select name="disk_mode"><option value="grow">扩容</option><option value="shrink" {{if ne .Data.Detail.Domain.State "shut off"}}disabled{{end}}>缩容</option></select>
+    <input name="disk_amount" value="10G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]?">
+    <input name="confirm_text" placeholder="缩容时输入 SHRINK">
+    <button class="btn danger" data-confirm="调整磁盘容量前请确认分区和文件系统状态，继续吗？">调整磁盘</button>
+  </form>
+  <p class="hint bad-text">在线扩容只扩展虚拟磁盘容量，仍需在 guest 内扩展分区和文件系统。缩容必须先关机，并在 guest 内先缩小文件系统/分区；错误缩容可能破坏磁盘数据。</p>
+  {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
+</section>
+<section class="panel">
   <h2>快照</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">

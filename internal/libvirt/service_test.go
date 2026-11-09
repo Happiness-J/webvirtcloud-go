@@ -67,6 +67,22 @@ func TestParseTablePreservesSnapshotColumns(t *testing.T) {
 	}
 }
 
+func TestParseBlockDevices(t *testing.T) {
+	output := ` Type   Device   Target   Source
+------------------------------------------------------------
+ file   disk     vda      /var/lib/libvirt/images/vm.qcow2
+ file   cdrom    sda      -
+`
+	devices := ParseBlockDevices(output)
+	if len(devices) != 1 {
+		t.Fatalf("devices = %#v", devices)
+	}
+	if devices[0].Type != "file" || devices[0].Device != "disk" ||
+		devices[0].Target != "vda" || devices[0].Source != "/var/lib/libvirt/images/vm.qcow2" {
+		t.Fatalf("unexpected device: %#v", devices[0])
+	}
+}
+
 func TestValidateName(t *testing.T) {
 	for _, name := range []string{"--connect", ".", "..", " vm", "vm/one"} {
 		if err := ValidateName(name); err == nil {
