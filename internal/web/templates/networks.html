@@ -1,0 +1,7 @@
+{{define "content"}}
+<div class="page-head"><div><h1>网络 · {{.Data.Host.Name}}</h1><p class="muted">libvirt 虚拟网络清单。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}">返回主机</a></div>
+<section class="panel">
+  {{if .Data.Networks}}<table><thead><tr><th>名称</th><th>状态</th><th>自启动</th><th>持久</th></tr></thead><tbody>{{range .Data.Networks}}<tr><td>{{.Name}}</td><td><span class="pill {{statusClass .State}}">{{.State}}</span></td><td>{{.Autostart}}</td><td>{{.Persistent}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有虚拟网络。</p>{{end}}
+</section>
+{{if eq .User.Role "admin"}}<p class="hint">网络定义、DHCP 租约、NAT 和端口转发等完整能力可在 <a href="/hosts/{{.Data.Host.ID}}/command">命令中心</a> 直接调用 <code>virsh net-*</code> 命令。</p>{{end}}
+{{end}}

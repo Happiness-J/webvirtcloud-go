@@ -1,0 +1,14 @@
+WebVirtCloud Go
+Copyright 2026 WebVirtCloud Go contributors
+
+This product includes documentation-derived command metadata from the libvirt
+project (https://libvirt.org/), the libguestfs project
+(https://libguestfs.org/), and the QEMU project (https://www.qemu.org/).
+The command names, syntax summaries, and documentation links remain subject to
+their respective upstream licenses and copyrights.
+
+The bundled noVNC 1.7.0 runtime is licensed under MPL-2.0. Its license and
+third-party notices are included under internal/web/static/novnc/.
+
+Go dependency notices and full third-party license texts are listed in
+THIRD_PARTY_LICENSES.md and third_party/.

@@ -1,0 +1,17 @@
+{{define "content"}}
+<div class="page-head"><div><h1>{{if .Data.Editing}}编辑主机{{else}}添加主机{{end}}</h1><p class="muted">URI 由服务端保管，任务执行时自动注入 <code>virsh --connect</code>。</p></div></div>
+<section class="panel narrow">
+<form method="post" class="stack">
+  <input type="hidden" name="_csrf" value="{{.CSRF}}">
+  <label>主机名称<input name="name" value="{{.Data.Host.Name}}" maxlength="128" required></label>
+  <label>libvirt 连接 URI
+    <input name="uri" type="password" value="" {{if not .Data.Editing}}required{{end}} autocomplete="off" spellcheck="false" placeholder="{{if .Data.Editing}}留空保持当前 URI{{else}}qemu+ssh://root@10.0.0.10/system{{end}}">
+  </label>
+  <p class="hint">支持 <code>qemu:///system</code>、<code>qemu+ssh://user@host/system</code>、<code>qemu+unix:///system</code>、<code>qemu+tcp://</code>、<code>qemu+tls://</code>。SSH 必须使用免密密钥并预先配置 known_hosts。</p>
+  <p class="hint">Web 控制台默认只允许本机 libvirt、<code>qemu+ssh</code> 或显式开启 <code>WVC_ALLOW_INSECURE_VNC=true</code> 的远程连接。<code>qemu+tcp</code>/<code>qemu+tls</code> 可用于 virsh，但其 VNC 数据流本身未加密，默认会被控制台拒绝。</p>
+  <label>说明<textarea name="description" rows="4" maxlength="2000">{{.Data.Host.Description}}</textarea></label>
+  <label class="checkline"><input type="checkbox" name="enabled" value="1" {{if .Data.Host.Enabled}}checked{{end}}> 启用该主机</label>
+  <div class="form-actions"><button class="btn primary">保存</button><a class="btn" href="/hosts">取消</a></div>
+</form>
+</section>
+{{end}}

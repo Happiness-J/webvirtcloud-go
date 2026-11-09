@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="page-head"><div><h1>计算主机</h1><p class="muted">libvirt 连接 URI 在数据库中使用 AES-256-GCM 加密保存。</p></div>{{if eq .User.Role "admin"}}<a class="btn primary" href="/hosts/new">添加主机</a>{{end}}</div>
+<section class="panel">
+{{if .Data.Hosts}}
+<table><thead><tr><th>名称</th><th>连接</th><th>状态</th><th>说明</th><th></th></tr></thead><tbody>
+{{range .Data.Hosts}}<tr>
+  <td><a href="/hosts/{{.ID}}"><strong>{{.Name}}</strong></a></td>
+  <td><code>{{index $.Data.Redacted .ID}}</code></td>
+  <td>{{if .Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</td>
+  <td class="muted">{{.Description}}</td>
+  <td class="actions"><a class="btn small" href="/hosts/{{.ID}}/vms">虚拟机</a><a class="btn small" href="/hosts/{{.ID}}/storage">存储</a><a class="btn small" href="/hosts/{{.ID}}/networks">网络</a></td>
+</tr>{{end}}</tbody></table>
+{{else}}<p class="empty">尚未配置主机。管理员可添加 <code>qemu:///system</code> 或 <code>qemu+ssh://user@host/system</code>。</p>{{end}}
+</section>
+{{end}}

@@ -1,0 +1,38 @@
+{{define "content"}}
+<div class="page-head">
+  <div><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.Host.Name}} · 状态 <span class="pill {{statusClass .Data.Detail.Domain.State}}">{{.Data.Detail.Domain.State}}</span></p></div>
+  <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">返回列表</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator")) (consoleAvailable .Data.Detail.Domain.State)}}<a class="btn primary" href="/console/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">VNC 控制台</a>{{end}}</div>
+</div>
+{{if .Data.Actions}}<section class="panel">
+  <h2>电源与生命周期</h2>
+  <div class="action-row">
+  {{range .Data.Actions}}
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline action-form">
+      <input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="{{.Name}}">
+      {{if .Destructive}}<label class="confirm" title="{{.Confirm}}"><input type="checkbox" name="confirm" value="yes" required>确认</label>{{end}}
+      <button class="btn {{if .Destructive}}danger{{else if .Primary}}primary{{end}}" {{if not .Destructive}}data-confirm="{{.Confirm}}"{{end}}>{{.Label}}</button>
+    </form>
+  {{end}}
+  </div>
+</section>{{end}}
+{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
+<section class="panel">
+  <h2>快照</h2>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <select name="action"><option value="snapshot-create">创建</option><option value="snapshot-revert">恢复</option><option value="snapshot-delete">删除</option></select>
+    <input name="snapshot" placeholder="快照名称" maxlength="128" required>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes">恢复/删除需确认</label>
+    <button class="btn" data-confirm="确定执行快照操作吗？">执行</button>
+  </form>
+  {{if .Data.Detail.Snapshots}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th></tr></thead><tbody>{{range .Data.Detail.Snapshots}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有快照。</p>{{end}}
+</section>
+{{end}}
+<div class="grid two">
+  <section class="panel"><h2>摘要</h2><dl class="kv">{{range .Data.InfoRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
+  <section class="panel"><h2>块设备</h2><pre class="output">{{.Data.Detail.BlockDevs}}</pre><h2>网络接口</h2><pre class="output">{{.Data.Detail.Ifaces}}</pre></section>
+</div>
+{{if eq .User.Role "admin"}}
+{{if .Data.Detail.XML}}<section class="panel"><div class="panel-head"><h2>虚拟机 XML</h2><a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a></div><details><summary>展开 XML</summary><pre class="output xml">{{.Data.Detail.XML}}</pre></details></section>{{end}}
+{{end}}
+{{end}}

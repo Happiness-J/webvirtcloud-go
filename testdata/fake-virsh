@@ -1,0 +1,76 @@
+#!/bin/sh
+set -eu
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --readonly) shift ;;
+    --connect) shift 2 ;;
+    --connect=*) shift ;;
+    *) break ;;
+  esac
+done
+
+cmd=${1:-}
+[ "$#" -gt 0 ] && shift
+
+case "$cmd" in
+  version)
+    printf 'Compiled against library: libvirt 10.0.0\nUsing library: libvirt 10.0.0\nRunning hypervisor: QEMU 8.2.0\n'
+    ;;
+  list)
+    case " $* " in
+      *" --name "*) printf 'web-prod\ndb-staging\n' ;;
+      *) printf ' Id   Name          State\n----------------------------\n 7    web-prod      running\n -    db-staging    shut off\n' ;;
+    esac
+    ;;
+  dominfo)
+    printf 'Id:             7\nName:           %s\nUUID:           11111111-2222-3333-4444-555555555555\nState:          running\nCPU(s):         4\nMax memory:     4194304 KiB\nUsed memory:    2097152 KiB\nAutostart:      disable\nPersistent:     yes\n'
+    ;;
+  dumpxml)
+    printf '<domain type="kvm"><name>%s</name><devices><graphics type="vnc" port="5900" autoport="yes" listen="127.0.0.1" passwd="vnc-secret"/></devices></domain>\n' "${1:-vm}"
+    ;;
+  domblklist)
+    printf ' Target   Source\n------------------------------\n vda      /var/lib/libvirt/images/vm.qcow2\n'
+    ;;
+  domiflist)
+    printf ' Interface   Type      Source     Model    MAC\n--------------------------------------------------------------\n vnet0       network   default    virtio   52:54:00:00:00:01\n'
+    ;;
+  snapshot-list)
+    case " $* " in
+      *" --name "*) printf 'clean\n' ;;
+      *) printf ' Name   Creation Time               State\n---------------------------------------------------\n clean  2026-10-20 10:00:00 +0800  shutoff\n' ;;
+    esac
+    ;;
+  pool-list)
+    case " $* " in
+      *" --name "*) printf 'default\n' ;;
+      *) printf ' Name      State    Autostart   Persistent\n----------------------------------------------\n default   active   yes         yes\n' ;;
+    esac
+    ;;
+  pool-info)
+    printf 'Name:           default\nUUID:           11111111-2222-3333-4444-555555555555\nState:          running\nPersistent:     yes\nAutostart:      yes\nCapacity:       100.00 GiB\nAllocation:     20.00 GiB\nAvailable:      80.00 GiB\n'
+    ;;
+  vol-list)
+    printf ' Name          Path\n---------------------------------------------------------\n web.qcow2     /var/lib/libvirt/images/web.qcow2\n'
+    ;;
+  net-list)
+    case " $* " in
+      *" --name "*) printf 'default\n' ;;
+      *) printf ' Name      State    Autostart   Persistent\n----------------------------------------------\n default   active   yes         yes\n' ;;
+    esac
+    ;;
+  net-info)
+    printf 'Name:           default\nUUID:           11111111-2222-3333-4444-555555555555\nActive:         yes\nPersistent:     yes\nAutostart:      yes\nBridge:         virbr0\n'
+    ;;
+  start|shutdown|reboot|destroy|suspend|resume|autostart|undefine|snapshot-create-as|snapshot-revert|snapshot-delete)
+    printf 'Domain operation accepted: %s\n' "$cmd"
+    ;;
+  slow)
+    sleep 30
+    printf 'slow operation finished\n'
+    ;;
+  *)
+    printf 'fake virsh does not implement: %s\n' "$cmd" >&2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wvc}
+      POSTGRES_USER: ${POSTGRES_USER:-wvc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - wvc-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wvc} -d ${POSTGRES_DB:-wvc}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "127.0.0.1:55433:5432"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build:
+      context: .
+      args:
+        VERSION: ${WVC_VERSION:-dev}
+        COMMIT: ${WVC_COMMIT:-unknown}
+        BUILD_DATE: ${WVC_BUILD_DATE:-unknown}
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+        APT_MIRROR: ${APT_MIRROR:-http://deb.debian.org/debian}
+        APT_SECURITY_MIRROR: ${APT_SECURITY_MIRROR:-http://deb.debian.org/debian-security}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    stop_grace_period: 30s
+    env_file:
+      - ${WVC_ENV_FILE:-.env}
+    environment:
+      WVC_DATABASE_URL: ${WVC_DATABASE_URL:-postgres://${POSTGRES_USER:-wvc}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-wvc}?sslmode=disable}
+      WVC_MASTER_KEY_FILE: /app/data/master.key
+      # Rewrite VNC targets to the host gateway. This works for listeners on
+      # 0.0.0.0, but a listener bound strictly to the host's 127.0.0.1 is not
+      # reachable through the gateway; use a private bind address or qemu+ssh.
+      # Remote qemu+ssh and non-loopback private listeners are unchanged.
+      WVC_CONSOLE_LOOPBACK_ADDRESS: ${WVC_CONSOLE_LOOPBACK_ADDRESS:-host.docker.internal}
+    ports:
+      - "${WVC_PUBLISH_ADDR:-127.0.0.1}:8080:8080"
+    volumes:
+      - wvc-data:/app/data
+      # Named volume by default so libguestfs/virt-v2v temporary files cannot
+      # fill Docker's writable layer or the host's Docker root filesystem.
+      - wvc-tmp:/var/tmp
+      - ${WVC_SSH_DIR:-./deploy/ssh}:/home/wvc/.ssh:ro
+      # Refuse to start instead of silently creating a directory when the
+      # host libvirt socket is absent. Remove this mount when using only
+      # remote qemu+ssh hosts.
+      - type: bind
+        source: /var/run/libvirt/libvirt-sock
+        target: /var/run/libvirt/libvirt-sock
+        bind:
+          create_host_path: false
+      # Optional: expose host disk images to local QEMU utilities. The host
+      # directory must exist and be writable by uid 10001.
+      # - ${WVC_IMAGE_DIR:-/var/lib/libvirt/images}:/var/lib/libvirt/images
+      # To use a dedicated host directory instead, remove the wvc-tmp volume
+      # above and uncomment this bind mount. The directory must be writable by
+      # uid 10001.
+      # - ${WVC_TMP_DIR:-./data/tmp}:/var/tmp
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Optional host integration. Uncomment only the entries you need.
+    # /dev/kvm enables KVM acceleration for libguestfs/virt-v2v; without it
+    # they fall back to much slower software emulation. guestmount is not
+    # supported by the finite asynchronous job model, so this image does not
+    # require /dev/fuse or CAP_SYS_ADMIN.
+    # devices:
+    #   - /dev/kvm:/dev/kvm
+    group_add:
+      - "${LIBVIRT_GID:-992}"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: ${WVC_APP_MEM_LIMIT:-4g}
+    cpus: "${WVC_APP_CPUS:-2.0}"
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=256m,mode=1777
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  wvc-db:
+  wvc-data:
+  wvc-tmp:

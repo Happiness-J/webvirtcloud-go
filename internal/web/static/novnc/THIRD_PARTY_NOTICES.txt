@@ -1,0 +1,7 @@
+noVNC 1.7.0
+Copyright (C) The noVNC Authors
+Licensed under the Mozilla Public License 2.0. See LICENSE.txt in this directory.
+Source: https://github.com/novnc/noVNC
+
+Bundled ES module port of pako is licensed under the MIT License.
+See vendor/pako/LICENSE in this directory.

@@ -1,0 +1,31 @@
+[Unit]
+Description=WebVirtCloud Go control plane
+After=network-online.target libvirtd.service postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wvc
+Group=libvirt
+WorkingDirectory=/var/lib/webvirtcloud-go
+EnvironmentFile=/etc/webvirtcloud-go/env
+Environment=TMPDIR=/var/lib/webvirtcloud-go/tmp
+ExecStart=/usr/local/bin/wvc
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=30s
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0077
+ReadWritePaths=/var/lib/webvirtcloud-go
+ReadWritePaths=-/var/lib/libvirt/images
+
+[Install]
+WantedBy=multi-user.target

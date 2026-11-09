@@ -1,0 +1,31 @@
+{{define "content"}}
+<div class="page-head">
+  <div><h1>{{.Data.Host.Name}}</h1><p class="muted">{{.Data.Host.Description}}</p></div>
+  <div class="actions">{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form>{{end}}</div>
+</div>
+<div class="grid two">
+  <section class="panel">
+    <h2>连接信息</h2>
+    <dl class="kv"><dt>URI</dt><dd><code>{{.Data.Redacted}}</code></dd><dt>状态</dt><dd>{{if .Data.Host.Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</dd><dt>创建时间</dt><dd>{{date .Data.Host.CreatedAt}}</dd></dl>
+  </section>
+  <section class="panel">
+    <h2>快捷入口</h2>
+    <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/vms">虚拟机</a><a href="/hosts/{{.Data.Host.ID}}/storage">存储池</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络</a>{{if eq .User.Role "admin"}}<a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a>{{end}}</div>
+  </section>
+</div>
+<section class="panel">
+  <div class="panel-head"><h2>该主机的最近任务</h2><a href="/jobs">全部任务</a></div>
+  {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{.Status}}</span></td><td>{{.UserName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">尚无任务。</p>{{end}}
+</section>
+{{if eq .User.Role "admin"}}
+<section class="panel danger-zone">
+  <h2>危险操作</h2>
+  <p class="muted">删除只会移除面板中的连接配置，不会在宿主机上删除任何虚拟机。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/delete" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="confirm" value="yes">
+    <label class="confirm"><input type="checkbox" name="ack" value="yes" required>我确认删除此主机配置</label>
+    <button class="btn danger" data-confirm="确定删除主机配置吗？">删除主机配置</button>
+  </form>
+</section>
+{{end}}
+{{end}}

@@ -1,0 +1,13 @@
+# Install this drop-in only when the Docker daemon needs an HTTP proxy to pull
+# base images. Adjust the address for the local proxy; do not commit credentials.
+#
+# sudo install -d -m 0755 /etc/systemd/system/docker.service.d
+# sudo install -m 0644 deploy/docker-http-proxy.conf.example \
+#   /etc/systemd/system/docker.service.d/http-proxy.conf
+# sudo systemctl daemon-reload
+# sudo systemctl restart docker
+
+[Service]
+Environment="HTTP_PROXY=http://127.0.0.1:7897"
+Environment="HTTPS_PROXY=http://127.0.0.1:7897"
+Environment="NO_PROXY=localhost,127.0.0.1,::1"

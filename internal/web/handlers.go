@@ -1,0 +1,846 @@
+package web
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
+	"unicode/utf8"
+
+	"webvirtcloud-go/internal/auth"
+	"webvirtcloud-go/internal/command"
+	"webvirtcloud-go/internal/id"
+	"webvirtcloud-go/internal/libvirt"
+	"webvirtcloud-go/internal/store"
+)
+
+type dashboardData struct {
+	Hosts     []store.Host
+	HostCount int
+	VMCount   int
+	UserCount int
+	Tools     []command.Tool
+	Jobs      []store.Job
+	Audit     []store.Audit
+	Stats     store.QueueStats
+}
+
+func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessionFrom(r.Context())
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	stats, err := s.db.QueueStats(r.Context())
+	if err != nil {
+		s.log.Warn("load dashboard queue stats", "error", err)
+	}
+	jobs, err := s.db.ListJobs(r.Context(), sess.User.ID, sess.User.Role == "admin", 8)
+	if err != nil {
+		s.log.Warn("load dashboard jobs", "error", err)
+	}
+	var audits []store.Audit
+	if sess.User.Role == "admin" || sess.User.Role == "operator" {
+		audits, err = s.db.RecentAudit(r.Context(), 6)
+		if err != nil {
+			s.log.Warn("load dashboard audit", "error", err)
+		}
+	}
+	userCount := 0
+	if sess.User.Role == "admin" {
+		userCount, err = s.db.CountUsers(r.Context())
+		if err != nil {
+			s.log.Warn("count dashboard users", "error", err)
+		}
+	}
+	vmCount := 0
+	for _, group := range s.loadVMGroups(r.Context(), hosts) {
+		vmCount += len(group.Domains)
+	}
+	s.render(w, r, "dashboard", pageData{
+		Title: "概览", Nav: "dashboard",
+		Data: dashboardData{
+			Hosts: hosts, HostCount: len(hosts), VMCount: vmCount, UserCount: userCount,
+			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats,
+		},
+	})
+}
+
+func (s *Server) hostsPage(w http.ResponseWriter, r *http.Request) {
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	redacted := make(map[string]string, len(hosts))
+	for _, host := range hosts {
+		uri, err := libvirt.DecryptURI(s.cipher, host)
+		if err != nil {
+			redacted[host.ID] = "[无法解密]"
+			continue
+		}
+		redacted[host.ID] = redactURI(uri)
+	}
+	s.render(w, r, "hosts", pageData{Title: "主机", Nav: "hosts", Data: map[string]any{"Hosts": hosts, "Redacted": redacted}})
+}
+
+func (s *Server) hostNewPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "host_form", pageData{Title: "添加主机", Nav: "hosts", Data: map[string]any{"Host": store.Host{Enabled: true}, "Editing": false}})
+}
+
+func (s *Server) hostCreate(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.Form.Get("name"))
+	uri := strings.TrimSpace(r.Form.Get("uri"))
+	description := strings.TrimSpace(r.Form.Get("description"))
+	if err := validateDisplayText(name, 128, "主机名称"); err != nil {
+		s.redirectError(w, r, "/hosts/new", err.Error())
+		return
+	}
+	if name == "" {
+		s.redirectError(w, r, "/hosts/new", "主机名称不能为空")
+		return
+	}
+	if err := validateDisplayText(description, 2000, "主机描述"); err != nil {
+		s.redirectError(w, r, "/hosts/new", err.Error())
+		return
+	}
+	if err := command.ValidateURI(uri); err != nil || uri == "" {
+		s.redirectError(w, r, "/hosts/new", "libvirt URI 无效")
+		return
+	}
+	hostID := id.New("host")
+	encrypted, err := s.cipher.SealFor("host:"+hostID, uri)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	host := store.Host{
+		ID: hostID, Name: name, URICiphertext: encrypted,
+		Description: description, Enabled: r.Form.Get("enabled") == "1",
+	}
+	if err := s.db.CreateHost(r.Context(), host); err != nil {
+		if store.IsUniqueViolation(err) {
+			s.redirectError(w, r, "/hosts/new", "主机名称已存在")
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "host.create", HostID: host.ID, RemoteIP: s.clientIP(r), Detail: map[string]any{"name": name}})
+	http.Redirect(w, r, flashURL("/hosts/"+host.ID, "主机已添加", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) hostDetail(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	uri, decryptErr := libvirt.DecryptURI(s.cipher, host)
+	sess, _ := sessionFrom(r.Context())
+	jobs, jobsErr := s.db.ListJobsByHost(r.Context(), sess.User.ID, sess.User.Role == "admin", host.ID, 10)
+	if jobsErr != nil {
+		s.serverError(w, r, jobsErr)
+		return
+	}
+	redactedURI := redactURI(uri)
+	if decryptErr != nil {
+		redactedURI = "[无法解密]"
+	}
+	s.render(w, r, "host_detail", pageData{Title: host.Name, Nav: "hosts", Data: map[string]any{"Host": host, "Redacted": redactedURI, "Jobs": jobs}})
+}
+
+func (s *Server) hostEditPage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	s.render(w, r, "host_form", pageData{Title: "编辑主机", Nav: "hosts", Data: map[string]any{"Host": host, "Editing": true}})
+}
+
+func (s *Server) hostUpdate(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	name := strings.TrimSpace(r.Form.Get("name"))
+	if err := validateDisplayText(name, 128, "主机名称"); err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", err.Error())
+		return
+	}
+	if name == "" {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", "主机名称不能为空")
+		return
+	}
+	description := strings.TrimSpace(r.Form.Get("description"))
+	if err := validateDisplayText(description, 2000, "主机描述"); err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", err.Error())
+		return
+	}
+	uriChanged := false
+	if raw := strings.TrimSpace(r.Form.Get("uri")); raw != "" {
+		if err := command.ValidateURI(raw); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/edit", "libvirt URI 无效")
+			return
+		}
+		current, decryptErr := libvirt.DecryptURI(s.cipher, host)
+		if decryptErr != nil || current != raw {
+			encrypted, err := s.cipher.SealFor("host:"+host.ID, raw)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			host.URICiphertext = encrypted
+			uriChanged = true
+		}
+	}
+	host.Name = name
+	host.Description = description
+	host.Enabled = r.Form.Get("enabled") == "1"
+	if err := s.db.UpdateHost(r.Context(), host); err != nil {
+		if errors.Is(err, store.ErrHostHasActiveJobs) && uriChanged {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/edit", "该主机仍有排队或运行中的任务，修改连接 URI 前请等待任务结束或取消任务")
+			return
+		}
+		if store.IsUniqueViolation(err) {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/edit", "主机名称已存在")
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "host.update", HostID: host.ID, RemoteIP: s.clientIP(r), Detail: map[string]any{"name": name, "enabled": host.Enabled, "uri_changed": uriChanged}})
+	http.Redirect(w, r, flashURL("/hosts/"+host.ID, "主机已更新", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) hostDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Form.Get("confirm") != "yes" || r.Form.Get("ack") != "yes" {
+		s.redirectError(w, r, "/hosts/"+r.PathValue("id"), "删除主机需要显式确认")
+		return
+	}
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	if err := s.db.DeleteHost(r.Context(), host.ID); err != nil {
+		if errors.Is(err, store.ErrHostHasActiveJobs) {
+			s.redirectError(w, r, "/hosts/"+host.ID, "该主机仍有排队或运行中的任务，请等待任务结束后再删除")
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "host.delete", HostID: host.ID, RemoteIP: s.clientIP(r), Detail: map[string]any{"name": host.Name}})
+	http.Redirect(w, r, flashURL("/hosts", "主机配置已删除（不会删除宿主机上的虚拟机）", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) hostTest(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "host-test", "测试 libvirt 连接", "virsh", []string{"version"}, "", 30)
+	if err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID, err.Error())
+		return
+	}
+	http.Redirect(w, r, "/jobs/"+jobID, http.StatusSeeOther)
+}
+
+func (s *Server) hostVMsPage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": s.loadVMGroups(r.Context(), []store.Host{host})}})
+}
+
+func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": s.loadVMGroups(r.Context(), hosts)}})
+}
+
+type vmGroup struct {
+	Host    store.Host
+	Domains []libvirt.Domain
+	Err     string
+	cause   error
+}
+
+func (s *Server) loadVMGroups(ctx context.Context, hosts []store.Host) []vmGroup {
+	groups := loadVMGroups(ctx, hosts, 8, s.libvirt.ListDomains)
+	for _, group := range groups {
+		if group.cause != nil {
+			s.log.Warn("load host VMs", "host_id", group.Host.ID, "host", group.Host.Name, "error", group.cause)
+		}
+	}
+	return groups
+}
+
+type listDomainsFunc func(context.Context, string) ([]libvirt.Domain, error)
+
+func loadVMGroups(ctx context.Context, hosts []store.Host, limit int, listDomains listDomainsFunc) []vmGroup {
+	if limit < 1 {
+		limit = 1
+	}
+	groups := make([]vmGroup, len(hosts))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, limit)
+	for i, host := range hosts {
+		groups[i].Host = host
+		if !host.Enabled {
+			groups[i].Err = "主机已禁用"
+			continue
+		}
+		if err := ctx.Err(); err != nil {
+			groups[i].Err = "请求已取消"
+			continue
+		}
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			groups[i].Err = "请求已取消"
+			continue
+		}
+		wg.Add(1)
+		go func(idx int, h store.Host) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					groups[idx].Domains = nil
+					groups[idx].Err = "读取虚拟机清单时发生内部错误"
+				}
+			}()
+			runCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+			defer cancel()
+			domains, err := listDomains(runCtx, h.ID)
+			if err != nil {
+				groups[idx].Err = "无法读取虚拟机清单，请检查主机连接或查看服务日志"
+				groups[idx].cause = err
+				return
+			}
+			for j := range domains {
+				domains[j].HostID = h.ID
+				domains[j].HostName = h.Name
+			}
+			groups[idx].Domains = domains
+		}(i, host)
+	}
+	wg.Wait()
+	return groups
+}
+
+type kvRow struct{ Key, Value string }
+
+type vmActionView struct {
+	Name, Label, Confirm            string
+	Destructive, AdminOnly, Primary bool
+}
+
+func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	vmName := r.PathValue("vm")
+	if err := libvirt.ValidateName(vmName); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "名称无效", err.Error())
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	detail, err := s.libvirt.Detail(r.Context(), host.ID, vmName, sess.User.Role == "admin")
+	if err != nil {
+		s.logRequestError(r, "load VM detail", err)
+		s.renderError(w, r, http.StatusBadGateway, "无法读取虚拟机", "无法从目标主机读取虚拟机信息，请检查主机连接或查看服务日志。")
+		return
+	}
+	infoRows := make([]kvRow, 0, len(detail.Info))
+	for key, value := range detail.Info {
+		infoRows = append(infoRows, kvRow{Key: key, Value: value})
+	}
+	sort.Slice(infoRows, func(i, j int) bool { return infoRows[i].Key < infoRows[j].Key })
+	actions := vmActions(sess.User.Role, detail.Domain.State, detail.Info["Autostart"])
+	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
+		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions,
+	}}
+	if len(detail.Warnings) > 0 {
+		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
+		page.FlashType = "warn"
+	}
+	s.render(w, r, "vm_detail", page)
+}
+
+func vmActions(role, state, autostart string) []vmActionView {
+	if role != "admin" && role != "operator" {
+		return nil
+	}
+	state = strings.ToLower(strings.TrimSpace(state))
+	autostart = strings.ToLower(strings.TrimSpace(autostart))
+	actions := make([]vmActionView, 0, 6)
+	switch state {
+	case "shut off", "crashed":
+		actions = append(actions, vmActionView{Name: "start", Label: "启动", Primary: true})
+	case "running":
+		actions = append(actions,
+			vmActionView{Name: "shutdown", Label: "正常关机"},
+			vmActionView{Name: "reboot", Label: "重启", Destructive: true, Confirm: "确定重启虚拟机吗？"},
+			vmActionView{Name: "destroy", Label: "强制断电", Destructive: true, Confirm: "强制断电可能导致数据损坏，确定继续吗？"},
+			vmActionView{Name: "suspend", Label: "挂起"},
+		)
+	case "paused":
+		actions = append(actions,
+			vmActionView{Name: "resume", Label: "恢复运行"},
+			vmActionView{Name: "destroy", Label: "强制断电", Destructive: true, Confirm: "强制断电可能导致数据损坏，确定继续吗？"},
+		)
+	}
+	if autostart == "enable" {
+		actions = append(actions, vmActionView{Name: "autostart-off", Label: "取消开机自启", Destructive: true, Confirm: "确定取消开机自启吗？"})
+	} else {
+		actions = append(actions, vmActionView{Name: "autostart-on", Label: "设为开机自启"})
+	}
+	if role == "admin" && (state == "shut off" || state == "crashed") {
+		actions = append(actions, vmActionView{Name: "undefine", Label: "删除定义", Destructive: true, AdminOnly: true, Confirm: "将删除 libvirt 中的虚拟机定义，磁盘文件不会自动删除。确定继续吗？"})
+	}
+	return actions
+}
+
+func consoleAvailable(state string) bool {
+	switch strings.ToLower(strings.TrimSpace(state)) {
+	case "running", "paused":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	pools, err := s.libvirt.ListPools(r.Context(), host.ID)
+	data := map[string]any{"Host": host, "Pools": pools, "SelectedPool": "", "PoolInfo": []kvRow{}, "Volumes": []libvirt.Volume{}}
+	page := pageData{Title: "存储", Nav: "hosts", Data: data}
+	if err != nil {
+		s.logRequestError(r, "load storage pools", err)
+		page.Flash, page.FlashType = "无法读取存储池，请检查主机连接或查看服务日志。", "error"
+	}
+	pool := r.URL.Query().Get("pool")
+	if pool != "" && err == nil {
+		if err := libvirt.ValidateName(pool); err != nil {
+			s.renderError(w, r, http.StatusBadRequest, "存储池名称无效", err.Error())
+			return
+		}
+		poolFound := false
+		for _, available := range pools {
+			if available.Name == pool {
+				poolFound = true
+				break
+			}
+		}
+		if !poolFound {
+			s.renderError(w, r, http.StatusNotFound, "存储池不存在", "指定的存储池不在当前主机的存储池清单中。")
+			return
+		}
+		data["SelectedPool"] = pool
+		info, infoErr := s.libvirt.PoolInfo(r.Context(), host.ID, pool)
+		if infoErr != nil {
+			s.logRequestError(r, "load storage pool info", infoErr)
+			page.Flash, page.FlashType = "无法读取存储池信息，请查看服务日志。", "error"
+		} else {
+			data["PoolInfo"] = sortedKV(info)
+		}
+		volumes, volumeErr := s.libvirt.ListVolumes(r.Context(), host.ID, pool)
+		if volumeErr != nil {
+			s.logRequestError(r, "load storage volumes", volumeErr)
+			page.Flash, page.FlashType = "无法读取存储卷，请查看服务日志。", "error"
+		} else {
+			data["Volumes"] = volumes
+		}
+	}
+	s.render(w, r, "storage", page)
+}
+
+func (s *Server) networksPage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	networks, err := s.libvirt.ListNetworks(r.Context(), host.ID)
+	page := pageData{Title: "网络", Nav: "hosts", Data: map[string]any{"Host": host, "Networks": networks}}
+	if err != nil {
+		s.logRequestError(r, "load networks", err)
+		page.Flash, page.FlashType = "无法读取虚拟网络，请检查主机连接或查看服务日志。", "error"
+	}
+	s.render(w, r, "networks", page)
+}
+
+type userRow struct {
+	User store.User
+	Self bool
+}
+
+func (s *Server) usersPage(w http.ResponseWriter, r *http.Request) {
+	page := parsePage(r.URL.Query().Get("page"))
+	const pageSize = 50
+	users, err := s.db.ListUsersPage(r.Context(), (page-1)*pageSize, pageSize+1)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	hasNext := len(users) > pageSize
+	if hasNext {
+		users = users[:pageSize]
+	}
+	sess, _ := sessionFrom(r.Context())
+	rows := make([]userRow, 0, len(users))
+	for _, user := range users {
+		rows = append(rows, userRow{User: user, Self: user.ID == sess.User.ID})
+	}
+	s.render(w, r, "users", pageData{Title: "用户", Nav: "users", Data: map[string]any{"Users": rows, "Page": page, "HasNext": hasNext}})
+}
+
+func (s *Server) userNewPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "user_form", pageData{Title: "新建用户", Nav: "users"})
+}
+
+var usernamePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{3,64}$`)
+
+func (s *Server) userCreate(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.Form.Get("username"))
+	role := r.Form.Get("role")
+	if !usernamePattern.MatchString(username) {
+		s.redirectError(w, r, "/users/new", "用户名只能包含字母、数字、下划线、点和横线，长度 3-64")
+		return
+	}
+	if !validRole(role) {
+		s.redirectError(w, r, "/users/new", "角色无效")
+		return
+	}
+	password := r.Form.Get("password")
+	if err := validateNewPassword(password); err != nil {
+		s.redirectError(w, r, "/users/new", err.Error())
+		return
+	}
+	hash, err := auth.HashPasswordContext(r.Context(), password)
+	if err != nil {
+		s.logRequestError(r, "hash new user password", err)
+		s.redirectError(w, r, "/users/new", "无法创建用户，请稍后重试")
+		return
+	}
+	user := store.User{ID: id.New("user"), Username: username, PasswordHash: hash, Role: role}
+	if err := s.db.CreateUser(r.Context(), user); err != nil {
+		if store.IsUniqueViolation(err) {
+			s.redirectError(w, r, "/users/new", "用户名已存在")
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.create", RemoteIP: s.clientIP(r), Detail: map[string]any{"username": username, "role": role}})
+	http.Redirect(w, r, flashURL("/users", "用户已创建", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) userRole(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessionFrom(r.Context())
+	targetID := r.PathValue("id")
+	if targetID == sess.User.ID {
+		s.redirectError(w, r, "/users", "不能修改自己的角色")
+		return
+	}
+	role := r.Form.Get("role")
+	if !validRole(role) {
+		s.redirectError(w, r, "/users", "角色无效")
+		return
+	}
+	target, err := s.db.GetUserByID(r.Context(), targetID)
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	if err := s.db.UpdateUserRole(r.Context(), targetID, role); err != nil {
+		if errors.Is(err, store.ErrLastAdmin) {
+			s.redirectError(w, r, "/users", err.Error())
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.role", RemoteIP: s.clientIP(r), Detail: map[string]any{"username": target.Username, "role": role}})
+	http.Redirect(w, r, flashURL("/users", "角色已更新", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) userDisabled(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessionFrom(r.Context())
+	targetID := r.PathValue("id")
+	if targetID == sess.User.ID {
+		s.redirectError(w, r, "/users", "不能禁用当前账号")
+		return
+	}
+	disabled := r.Form.Get("disabled") == "1"
+	target, err := s.db.GetUserByID(r.Context(), targetID)
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	if err := s.db.SetUserDisabled(r.Context(), targetID, disabled); err != nil {
+		if errors.Is(err, store.ErrLastAdmin) {
+			s.redirectError(w, r, "/users", err.Error())
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.disabled", RemoteIP: s.clientIP(r), Detail: map[string]any{"username": target.Username, "disabled": disabled}})
+	http.Redirect(w, r, flashURL("/users", "账号状态已更新", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) userPassword(w http.ResponseWriter, r *http.Request) {
+	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	password := r.Form.Get("password")
+	if err := validateNewPassword(password); err != nil {
+		s.redirectError(w, r, "/users", err.Error())
+		return
+	}
+	hash, err := auth.HashPasswordContext(r.Context(), password)
+	if err != nil {
+		s.logRequestError(r, "hash reset password", err)
+		s.redirectError(w, r, "/users", "无法重置密码，请稍后重试")
+		return
+	}
+	if err := s.db.SetPassword(r.Context(), target.ID, hash); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.password_reset", RemoteIP: s.clientIP(r), Detail: map[string]any{"username": target.Username}})
+	if target.ID == sess.User.ID {
+		s.clearSessionCookies(w)
+		http.Redirect(w, r, flashURL("/login", "密码已重置，请重新登录", "ok"), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, flashURL("/users", "密码已重置，目标用户的所有会话已失效", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) accountPasswordPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "account_password", pageData{Title: "修改密码", Nav: "account"})
+}
+
+func (s *Server) accountPassword(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessionFrom(r.Context())
+	current := r.Form.Get("current_password")
+	password := r.Form.Get("new_password")
+	confirm := r.Form.Get("confirm_password")
+	if len(current) > 4096 || len(password) > 4096 || len(confirm) > 4096 {
+		s.redirectError(w, r, "/account/password", "密码过长")
+		return
+	}
+	if password != confirm {
+		s.redirectError(w, r, "/account/password", "两次输入的新密码不一致")
+		return
+	}
+	if err := validateNewPassword(password); err != nil {
+		s.redirectError(w, r, "/account/password", err.Error())
+		return
+	}
+	user, err := s.db.GetUserByID(r.Context(), sess.User.ID)
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	keys := reauthKeys(s.clientIP(r), user.ID)
+	allowed, err := s.reserveLoginAttempt(r, keys)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if !allowed {
+		s.renderError(w, r, http.StatusTooManyRequests, "修改失败", "密码验证次数过多，请稍后再试。")
+		return
+	}
+	if !auth.VerifyPasswordContext(r.Context(), current, user.PasswordHash) {
+		s.audit.Record(r.Context(), store.Audit{ActorID: user.ID, ActorName: user.Username,
+			Action: "account.password_change_failed", RemoteIP: s.clientIP(r)})
+		s.redirectError(w, r, "/account/password", "当前密码不正确")
+		return
+	}
+	hash, err := auth.HashPasswordContext(r.Context(), password)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if err := s.db.SetPassword(r.Context(), user.ID, hash); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.completeLoginAttempt(keys)
+	s.audit.Record(r.Context(), store.Audit{ActorID: user.ID, ActorName: user.Username,
+		Action: "account.password_change", RemoteIP: s.clientIP(r)})
+	s.clearSessionCookies(w)
+	http.Redirect(w, r, flashURL("/login", "密码已修改，所有会话已失效，请重新登录", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
+	page := parsePage(r.URL.Query().Get("page"))
+	const pageSize = 100
+	audits, err := s.db.RecentAuditPage(r.Context(), pageSize+1, (page-1)*pageSize)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	hasNext := len(audits) > pageSize
+	if hasNext {
+		audits = audits[:pageSize]
+	}
+	s.render(w, r, "audit", pageData{Title: "审计", Nav: "audit", Data: map[string]any{"Audits": audits, "Page": page, "HasNext": hasNext}})
+}
+
+func (s *Server) hostLookupError(w http.ResponseWriter, r *http.Request, err error) {
+	if store.IsNotFound(err) {
+		s.renderError(w, r, http.StatusNotFound, "主机不存在", "该主机配置不存在或已删除。")
+		return
+	}
+	s.serverError(w, r, err)
+}
+
+func (s *Server) userLookupError(w http.ResponseWriter, r *http.Request, err error) {
+	if store.IsNotFound(err) {
+		s.renderError(w, r, http.StatusNotFound, "用户不存在", "该用户不存在或已删除。")
+		return
+	}
+	s.serverError(w, r, err)
+}
+
+func (s *Server) redirectError(w http.ResponseWriter, r *http.Request, path, message string) {
+	http.Redirect(w, r, flashURL(path, message, "error"), http.StatusSeeOther)
+}
+
+func redactURI(raw string) string {
+	if strings.TrimSpace(raw) == "" {
+		return "[未配置]"
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "[无效 URI]"
+	}
+	user := ""
+	if u.User != nil && u.User.Username() != "" {
+		user = u.User.Username() + "@"
+	}
+	host := u.Host
+	path := u.EscapedPath()
+	if host == "" {
+		return u.Scheme + "://" + path
+	}
+	return u.Scheme + "://" + user + host + path
+}
+
+func validateDisplayText(value string, maxRunes int, field string) error {
+	if !utf8.ValidString(value) {
+		return errors.New(field + "不是有效的 UTF-8 文本")
+	}
+	if utf8.RuneCountInString(value) > maxRunes {
+		return fmt.Errorf("%s不能超过 %d 个字符", field, maxRunes)
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
+			return fmt.Errorf("%s包含不可见控制字符", field)
+		}
+	}
+	return nil
+}
+
+func validateNewPassword(password string) error {
+	if !utf8.ValidString(password) {
+		return errors.New("密码不是有效的 UTF-8 文本")
+	}
+	if len(password) > 4096 {
+		return errors.New("密码过长")
+	}
+	if utf8.RuneCountInString(password) < 10 {
+		return errors.New("密码至少需要 10 个字符")
+	}
+	return nil
+}
+
+func parsePage(raw string) int {
+	page, err := strconv.Atoi(raw)
+	if err != nil || page < 1 {
+		return 1
+	}
+	if page > 10000 {
+		return 10000
+	}
+	return page
+}
+
+func sortedKV(values map[string]string) []kvRow {
+	rows := make([]kvRow, 0, len(values))
+	for key, value := range values {
+		rows = append(rows, kvRow{Key: key, Value: value})
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].Key < rows[j].Key })
+	return rows
+}
+
+func auditDetailText(detail map[string]any) string {
+	if len(detail) == 0 {
+		return "—"
+	}
+	keys := make([]string, 0, len(detail))
+	for key := range detail {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, key := range keys {
+		value := detail[key]
+		if text, ok := value.(string); ok {
+			parts = append(parts, key+"="+text)
+			continue
+		}
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			parts = append(parts, key+"=…")
+			continue
+		}
+		parts = append(parts, key+"="+string(encoded))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func validRole(role string) bool {
+	return role == "admin" || role == "operator" || role == "viewer"
+}

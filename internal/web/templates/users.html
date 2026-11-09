@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="page-head"><div><h1>用户与权限</h1><p class="muted">admin 管理全部；operator 执行运维与命令；viewer 只读。</p></div><a class="btn primary" href="/users/new">新建用户</a></div>
+<section class="panel">
+<table><thead><tr><th>用户</th><th>角色</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody>
+{{range .Data.Users}}<tr>
+  <td><strong>{{.User.Username}}</strong>{{if .Self}}<span class="badge">当前</span>{{end}}</td>
+  <td>{{if .Self}}{{roleName .User.Role}}{{else}}<form method="post" action="/users/{{.User.ID}}/role" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><select name="role"><option value="viewer" {{if eq .User.Role "viewer"}}selected{{end}}>只读</option><option value="operator" {{if eq .User.Role "operator"}}selected{{end}}>运维</option><option value="admin" {{if eq .User.Role "admin"}}selected{{end}}>管理员</option></select><button class="btn small">更新</button></form>{{end}}</td>
+  <td>{{if .User.Disabled}}<span class="pill bad">禁用</span>{{else}}<span class="pill ok">启用</span>{{end}}</td>
+  <td class="muted">{{date .User.CreatedAt}}</td>
+  <td class="actions">{{if not .Self}}<form method="post" action="/users/{{.User.ID}}/disabled" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="disabled" value="{{if .User.Disabled}}0{{else}}1{{end}}"><button class="btn small">{{if .User.Disabled}}启用{{else}}禁用{{end}}</button></form>{{end}}<form method="post" action="/users/{{.User.ID}}/password" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input name="password" type="password" placeholder="新密码" aria-label="为 {{.User.Username}} 设置新密码" minlength="10" required autocomplete="new-password"><button class="btn small">重置密码</button></form></td>
+</tr>{{end}}
+</tbody></table>
+{{if gt .Data.Page 1}}<a class="btn small" href="/users?page={{sub .Data.Page 1}}">上一页</a>{{end}}{{if .Data.HasNext}}<a class="btn small" href="/users?page={{add .Data.Page 1}}">下一页</a>{{end}}
+</section>
+{{end}}

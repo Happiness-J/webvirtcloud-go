@@ -1,0 +1,38 @@
+{{define "base"}}<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · WebVirtCloud Go</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+{{if .User}}
+<header class="topbar">
+  <a class="brand" href="/">WebVirtCloud <span>Go</span></a>
+  <nav>
+    <a {{if eq .Nav "dashboard"}}class="active"{{end}} href="/">概览</a>
+    <a {{if eq .Nav "vms"}}class="active"{{end}} href="/vms">虚拟机</a>
+    <a {{if eq .Nav "hosts"}}class="active"{{end}} href="/hosts">主机</a>
+    <a {{if eq .Nav "jobs"}}class="active"{{end}} href="/jobs">任务</a>
+    {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a {{if eq .Nav "audit"}}class="active"{{end}} href="/audit">审计</a>{{end}}
+    {{if eq .User.Role "admin"}}<a {{if eq .Nav "users"}}class="active"{{end}} href="/users">用户</a>{{end}}
+  </nav>
+  <div class="account">
+    <a href="/account/password" title="修改密码">{{.User.Username}}</a><span class="badge">{{roleName .User.Role}}</span>
+    <form method="post" action="/logout" class="inline">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <button class="link">退出</button>
+    </form>
+  </div>
+</header>
+{{end}}
+<main class="{{if .User}}container{{else}}login-wrap{{end}}">
+  {{if .Flash}}<div class="flash {{.FlashType}}">{{.Flash}}</div>{{end}}
+  {{template "content" .}}
+</main>
+<footer>WebVirtCloud Go · libvirt / QEMU KVM 控制面</footer>
+</body>
+</html>{{end}}

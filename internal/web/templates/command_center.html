@@ -1,0 +1,97 @@
+{{define "content"}}
+<script src="/static/command.js" defer></script>
+<div class="page-head"><div><h1>高级命令中心</h1><p class="muted">{{.Data.Host.Name}} · 执行目标：{{.Data.Target.Label}} · 官方命令目录 + 可视化参数构建 + argv 直接执行</p></div><a class="btn" href="/hosts/{{pathEscape .Data.Host.ID}}">返回主机</a></div>
+<div class="flash warn"><strong>管理员专用。</strong> 当前目录共 {{.Data.Total}} 条结构化命令。{{.Data.Target.Description}} 版本差异可用“高级原始参数”补充；所有命令均记录审计。</div>
+
+<div id="command-center" class="command-center" data-catalog-url="/hosts/{{pathEscape .Data.Host.ID}}/command/catalog">
+  <section class="panel command-browser">
+    <div class="command-filter-bar">
+      <label class="command-search">搜索命令
+        <input id="command-search" type="search" placeholder="命令、说明、分类或语法" autocomplete="off" spellcheck="false">
+      </label>
+      <label>工具
+        <select id="command-tool-filter">
+          <option value="">全部工具</option>
+          {{range .Data.Tools}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
+        </select>
+      </label>
+      <label>分类
+        <select id="command-category-filter"><option value="">全部分类</option></select>
+      </label>
+      <span class="pill muted" id="command-count">加载中…</span>
+    </div>
+    <div class="command-layout">
+      <nav class="command-list" id="command-list" aria-label="命令列表">
+        <p class="muted command-loading">正在加载官方命令目录…</p>
+      </nav>
+      <section class="command-editor" id="command-editor" aria-live="polite">
+        <div class="command-empty" id="command-empty">
+          <strong>选择左侧命令开始</strong>
+          <p class="muted">位置参数、布尔开关、枚举选项会按照官方语法自动生成；最终预览始终是 argv 数组，不经过 shell。</p>
+        </div>
+        <form method="post" class="stack hidden" id="command-form">
+          <input type="hidden" name="_csrf" value="{{.CSRF}}">
+          <input type="hidden" name="mode" value="builder" id="command-mode">
+          <input type="hidden" name="args_json" id="command-args-json">
+          <input type="hidden" name="tool" id="command-tool-value">
+
+          <div class="command-editor-head">
+            <div>
+              <p class="command-eyebrow" id="command-category">命令</p>
+              <h2 id="command-title">选择命令</h2>
+              <p class="muted" id="command-summary"></p>
+            </div>
+            <div class="actions" id="command-badges"></div>
+          </div>
+          <div class="command-syntax"><span>官方语法</span><code id="command-usage"></code><a id="command-docs" href="#" target="_blank" rel="noopener noreferrer">官方文档 ↗</a></div>
+          <div class="command-disabled hidden" id="command-disabled"></div>
+
+          <p class="hint" id="command-qemu-io-hint" hidden>断点类命令已提供前置/后续命令字段；每行生成一个独立的 <code>-c</code>，所有命令在同一个 qemu-io 进程内按顺序执行。</p>
+
+          <div class="grid two compact command-settings">
+            <label>工具<select id="command-tool" required>{{range .Data.Tools}}<option value="{{.Name}}" {{if not .Available}}disabled{{end}}>{{.Name}}{{if not .Available}}（目标不可用）{{end}}</option>{{end}}</select></label>
+            <label>超时秒数<input name="timeout" type="number" min="10" max="{{.Data.MaxTimeoutSeconds}}" value="900" required></label>
+          </div>
+
+          <div id="command-builder-fields"></div>
+
+          <label class="checkline command-advanced-toggle"><input type="checkbox" id="command-advanced-toggle"> 使用高级原始参数（忽略上面的点选字段）</label>
+          <div class="hidden" id="command-advanced-fields">
+            <label>原始参数
+              <textarea name="raw_args" id="command-raw-args" rows="3" placeholder='例如：dominfo "my vm" 或 snapshot-list --domain myvm' autocomplete="off" spellcheck="false"></textarea>
+            </label>
+            <p class="hint">支持单引号、双引号和反斜杠；<code>|</code>、<code>$(...)</code>、<code>&gt;</code> 只是普通参数。连接 URI 由主机配置注入，<code>--connect</code>/<code>-c</code> 会被拒绝。远程参数由服务端做 POSIX 转义，不会再次被面板 shell 解释。</p>
+          </div>
+
+          <div class="command-preview-wrap">
+            <span>执行预览</span>
+            <code id="command-preview">请选择命令并填写参数</code>
+          </div>
+          <label>标准输入（可选）<textarea name="stdin" rows="3" spellcheck="false"></textarea></label>
+          <label class="checkline"><input type="checkbox" name="confirm" value="yes" required> 我已确认该命令的参数和影响范围</label>
+          <div class="form-actions"><button class="btn primary" id="command-submit" disabled data-confirm="命令将在目标主机上执行，继续吗？">提交异步任务</button></div>
+        </form>
+      </section>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <h2>当前安装能力</h2>
+  <p class="hint">能力探测针对当前执行目标：本机目标读取命令行帮助；<code>qemu+ssh</code> 目标通过单次 SSH 检查目标机 PATH，不连接 libvirt，也不会为每个工具建立一条 SSH 会话。标为“未列出”的命令仍会保留，便于跨版本使用高级参数，但执行时由目标主机上的实际工具决定是否支持。</p>
+  <table><thead><tr><th>工具</th><th>版本</th><th>探测结果</th></tr></thead><tbody>
+    {{range .Data.Capabilities}}<tr><td><code>{{.Name}}</code></td><td>{{if .Version}}{{.Version}}{{else}}-{{end}}</td><td>{{if .Error}}<span class="pill warn">{{.Error}}</span>{{else if .Note}}<span class="pill ok">{{.Note}}</span>{{else}}<span class="pill ok">{{len .Commands}} 条命令</span>{{end}}</td></tr>{{end}}
+  </tbody></table>
+</section>
+
+<section class="panel">
+  <h2>设计与执行边界</h2>
+  <ul class="command-boundaries">
+    <li><strong>QEMU 生命周期：</strong>生产虚拟机经 libvirt 管理，页面不裸启动 <code>qemu-system-*</code>。<code>virt-qemu-run</code> 仅用于管理员启动随任务进程结束的独立临时 guest，不进入常驻 libvirtd 生命周期。</li>
+    <li><strong>交互式入口：</strong><code>console</code>、编辑器类和事件流命令不能作为一次性异步任务；请使用内置 VNC、XML 导出/修改后再 define，或任务页面。</li>
+    <li><strong>QMP / Guest Agent：</strong>通过 <code>virsh qemu-monitor-command</code> 和 <code>qemu-agent-command</code> 执行，参数可直接填写官方 JSON。</li>
+    <li><strong>多物理机执行：</strong><code>qemu+ssh</code> 主机上的 <code>qemu-img</code>、<code>qemu-io</code>、<code>qemu-nbd</code>、<code>virsh</code> 和 virt/libguestfs 工具统一通过加固 OpenSSH 在目标物理机执行，磁盘路径使用目标机路径。<code>qemu+tcp</code>/<code>qemu+tls</code> 没有 SSH 端点，只允许 libvirt 感知工具，独立 QEMU 工具会被明确拒绝。</li>
+    <li><strong>串行化：</strong>同一物理机的写任务共享 <code>host:&lt;id&gt;</code> 锁，不同物理机可并行；只读任务可并行。</li>
+  </ul>
+</section>
+{{end}}

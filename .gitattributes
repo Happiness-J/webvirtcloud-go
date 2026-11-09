@@ -1,0 +1,18 @@
+* text=auto eol=lf
+*.go text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.zip binary
+*.gz binary
+*.xz binary
+*.png binary
+*.jpg binary
+*.webp binary
+
+# Preserve exact upstream third-party license and attribution text.
+internal/web/static/novnc/AUTHORS whitespace=-trailing-space
+internal/web/static/novnc/docs/** whitespace=-trailing-space
+third_party/** whitespace=-trailing-space

@@ -1,0 +1,9 @@
+{{define "content"}}
+<div class="console-head"><div><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.HostName}} · noVNC WebSocket 代理</p></div><div class="actions"><span id="console-status" class="pill warn">连接中</span><a class="btn" href="/hosts/{{.Data.HostID}}/vms/{{pathEscape .Data.VM}}">返回虚拟机</a></div></div>
+<div id="console-security-warning" class="flash error" hidden></div>
+<div class="console-shell">
+  <div id="screen" class="screen" tabindex="0" data-ws="{{.Data.WSURL}}" data-password-url="{{.Data.PasswordURL}}"></div>
+  <div class="console-tools"><button id="send-ctrl-alt-del" class="btn">Ctrl+Alt+Del</button><button id="scale-toggle" class="btn">适应窗口</button><span class="muted">剪贴板请使用 noVNC 内置快捷键；控制台令牌短时有效且仅可使用一次，断线后请刷新页面。</span></div>
+</div>
+<script type="module" src="/static/console.js"></script>
+{{end}}

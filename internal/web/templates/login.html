@@ -1,0 +1,15 @@
+{{define "content"}}
+<section class="login-card">
+  <div class="login-mark">WVC</div>
+  <h1>登录控制台</h1>
+  <p class="muted">单组织虚拟化管理平台</p>
+  <form method="post" action="/login" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <input type="hidden" name="next" value="{{.Data.Next}}">
+    <label>用户名<input name="username" autocomplete="username" required autofocus></label>
+    <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn primary wide">登录</button>
+  </form>
+  <p class="hint">首次启动生成的管理员密码保存在主密钥目录下的 <code>initial-admin-password-*.txt</code>（权限 0600）。登录后请立即修改密码并删除该文件。</p>
+</section>
+{{end}}

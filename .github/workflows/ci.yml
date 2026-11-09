@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: wvc_test
+          POSTGRES_USER: wvc
+          POSTGRES_PASSWORD: wvc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wvc -d wvc_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      WVC_TEST_DATABASE_URL: postgres://wvc:wvc@127.0.0.1:5432/wvc_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify modules and formatting
+        run: |
+          go mod download
+          go mod verify
+          make fmt-check tidy-check vet
+      - name: Run tests with race detector and PostgreSQL integration
+        run: make test-race
+      - name: Build release binary
+        run: make build VERSION="ci-${GITHUB_SHA::12}" COMMIT="${GITHUB_SHA}"
+      - name: Verify binary CLI
+        run: ./bin/wvc version
+
+  security:
+    name: Vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run vulnerability and static security scans
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          "$(go env GOPATH)/bin/govulncheck" ./...
+          go install honnef.co/go/tools/cmd/staticcheck@v0.8.2
+          "$(go env GOPATH)/bin/staticcheck" ./...
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.30.0
+          "$(go env GOPATH)/bin/gosec" -quiet ./...
+
+  docker:
+    name: Build container
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: webvirtcloud-go:ci
+          build-args: |
+            VERSION=ci-${{ github.sha }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Inspect image
+        run: docker image inspect webvirtcloud-go:ci >/dev/null

@@ -1,0 +1,1706 @@
+[
+ {
+  "name":"help",
+  "category":"generic-commands",
+  "syntax":"help [command-or-group]",
+  "summary":"This lists each of the virsh commands. When used without options, all commands are listed, one per line, grouped into related categories, displaying the keyword for each group."
+ },
+ {
+  "name":"version",
+  "category":"generic-commands",
+  "syntax":"version [--daemon]",
+  "summary":"Will print out the major version info about what this built from. If --daemon is specified then the version of the libvirt daemon is included in the output."
+ },
+ {
+  "name":"cd",
+  "category":"generic-commands",
+  "syntax":"cd [directory]",
+  "summary":"Will change current directory to directory . The default directory for the cd command is the home directory or, if there is no HOME variable in the environment, the root directory."
+ },
+ {
+  "name":"pwd",
+  "category":"generic-commands",
+  "syntax":"pwd",
+  "summary":"Will print the current directory."
+ },
+ {
+  "name":"connect",
+  "category":"generic-commands",
+  "syntax":"connect [URI] [--readonly]",
+  "summary":"(Re)-Connect to the hypervisor. When the shell is first started, this is automatically run with the URI parameter requested by the -c option on the command line. The URI parameter specifies how to connect to the hypervisor. The URI docs https://libvirt.org/uri.html list the values supported, but the most common are:"
+ },
+ {
+  "name":"uri",
+  "category":"generic-commands",
+  "syntax":"uri",
+  "summary":"Prints the hypervisor canonical URI, can be useful in shell mode."
+ },
+ {
+  "name":"hostname",
+  "category":"generic-commands",
+  "syntax":"hostname",
+  "summary":"Print the hypervisor hostname."
+ },
+ {
+  "name":"sysinfo",
+  "category":"generic-commands",
+  "syntax":"sysinfo",
+  "summary":"Print the XML representation of the hypervisor sysinfo, if available."
+ },
+ {
+  "name":"nodeinfo",
+  "category":"generic-commands",
+  "syntax":"nodeinfo",
+  "summary":"Returns basic information about the node, like number and type of CPU, and size of the physical memory."
+ },
+ {
+  "name":"nodecpumap",
+  "category":"generic-commands",
+  "syntax":"nodecpumap [--pretty]",
+  "summary":"Displays the node's total number of CPUs, the number of online CPUs and the list of online CPUs."
+ },
+ {
+  "name":"nodecpustats",
+  "category":"generic-commands",
+  "syntax":"nodecpustats [cpu] [--percent]",
+  "summary":"Returns cpu stats of the node. If cpu is specified, this will print the specified cpu statistics only. If --percent is specified, this will print the percentage of each kind of cpu statistics during 1 second."
+ },
+ {
+  "name":"nodememstats",
+  "category":"generic-commands",
+  "syntax":"nodememstats [cell]",
+  "summary":"Returns memory stats of the node. If cell is specified, this will print the specified cell statistics only."
+ },
+ {
+  "name":"nodesevinfo",
+  "category":"generic-commands",
+  "syntax":"nodesevinfo",
+  "summary":"Reports information about the AMD SEV launch security features for the node, if any. Some of this information is also reported in the domain capabilities XML document."
+ },
+ {
+  "name":"nodesuspend",
+  "category":"generic-commands",
+  "syntax":"nodesuspend [target] [duration]",
+  "summary":"Puts the node (host machine) into a system-wide sleep state and schedule the node's Real-Time-Clock interrupt to resume the node after the time duration specified by duration is out. target specifies the state to which the host will be suspended to, it can be \"mem\" (suspend to RAM), \"disk\" (suspend to disk), or \"hybrid\" (suspend to both RAM and disk). dur..."
+ },
+ {
+  "name":"node-memory-tune",
+  "category":"generic-commands",
+  "syntax":"node-memory-tune [shm-pages-to-scan] [shm-sleep-millisecs] [shm-merge-across-nodes]",
+  "summary":"Allows you to display or set the node memory parameters. shm-pages-to-scan can be used to set the number of pages to scan before the shared memory service goes to sleep; shm-sleep-millisecs can be used to set the number of millisecs the shared memory service should sleep before next scan; shm-merge-across-nodes specifies if pages from different numa nodes..."
+ },
+ {
+  "name":"capabilities",
+  "category":"generic-commands",
+  "syntax":"capabilities [--xpath EXPRESSION] [--wrap]",
+  "summary":"Print an XML document describing the capabilities of the hypervisor we are currently connected to. This includes a section on the host capabilities in terms of CPU and features, and a set of description for each kind of guest which can be virtualized. For a more complete description see:"
+ },
+ {
+  "name":"domcapabilities",
+  "category":"generic-commands",
+  "syntax":"domcapabilities [virttype] [emulatorbin] [arch] [machine] [--xpath EXPRESSION] [--wrap] [--disable-deprecated-features] [--expand-cpu-features] [--supported-cpu-features]",
+  "summary":"Print an XML document describing the domain capabilities for the hypervisor we are connected to using information either sourced from an existing domain or taken from the virsh capabilities output. This may be useful if you intend to create a new domain and are curious if for instance it could make use of VFIO by creating a domain for the hypervisor with..."
+ },
+ {
+  "name":"pool-capabilities",
+  "category":"generic-commands",
+  "syntax":"pool-capabilities",
+  "summary":"Print an XML document describing the storage pool capabilities for the connected storage driver. This may be useful if you intend to create a new storage pool and need to know the available pool types and supported storage pool source and target volume formats as well as the required source elements to create the pool."
+ },
+ {
+  "name":"inject-nmi",
+  "category":"generic-commands",
+  "syntax":"inject-nmi domain",
+  "summary":"Inject NMI to the guest."
+ },
+ {
+  "name":"list",
+  "category":"generic-commands",
+  "syntax":"list [--inactive | --all] [--managed-save] [--title] { [--table] | --name | --id } [--uuid] [--persistent] [--transient] [--with-managed-save] [--without-managed-save] [--autostart] [--no-autostart] [--with-snapshot] [--without-snapshot] [--with-checkpoint] [--without-checkpoint] [--state-running] [--state-paused] [--state-shutoff] [--state-other]",
+  "summary":"Prints information about existing domains. If no options are specified it prints out information about running domains."
+ },
+ {
+  "name":"freecell",
+  "category":"generic-commands",
+  "syntax":"freecell [{ [--cellno] cellno | --all }]",
+  "summary":"Prints the available amount of memory on the machine or within a NUMA cell. The freecell command can provide one of three different displays of available memory on the machine depending on the options specified. With no options, it displays the total free memory on the machine. With the --all option, it displays the free memory in each cell and the total..."
+ },
+ {
+  "name":"freepages",
+  "category":"generic-commands",
+  "syntax":"freepages [{ [--cellno] cellno [--pagesize] pagesize | --all }]",
+  "summary":"Prints the available amount of pages within a NUMA cell. cellno refers to the NUMA cell you're interested in. pagesize is a scaled integer (see NOTES above). Alternatively, if --all is used, info on each possible combination of NUMA cell and page size is printed out."
+ },
+ {
+  "name":"allocpages",
+  "category":"generic-commands",
+  "syntax":"allocpages [--pagesize] pagesize [--pagecount] pagecount [[--cellno] cellno] [--add] [--all]",
+  "summary":"Change the size of pages pool of pagesize on the host. If --add is specified, then pagecount pages are added into the pool. However, if --add wasn't specified, then the pagecount is taken as the new absolute size of the pool (this may be used to free some pages and size the pool down). The cellno modifier can be used to narrow the modification down to a s..."
+ },
+ {
+  "name":"cpu-baseline",
+  "category":"generic-commands",
+  "syntax":"cpu-baseline FILE [--features] [--migratable]",
+  "summary":"Compute baseline CPU which will be supported by all host CPUs given in <file>. (See hypervisor-cpu-baseline command to get a CPU which can be provided by a specific hypervisor.) The list of host CPUs is built by extracting all <cpu> elements from the <file>. Thus, the <file> can contain either a set of <cpu> elements separated by new lines or even a set o..."
+ },
+ {
+  "name":"cpu-compare",
+  "category":"generic-commands",
+  "syntax":"cpu-compare FILE [--error] [--validate]",
+  "summary":"Compare CPU definition from XML <file> with host CPU. (See hypervisor-cpu-compare command for comparing the CPU definition with the CPU which a specific hypervisor is able to provide on the host.) The XML <file> may contain either host or guest CPU definition. The host CPU definition is the <cpu> element and its contents as printed by capabilities command..."
+ },
+ {
+  "name":"cpu-models",
+  "category":"generic-commands",
+  "syntax":"cpu-models arch",
+  "summary":"Print the list of CPU models known by libvirt for the specified architecture. Whether a specific hypervisor is able to create a domain which uses any of the printed CPU models is a separate question which can be answered by looking at the domain capabilities XML returned by domcapabilities command. Moreover, for some architectures libvirt does not know an..."
+ },
+ {
+  "name":"hypervisor-cpu-compare",
+  "category":"generic-commands",
+  "syntax":"hypervisor-cpu-compare FILE [virttype] [emulator] [arch] [machine] [--error] [--validate]",
+  "summary":"Compare CPU definition from XML <file> with the CPU the hypervisor is able to provide on the host. (This is different from cpu-compare which compares the CPU definition with the host CPU without considering any specific hypervisor and its abilities.)"
+ },
+ {
+  "name":"hypervisor-cpu-baseline",
+  "category":"generic-commands",
+  "syntax":"hypervisor-cpu-baseline [FILE] [virttype] [emulator] [arch] [machine] [--features] [--migratable] [--ignore-host] [model]",
+  "summary":"Compute a baseline CPU which will be compatible with all CPUs defined in an XML FILE . This command must be called on one of the hosts described in FILE . Calling it on another host results in an undefined behavior as the computed CPU model is influenced by the hypervisor (the result may use an unexpected CPU model or some features may disabled even thoug..."
+ },
+ {
+  "name":"hypervisor-cpu-models",
+  "category":"generic-commands",
+  "syntax":"hypervisor-cpu-models [--virttype virttype] [--emulator emulator] [--arch arch] [--machine machine] [--all]",
+  "summary":"Print the list of CPU models known by the hypervisor for the specified architecture. It is not guaranteed that a listed CPU will run on the host. To determine CPU model compatibility with the host, see virsh hypervisor-cpu-baseline and virsh hypervisor-cpu-compare ."
+ },
+ {
+  "name":"autostart",
+  "category":"domain-commands",
+  "syntax":"autostart [--disable] [--once] domain",
+  "summary":"Configure a domain to be automatically started at each boot of the host. The --once option configures the domain to be started on the next boot of the host."
+ },
+ {
+  "name":"blkdeviotune",
+  "category":"domain-commands",
+  "syntax":"blkdeviotune domain device [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]] [[total-bytes-sec-max] | [read-bytes-sec-max] [write-bytes-sec-max]] [[total-iops-sec-max] | [read-iops-sec-max] [write-iops-sec-max]] [[total-bytes-sec-max-length] | [read-bytes-sec-max-length] [write-bytes-sec-max-length]] [[total-iops-sec-max-length] | [read-iops-sec-max-length] [write-iops-sec-max-length]] [size-iops-sec] [group-name]",
+  "summary":"Set or query the block disk io parameters for a block device of domain . device specifies a unique target name (<target dev='name'/>) or source file (<source file='name'/>) for one of the disk devices attached to domain (see also domblklist for listing these names)."
+ },
+ {
+  "name":"domthrottlegroupset",
+  "category":"domain-commands",
+  "syntax":"domthrottlegroupset domain group-name [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]] [[total-bytes-sec-max] | [read-bytes-sec-max] [write-bytes-sec-max]] [[total-iops-sec-max] | [read-iops-sec-max] [write-iops-sec-max]] [[total-bytes-sec-max-length] | [read-bytes-sec-max-length] [write-bytes-sec-max-length]] [[total-iops-sec-max-length] | [read-iops-sec-max-length] [write-iops-sec-max-length]] [size-iops-sec]",
+  "summary":"Add or update a throttle group against specific domain . group-name specifies a unique throttle group name, which defines limit, and will be referenced by drives."
+ },
+ {
+  "name":"domthrottlegroupdel",
+  "category":"domain-commands",
+  "syntax":"domthrottlegroupdel domain group-name [[--config] [--live] | [--current]]",
+  "summary":"Delete a Throttlegroup from the domain using the specified group-name . If an Throttlegroup is currently referenced by a disk resource, then the attempt to remove the Throttlegroup will fail. If the group-name does not exist an error will occur."
+ },
+ {
+  "name":"domthrottlegroupinfo",
+  "category":"domain-commands",
+  "syntax":"domthrottlegroupinfo domain group-name [[--config] [--live] | [--current]]",
+  "summary":"Display domain Throttlegroup information including I/O limits setting."
+ },
+ {
+  "name":"domthrottlegrouplist",
+  "category":"domain-commands",
+  "syntax":"domthrottlegrouplist domain [--inactive]",
+  "summary":"Print a table showing names of all throttle groups associated with domain . If --inactive is specified, query the Throttlegroup data that will be used on the next boot, rather than those currently in use by a running domain."
+ },
+ {
+  "name":"blkiotune",
+  "category":"domain-commands",
+  "syntax":"blkiotune domain [--weight weight] [--device-weights device-weights] [--device-read-iops-sec device-read-iops-sec] [--device-write-iops-sec device-write-iops-sec] [--device-read-bytes-sec device-read-bytes-sec] [--device-write-bytes-sec device-write-bytes-sec] [[--config] [--live] | [--current]]",
+  "summary":"Display or set the blkio parameters. QEMU/KVM supports --weight . --weight is in range [100, 1000]. After kernel 2.6.39, the value could be in the range [10, 1000]."
+ },
+ {
+  "name":"blockcommit",
+  "category":"domain-commands",
+  "syntax":"blockcommit domain path [bandwidth] [--bytes] [base] [--shallow] [top] [--delete] [--keep-relative] [--wait [--async] [--verbose]] [--timeout seconds] [--active] [{--pivot | --keep-overlay}]",
+  "summary":"Reduce the length of a backing image chain, by committing changes at the top of the chain (snapshot or delta files) into backing images. By default, this command attempts to flatten the entire chain. If base and/or top are specified as files within the backing chain, then the operation is constrained to committing just that portion of the chain; --shallow..."
+ },
+ {
+  "name":"blockcopy",
+  "category":"domain-commands",
+  "syntax":"blockcopy domain path { dest [format] [--blockdev] | --xml file } [--shallow] [--reuse-external] [bandwidth] [--wait [--async] [--verbose]] [{--pivot | --finish}] [--timeout seconds] [granularity] [buf-size] [--bytes] [--transient-job] [--synchronous-writes] [--dest-is-zero] [--print-xml]",
+  "summary":"Copy a disk backing image chain to a destination. Either dest as the destination file name, or --xml with the name of an XML file containing a top-level <disk> element describing the destination, must be present. Additionally, if dest is given, format should be specified to declare the format of the destination (if format is omitted, then libvirt will reu..."
+ },
+ {
+  "name":"blockjob",
+  "category":"domain-commands",
+  "syntax":"blockjob domain path { [--abort] [--async] [--pivot] | [--info] [--raw] [--bytes] | [bandwidth] }",
+  "summary":"Manage active block operations. There are three mutually-exclusive modes: --info , bandwidth , and --abort . --async and --pivot imply abort mode; --raw implies info mode; and if no mode was given, --info mode is assumed."
+ },
+ {
+  "name":"blockpull",
+  "category":"domain-commands",
+  "syntax":"blockpull domain path [bandwidth] [--bytes] [base] [--wait [--verbose] [--timeout seconds] [--async]] [--keep-relative]",
+  "summary":"Populate a disk from its backing image chain. By default, this command flattens the entire chain; but if base is specified, containing the name of one of the backing files in the chain, then that file becomes the new backing file and only the intermediate portion of the chain is pulled. Once all requested data from the backing image chain has been pulled,..."
+ },
+ {
+  "name":"blockresize",
+  "category":"domain-commands",
+  "syntax":"blockresize domain path ([size] | [--capacity]) [--extend]",
+  "summary":"Resize a block device of domain while the domain is running, path specifies the absolute path of the block device; it corresponds to a unique target name (<target dev='name'/>) or source file (<source file='name'/>) for one of the disk devices attached to domain (see also domblklist for listing these names)."
+ },
+ {
+  "name":"console",
+  "category":"domain-commands",
+  "syntax":"console domain [devname] [--safe] [--force] [--resume]",
+  "summary":"Connect the virtual serial console for the guest. The optional devname parameter refers to the device alias of an alternate console, serial or parallel device configured for the guest. If omitted, the primary console will be opened."
+ },
+ {
+  "name":"cpu-stats",
+  "category":"domain-commands",
+  "syntax":"cpu-stats domain [--total] [start] [count]",
+  "summary":"Provide cpu statistics information of a domain. The domain should be running. Default it shows stats for all CPUs, and a total. Use --total for only the total stats, start for only the per-cpu stats of the CPUs from start , count for only count CPUs' stats."
+ },
+ {
+  "name":"create",
+  "category":"domain-commands",
+  "syntax":"create FILE [--console] [--paused] [--autodestroy] [--pass-fds N,M,...] [--validate] [--reset-nvram]",
+  "summary":"Create a domain from an XML <file>. Optionally, --validate option can be passed to validate the format of the input XML file against an internal RNG schema (identical to using virt-xml-validate(1) tool). Domains created using this command are going to be either transient (temporary ones that will vanish once destroyed) or existing persistent guests that w..."
+ },
+ {
+  "name":"define",
+  "category":"domain-commands",
+  "syntax":"define FILE [--validate]",
+  "summary":"Define a domain from an XML <file>. Optionally, the format of the input XML file can be validated against an internal RNG schema with --validate (identical to using virt-xml-validate(1) tool). The domain definition is registered but not started. If domain is already running, the changes will take effect on the next boot."
+ },
+ {
+  "name":"desc",
+  "category":"domain-commands",
+  "syntax":"desc domain [[--live] [--config] | [--current]] [--title] [--edit] [--new-desc New description or title message]",
+  "summary":"Show or modify description and title of a domain. These values are user fields that allow storing arbitrary textual data to allow easy identification of domains. Title should be short, although it's not enforced. (See also metadata that works with XML based domain metadata.)"
+ },
+ {
+  "name":"destroy",
+  "category":"domain-commands",
+  "syntax":"destroy domain [--graceful] [--remove-logs]",
+  "summary":"Immediately terminate the domain domain . This doesn't give the domain OS any chance to react, and it's the equivalent of ripping the power cord out on a physical machine. In most cases you will want to use the shutdown command instead. However, this does not delete any storage volumes used by the guest, and if the domain is persistent, it can be restarte..."
+ },
+ {
+  "name":"domblkerror",
+  "category":"domain-commands",
+  "syntax":"domblkerror domain",
+  "summary":"Show errors on block devices. This command usually comes handy when domstate command says that a domain was paused due to I/O error. The domblkerror command lists all block devices in error state and the error seen on each of them."
+ },
+ {
+  "name":"domblkinfo",
+  "category":"domain-commands",
+  "syntax":"domblkinfo domain [block-device --all] [--human]",
+  "summary":"Get block device size info for a domain. A block-device corresponds to a unique target name (<target dev='name'/>) or source file (<source file='name'/>) for one of the disk devices attached to domain (see also domblklist for listing these names). If --human is set, the output will have a human readable output. If --all is set, the output will be a table..."
+ },
+ {
+  "name":"domblklist",
+  "category":"domain-commands",
+  "syntax":"domblklist domain [--inactive] [--details]",
+  "summary":"Print a table showing the brief information of all block devices associated with domain . If --inactive is specified, query the block devices that will be used on the next boot, rather than those currently in use by a running domain. If --details is specified, disk type and device value will also be printed. Other contexts that require a block device name..."
+ },
+ {
+  "name":"domblkstat",
+  "category":"domain-commands",
+  "syntax":"domblkstat domain [block-device] [--human]",
+  "summary":"Get device block stats for a running domain. A block-device corresponds to a unique target name (<target dev='name'/>) or source file (<source file='name'/>) for one of the disk devices attached to domain (see also domblklist for listing these names). On a LXC or QEMU domain, omitting the block-device yields device block stats summarily for the entire dom..."
+ },
+ {
+  "name":"domblkthreshold",
+  "category":"domain-commands",
+  "syntax":"domblkthreshold domain dev threshold",
+  "summary":"Set the threshold value for delivering the block-threshold event. dev specifies the disk device target or backing chain element of given device using the 'target[1]' syntax. threshold is a scaled value of the offset. If the block device should write beyond that offset the event will be delivered."
+ },
+ {
+  "name":"domcontrol",
+  "category":"domain-commands",
+  "syntax":"domcontrol domain",
+  "summary":"Returns state of an interface to VMM used to control a domain. For states other than \"ok\" or \"error\" the command also prints number of seconds elapsed since the control interface entered its current state."
+ },
+ {
+  "name":"domdirtyrate-calc",
+  "category":"domain-commands",
+  "syntax":"domdirtyrate-calc <domain> [--seconds <sec>] --mode=[page-sampling | dirty-bitmap | dirty-ring]",
+  "summary":"Calculate an active domain's memory dirty rate which may be expected by user in order to decide whether it's proper to be migrated out or not. The seconds parameter can be used to calculate dirty rate in a specific time which allows 60s at most now and would be default to 1s if missing. These three page-sampling, dirty-bitmap, dirty-ring modes are mutuall..."
+ },
+ {
+  "name":"domdisplay",
+  "category":"domain-commands",
+  "syntax":"domdisplay domain [--include-password] [[--type] type] [--all]",
+  "summary":"Output a URI which can be used to connect to the graphical display of the domain via VNC, SPICE or RDP. The particular graphical display type can be selected using the type parameter (e.g. \"vnc\", \"spice\", \"rdp\"). If --include-password is specified, the SPICE channel password will be included in the URI. If --all is specified, then all show all possible gr..."
+ },
+ {
+  "name":"domdisplay-reload",
+  "category":"domain-commands",
+  "syntax":"domdisplay-reload <domain> [--type <type>]",
+  "summary":"Reload the domain's graphical display. This reloads its TLS certificates without restarting the domain. type can be any constant from the virDomainGraphicsReloadType enum. By default any supported type is reloaded (so far only VNC)."
+ },
+ {
+  "name":"domfsfreeze",
+  "category":"domain-commands",
+  "syntax":"domfsfreeze domain [[--mountpoint] mountpoint...]",
+  "summary":"Freeze mounted filesystems within a running domain to prepare for consistent snapshots."
+ },
+ {
+  "name":"domfsinfo",
+  "category":"domain-commands",
+  "syntax":"domfsinfo domain",
+  "summary":"Show a list of mounted filesystems within the running domain. The list contains mountpoints, names of a mounted device in the guest, filesystem types, and unique target names used in the domain XML (<target dev='name'/>)."
+ },
+ {
+  "name":"domfsthaw",
+  "category":"domain-commands",
+  "syntax":"domfsthaw domain [[--mountpoint] mountpoint...]",
+  "summary":"Thaw mounted filesystems within a running domain, which have been frozen by domfsfreeze command."
+ },
+ {
+  "name":"domfstrim",
+  "category":"domain-commands",
+  "syntax":"domfstrim domain [--minimum bytes] [--mountpoint mountPoint]",
+  "summary":"Issue a fstrim command on all mounted filesystems within a running domain. It discards blocks which are not in use by the filesystem. If --minimum bytes is specified, it tells guest kernel length of contiguous free range. Smaller than this may be ignored (this is a hint and the guest may not respect it). By increasing this value, the fstrim operation will..."
+ },
+ {
+  "name":"domhostname",
+  "category":"domain-commands",
+  "syntax":"domhostname domain [--source lease|agent]",
+  "summary":"Returns the hostname of a domain, if the hypervisor makes it available."
+ },
+ {
+  "name":"domid",
+  "category":"domain-commands",
+  "syntax":"domid domain-name-or-uuid",
+  "summary":"Convert a domain name (or UUID) to a domain id"
+ },
+ {
+  "name":"domif-getlink",
+  "category":"domain-commands",
+  "syntax":"domif-getlink domain interface-device [--config]",
+  "summary":"Query link state of the domain's virtual interface. If --config is specified, query the persistent configuration, for compatibility purposes, --persistent is alias of --config ."
+ },
+ {
+  "name":"domif-setlink",
+  "category":"domain-commands",
+  "syntax":"domif-setlink domain interface-device state [--config] [--print-xml]",
+  "summary":"Modify link state of the domain's virtual interface. Possible values for state are \"up\" and \"down\". If --config is specified, only the persistent configuration of the domain is modified, for compatibility purposes, --persistent is alias of --config . interface-device can be the interface's target name or the MAC address."
+ },
+ {
+  "name":"domifaddr",
+  "category":"domain-commands",
+  "syntax":"domifaddr domain [interface] [--full] [--source lease|agent|arp]",
+  "summary":"Get a list of interfaces of a running domain along with their IP and MAC addresses, or limited output just for one interface if interface is specified. Note that interface can be driver dependent, it can be the name within guest OS or the name you would see in domain XML. Moreover, the whole command may require a guest agent to be configured for the queri..."
+ },
+ {
+  "name":"backup-begin",
+  "category":"domain-commands",
+  "syntax":"backup-begin domain [backupxml] [checkpointxml] [--reuse-external] [--preserve-domain-on-shutdown]",
+  "summary":"Begin a new backup job. If backupxml is omitted, this defaults to a full backup using a push model to filenames generated by libvirt; supplying XML allows fine-tuning such as requesting an incremental backup relative to an earlier checkpoint, controlling which disks participate or which filenames are involved, or requesting the use of a pull model backup...."
+ },
+ {
+  "name":"backup-dumpxml",
+  "category":"domain-commands",
+  "syntax":"backup-dumpxml [--xpath EXPRESSION] [--wrap] domain",
+  "summary":"Output XML describing the current backup job."
+ },
+ {
+  "name":"domiflist",
+  "category":"domain-commands",
+  "syntax":"domiflist domain [--inactive]",
+  "summary":"Print a table showing the brief information of all virtual interfaces associated with domain . If --inactive is specified, query the virtual interfaces that will be used on the next boot, rather than those currently in use by a running domain. Other contexts that require a MAC address of virtual interface (such as detach-interface or domif-setlink ) will..."
+ },
+ {
+  "name":"domifstat",
+  "category":"domain-commands",
+  "syntax":"domifstat domain interface-device",
+  "summary":"Get network interface stats for a running domain. The network interface stats are only available for interfaces that have a physical source interface. This does not include, for example, a 'user' interface type since it is a virtual LAN with NAT to the outside world. interface-device can be the interface target by name or MAC address. Please note, for an..."
+ },
+ {
+  "name":"domiftune",
+  "category":"domain-commands",
+  "syntax":"domiftune domain interface-device [[--config] [--live] | [--current]] [*--inbound average,peak,burst,floor*] [*--outbound average,peak,burst*]",
+  "summary":"Set or query the domain's network interface's bandwidth parameters. interface-device can be the interface's target name (<target dev='name'/>), or the MAC address."
+ },
+ {
+  "name":"domifannounce",
+  "category":"domain-commands",
+  "syntax":"domifannounce domain [interface-device] [parameters]",
+  "summary":"Syntax"
+ },
+ {
+  "name":"dominfo",
+  "category":"domain-commands",
+  "syntax":"dominfo domain",
+  "summary":"Returns basic information about the domain."
+ },
+ {
+  "name":"domjobabort",
+  "category":"domain-commands",
+  "syntax":"domjobabort domain [--postcopy]",
+  "summary":"Abort the currently running domain job."
+ },
+ {
+  "name":"domjobinfo",
+  "category":"domain-commands",
+  "syntax":"domjobinfo domain [--completed [--keep-completed]] [--anystats] [--rawstats]",
+  "summary":"Returns information about jobs running on a domain. --completed tells virsh to return information about a recently finished job. Statistics of a completed job are automatically destroyed once read (unless --keep-completed is used) or when libvirtd is restarted."
+ },
+ {
+  "name":"domlaunchsecinfo",
+  "category":"domain-commands",
+  "syntax":"domlaunchsecinfo domain",
+  "summary":"Returns information about the launch security parameters associated with a running domain."
+ },
+ {
+  "name":"domsetlaunchsecstate",
+  "category":"domain-commands",
+  "syntax":"domsetlaunchsecstate domain --secrethdr hdr-filename --secret secret-filename [--set-address address]",
+  "summary":"Set a launch security secret in the guest's memory. The guest must have a launchSecurity type enabled in its configuration and be in a paused state. On success, the guest can be transitioned to a running state. On failure, the guest should be destroyed."
+ },
+ {
+  "name":"dommemstat",
+  "category":"domain-commands",
+  "syntax":"dommemstat domain [--period seconds] [[--config] [--live] | [--current]]",
+  "summary":"Get memory stats for a running domain."
+ },
+ {
+  "name":"domname",
+  "category":"domain-commands",
+  "syntax":"domname domain-id-or-uuid",
+  "summary":"Convert a domain Id (or UUID) to domain name"
+ },
+ {
+  "name":"dompmsuspend",
+  "category":"domain-commands",
+  "syntax":"dompmsuspend domain target [--duration]",
+  "summary":"Suspend a running domain into one of these states (possible target values):"
+ },
+ {
+  "name":"dompmwakeup",
+  "category":"domain-commands",
+  "syntax":"dompmwakeup domain",
+  "summary":"Wakeup a domain from pmsuspended state (either suspended by dompmsuspend or from the guest itself). Injects a wakeup into the guest that is in pmsuspended state, rather than waiting for the previously requested duration (if any) to elapse. This operation does not necessarily fail if the domain is running."
+ },
+ {
+  "name":"domrename",
+  "category":"domain-commands",
+  "syntax":"domrename domain new-name",
+  "summary":"Rename a domain. This command changes current domain name to the new name specified in the second argument."
+ },
+ {
+  "name":"domstate",
+  "category":"domain-commands",
+  "syntax":"domstate domain [--reason]",
+  "summary":"Returns state about a domain. --reason tells virsh to also print reason for the state."
+ },
+ {
+  "name":"domstats",
+  "category":"domain-commands",
+  "syntax":"domstats [--raw] [--enforce] [--backing] [--nowait] [--state] [--cpu-total] [--balloon] [--vcpu] [--interface] [--block] [--perf] [--iothread] [--memory] [--dirtyrate] [--vm] [[--list-active] [--list-inactive] [--list-persistent] [--list-transient] [--list-running] [--list-paused] [--list-shutoff] [--list-other]] | [domain ...]",
+  "summary":"Get statistics for multiple or all domains. Without any argument this command prints all available statistics for all domains."
+ },
+ {
+  "name":"domtime",
+  "category":"domain-commands",
+  "syntax":"domtime domain { [--now] [--pretty] [--sync] [--time time] }",
+  "summary":"Gets or sets the domain's system time. When run without any arguments (but domain ), the current domain's system time is printed out. The --pretty modifier can be used to print the time in more human readable form."
+ },
+ {
+  "name":"domuuid",
+  "category":"domain-commands",
+  "syntax":"domuuid domain-name-or-id",
+  "summary":"Convert a domain name or id to domain UUID"
+ },
+ {
+  "name":"domxml-from-native",
+  "category":"domain-commands",
+  "syntax":"domxml-from-native format config",
+  "summary":"Convert the file config in the native guest configuration format named by format to a domain XML format. For QEMU/KVM hypervisor, the format argument must be qemu-argv . For Xen hypervisor, the format argument may be xen-xm , xen-xl , or xen-sxpr . For LXC hypervisor, the format argument must be lxc-tools . For VMware/ESX hypervisor, the format argument m..."
+ },
+ {
+  "name":"domxml-to-native",
+  "category":"domain-commands",
+  "syntax":"domxml-to-native format { [--xml] xml | --domain domain-name-or-id-or-uuid }",
+  "summary":"Convert the file xml into domain XML format or convert an existing --domain to the native guest configuration format named by format . The xml and --domain arguments are mutually exclusive. For the types of format argument, refer to domxml-from-native ."
+ },
+ {
+  "name":"dump",
+  "category":"domain-commands",
+  "syntax":"dump domain corefilepath [--bypass-cache] { [--live] | [--crash] | [--reset] } [--verbose] [--memory-only] [--format string]",
+  "summary":"Dumps the core of a domain to a file for analysis. If --live is specified, the domain continues to run until the core dump is complete, rather than pausing up front. If --crash is specified, the domain is halted with a crashed status, rather than merely left in a paused state. If --reset is specified, the domain is reset after successful dump. Note, these..."
+ },
+ {
+  "name":"dumpxml",
+  "category":"domain-commands",
+  "syntax":"dumpxml [--inactive] [--security-info] [--update-cpu] [--migratable] [--xpath EXPRESSION] [--wrap] domain",
+  "summary":"Output the domain information as an XML dump to stdout, this format can be used by the create command. Additional options affecting the XML dump may be used. --inactive tells virsh to dump domain configuration that will be used on next start of the domain as opposed to the current domain configuration. Using --security-info will also include security sens..."
+ },
+ {
+  "name":"edit",
+  "category":"domain-commands",
+  "syntax":"edit domain",
+  "summary":"Edit the XML configuration file for a domain, which will affect the next boot of the guest."
+ },
+ {
+  "name":"emulatorpin",
+  "category":"domain-commands",
+  "syntax":"emulatorpin domain [cpulist] [[--live] [--config] | [--current]]",
+  "summary":"Query or change the pinning of domain's emulator threads to host physical CPUs."
+ },
+ {
+  "name":"event",
+  "category":"domain-commands",
+  "syntax":"event {[domain] { event | --all } [--loop] [--timeout seconds] [--timestamp] | --list}",
+  "summary":"Wait for a class of domain events to occur, and print appropriate details of events as they happen. The events can optionally be filtered by domain . Using --list as the only argument will provide a list of possible event values known by this client, although the connection might not allow registering for all these events. It is also possible to use --all..."
+ },
+ {
+  "name":"await",
+  "category":"domain-commands",
+  "syntax":"await <domain> --condition <string> [--timeout seconds]",
+  "summary":"Wait until the --condition for <domain> is satisfied. Uses events for efficient state updates."
+ },
+ {
+  "name":"get-user-sshkeys",
+  "category":"domain-commands",
+  "syntax":"get-user-sshkeys domain user",
+  "summary":"Print SSH authorized keys for given user in the guest domain . Please note, that an entry in the file has internal structure as defined by sshd(8) and virsh/libvirt does handle keys as opaque strings, i.e. does not interpret them."
+ },
+ {
+  "name":"guest-agent-timeout",
+  "category":"domain-commands",
+  "syntax":"guest-agent-timeout domain [--timeout value]",
+  "summary":"Set how long to wait for a response from guest agent commands. By default, agent commands block forever waiting for a response. value must be a positive value (wait for given amount of seconds) or one of the following values:"
+ },
+ {
+  "name":"guestinfo",
+  "category":"domain-commands",
+  "syntax":"guestinfo domain [--user] [--os] [--timezone] [--hostname] [--filesystem] [--disk] [--interface] [--devices]",
+  "summary":"Print information about the guest from the point of view of the guest agent. Note that this command requires a guest agent to be configured and running in the domain's guest OS."
+ },
+ {
+  "name":"guestvcpus",
+  "category":"domain-commands",
+  "syntax":"guestvcpus domain [[--enable] | [--disable]] [cpulist]",
+  "summary":"Query or change state of vCPUs from guest's point of view using the guest agent. When invoked without cpulist the guest is queried for available guest vCPUs, their state and possibility to be offlined."
+ },
+ {
+  "name":"iothreadadd",
+  "category":"domain-commands",
+  "syntax":"iothreadadd domain iothread_id [[--config] [--live] | [--current]]",
+  "summary":"Add a new IOThread to the domain using the specified iothread_id . If the iothread_id already exists, the command will fail. The iothread_id must be greater than zero."
+ },
+ {
+  "name":"iothreaddel",
+  "category":"domain-commands",
+  "syntax":"iothreaddel domain iothread_id [[--config] [--live] | [--current]]",
+  "summary":"Delete an IOThread from the domain using the specified iothread_id . If an IOThread is currently assigned to a disk resource such as via the attach-disk command, then the attempt to remove the IOThread will fail. If the iothread_id does not exist an error will occur."
+ },
+ {
+  "name":"iothreadinfo",
+  "category":"domain-commands",
+  "syntax":"iothreadinfo domain [[--live] [--config] | [--current]]",
+  "summary":"Display basic domain IOThreads information including the IOThread ID and the CPU Affinity for each IOThread."
+ },
+ {
+  "name":"iothreadpin",
+  "category":"domain-commands",
+  "syntax":"iothreadpin domain iothread cpulist [[--live] [--config] | [--current]]",
+  "summary":"Change the pinning of a domain IOThread to host physical CPUs. In order to retrieve a list of all IOThreads, use iothreadinfo . To pin an iothread specify the cpulist desired for the IOThread ID as listed in the iothreadinfo output."
+ },
+ {
+  "name":"iothreadset",
+  "category":"domain-commands",
+  "syntax":"iothreadset domain iothread_id [[--poll-max-ns ns] [--poll-grow factor] [--poll-shrink divisor] [--poll-weight factor] [--thread-pool-min value] [--thread-pool-max value]] [[--config] [--live] | [--current]]",
+  "summary":"Modifies an existing iothread of the domain using the specified iothread_id . The --poll-max-ns provides the maximum polling interval to be allowed for an IOThread in ns. If a 0 (zero) is provided, then polling for the IOThread is disabled. The --poll-grow is the factor by which the current polling time will be adjusted in order to reach the maximum polli..."
+ },
+ {
+  "name":"managedsave",
+  "category":"domain-commands",
+  "syntax":"managedsave domain [--bypass-cache] [{--running | --paused}] [--verbose]",
+  "summary":"Save and destroy (stop) a running domain, so it can be restarted from the same state at a later time. When the virsh start command is next run for the domain, it will automatically be started from this saved state. If --bypass-cache is specified, the save will avoid the file system cache, although this may slow down the operation."
+ },
+ {
+  "name":"managedsave-define",
+  "category":"domain-commands",
+  "syntax":"managedsave-define domain xml [{--running | --paused}]",
+  "summary":"Update the domain XML that will be used when domain is later started. The xml argument must be a file name containing the alternative XML, with changes only in the host-specific portions of the domain XML. For example, it can be used to change disk file paths."
+ },
+ {
+  "name":"managedsave-dumpxml",
+  "category":"domain-commands",
+  "syntax":"managedsave-dumpxml [--security-info] [--xpath EXPRESSION] [--wrap] domain",
+  "summary":"Extract the domain XML that was in effect at the time the saved state file file was created with the managedsave command. Using --security-info will also include security sensitive information."
+ },
+ {
+  "name":"managedsave-edit",
+  "category":"domain-commands",
+  "syntax":"managedsave-edit domain [{--running | --paused}]",
+  "summary":"Edit the XML configuration associated with a saved state file of a domain was created by the managedsave command."
+ },
+ {
+  "name":"managedsave-remove",
+  "category":"domain-commands",
+  "syntax":"managedsave-remove domain",
+  "summary":"Remove the managedsave state file for a domain, if it exists. This ensures the domain will do a full boot the next time it is started."
+ },
+ {
+  "name":"maxvcpus",
+  "category":"domain-commands",
+  "syntax":"maxvcpus [type]",
+  "summary":"Provide the maximum number of virtual CPUs supported for a guest VM on this connection. If provided, the type parameter must be a valid type attribute for the <domain> element of XML."
+ },
+ {
+  "name":"memtune",
+  "category":"domain-commands",
+  "syntax":"memtune domain [--hard-limit size] [--soft-limit size] [--swap-hard-limit size] [--min-guarantee size] [[--config] [--live] | [--current]]",
+  "summary":"Allows you to display or set the domain memory parameters. Without flags, the current settings are displayed; with a flag, the appropriate limit is adjusted if supported by the hypervisor. LXC and QEMU/KVM support --hard-limit , --soft-limit , and --swap-hard-limit . --min-guarantee is supported only by ESX hypervisor. Each of these limits are scaled inte..."
+ },
+ {
+  "name":"metadata",
+  "category":"domain-commands",
+  "syntax":"metadata domain [[--live] [--config] | [--current]] [--edit] [uri] [key] [set] [--remove]",
+  "summary":"Show or modify custom XML metadata of a domain. The metadata is a user defined XML that allows storing arbitrary XML data in the domain definition. Multiple separate custom metadata pieces can be stored in the domain XML. The pieces are identified by a private XML namespace provided via the uri argument. (See also desc that works with textual metadata of..."
+ },
+ {
+  "name":"migrate",
+  "category":"domain-commands",
+  "syntax":"migrate [--live] [--offline] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] [--rdma-pin-all] [--abort-on-error] [--postcopy] [--postcopy-after-precopy] [--postcopy-resume] [--zerocopy] domain desturi [migrateuri] [graphicsuri] [listen-address] [dname] [--timeout seconds [--timeout-suspend | --timeout-postcopy]] [--xml file] [--migrate-disks disk-list] [--migrate-disks-detect-zeroes disk-list] [--migrate-disks-target-zero disk-list] [--disks-port port] [--compressed] [--comp-methods method-list] [--comp-mt-level] [--comp-mt-threads] [--comp-mt-dthreads] [--comp-xbzrle-cache] [--comp-zlib-level] [--comp-zstd-level] [--auto-converge] [auto-converge-initial] [auto-converge-increment] [--persistent-xml file] [--tls] [--postcopy-bandwidth bandwidth] [--parallel [--parallel-connections connections]] [--bandwidth bandwidth] [--tls-destination hostname] [--disks-uri URI] [--copy-storage-synchronous-writes] [--available-switchover-bandwidth bandwidth]",
+  "summary":"Migrate domain to another host. Add --live for live migration; <--p2p> for peer-2-peer migration; --direct for direct migration; or --tunnelled for tunnelled migration. --offline migrates domain definition without starting the domain on destination and without stopping it on source host. Offline migration may be used with inactive domains and it must be u..."
+ },
+ {
+  "name":"migrate-compcache",
+  "category":"domain-commands",
+  "syntax":"migrate-compcache domain [--size bytes]",
+  "summary":"Sets and/or gets size of the cache (in bytes) used for compressing repeatedly transferred memory pages during live migration. When called without size , the command just prints current size of the compression cache. When size is specified, the hypervisor is asked to change compression cache to size bytes and then the current size is printed (the result ma..."
+ },
+ {
+  "name":"migrate-getmaxdowntime",
+  "category":"domain-commands",
+  "syntax":"migrate-getmaxdowntime domain",
+  "summary":"Get the maximum tolerable downtime for a domain which is being live-migrated to another host. This is the number of milliseconds the guest is allowed to be down at the end of live migration."
+ },
+ {
+  "name":"migrate-getspeed",
+  "category":"domain-commands",
+  "syntax":"migrate-getspeed domain [--postcopy]",
+  "summary":"Get the maximum migration bandwidth (in MiB/s) for a domain. If the --postcopy option is specified, the command will get the maximum bandwidth allowed during a post-copy migration phase."
+ },
+ {
+  "name":"migrate-postcopy",
+  "category":"domain-commands",
+  "syntax":"migrate-postcopy domain",
+  "summary":"Switch the current migration from pre-copy to post-copy. This is only supported for a migration started with --postcopy option."
+ },
+ {
+  "name":"migrate-setmaxdowntime",
+  "category":"domain-commands",
+  "syntax":"migrate-setmaxdowntime domain downtime",
+  "summary":"Set maximum tolerable downtime for a domain which is being live-migrated to another host. The downtime is a number of milliseconds the guest is allowed to be down at the end of live migration."
+ },
+ {
+  "name":"migrate-setspeed",
+  "category":"domain-commands",
+  "syntax":"migrate-setspeed domain bandwidth [--postcopy]",
+  "summary":"Set the maximum migration bandwidth (in MiB/s) for a domain which is being migrated to another host. bandwidth is interpreted as an unsigned long long value. Specifying a negative value results in an essentially unlimited value being provided to the hypervisor. The hypervisor can choose whether to reject the value or convert it to the maximum value allowe..."
+ },
+ {
+  "name":"numatune",
+  "category":"domain-commands",
+  "syntax":"numatune domain [--mode mode] [--nodeset nodeset] [[--config] [--live] | [--current]]",
+  "summary":"Set or get a domain's numa parameters, corresponding to the <numatune> element of domain XML. Without flags, the current settings are displayed."
+ },
+ {
+  "name":"perf",
+  "category":"domain-commands",
+  "syntax":"perf domain [--enable eventSpec] [--disable eventSpec] [[--config] [--live] | [--current]]",
+  "summary":"Get the current perf events setting or enable/disable specific perf events for a guest domain."
+ },
+ {
+  "name":"reboot",
+  "category":"domain-commands",
+  "syntax":"reboot domain [--mode MODE-LIST]",
+  "summary":"Reboot a domain. This acts just as if the domain had the reboot command run from the console. The command returns as soon as it has executed the reboot action, which may be significantly before the domain actually reboots."
+ },
+ {
+  "name":"reset",
+  "category":"domain-commands",
+  "syntax":"reset domain",
+  "summary":"Reset a domain immediately without any guest shutdown. reset emulates the power reset button on a machine, where all guest hardware sees the RST line set and reinitializes internal state."
+ },
+ {
+  "name":"restore",
+  "category":"domain-commands",
+  "syntax":"restore state-file [--bypass-cache] [--xml file] [{--running | --paused}] [--reset-nvram] [--parallel-channels]",
+  "summary":"Restores a domain from a virsh save state file. See save for more info."
+ },
+ {
+  "name":"resume",
+  "category":"domain-commands",
+  "syntax":"resume domain",
+  "summary":"Moves a domain out of the suspended state. This will allow a previously suspended domain to now be eligible for scheduling by the underlying hypervisor."
+ },
+ {
+  "name":"save",
+  "category":"domain-commands",
+  "syntax":"save domain state-file [--bypass-cache] [--xml file] [--image-format format] [--parallel-channels channels] [{--running | --paused}] [--verbose]",
+  "summary":"Saves a running domain (RAM, but not disk state) to a state file so that it can be restored later. Once saved, the domain will no longer be running on the system, thus the memory allocated for the domain will be free for other domains to use. virsh restore restores from this state file."
+ },
+ {
+  "name":"save-image-define",
+  "category":"domain-commands",
+  "syntax":"save-image-define file xml [{--running | --paused}]",
+  "summary":"Update the domain XML that will be used when file is later used in the restore command. The xml argument must be a file name containing the alternative XML, with changes only in the host-specific portions of the domain XML. For example, it can be used to account for file naming differences resulting from creating disk snapshots of underlying storage after..."
+ },
+ {
+  "name":"save-image-dumpxml",
+  "category":"domain-commands",
+  "syntax":"save-image-dumpxml [--security-info] [--xpath EXPRESSION] [--wrap] file",
+  "summary":"Extract the domain XML that was in effect at the time the saved state file file was created with the save command. Using --security-info will also include security sensitive information."
+ },
+ {
+  "name":"save-image-edit",
+  "category":"domain-commands",
+  "syntax":"save-image-edit file [{--running | --paused}]",
+  "summary":"Edit the XML configuration associated with a saved state file file created by the save command."
+ },
+ {
+  "name":"schedinfo",
+  "category":"domain-commands",
+  "syntax":"schedinfo domain [[--config] [--live] | [--current]] [[--set] parameter=value]... schedinfo [--weight number] [--cap number] domain",
+  "summary":"Allows you to show (and set) the domain scheduler parameters. The parameters available for each hypervisor are:"
+ },
+ {
+  "name":"screenshot",
+  "category":"domain-commands",
+  "syntax":"screenshot domain [imagefilepath] [--screen screenID]",
+  "summary":"Takes a screenshot of a current domain console and stores it into a file. Optionally, if the hypervisor supports more displays for a domain, screenID allows specifying which screen will be captured. It is the sequential number of screen. In case of multiple graphics cards, heads are enumerated before devices, e.g. having two graphics cards, both with four..."
+ },
+ {
+  "name":"send-key",
+  "category":"domain-commands",
+  "syntax":"send-key domain [--codeset codeset] [--holdtime holdtime] keycode...",
+  "summary":"Parse the keycode sequence as keystrokes to send to domain . Each keycode can either be a numeric value or a symbolic name from the corresponding codeset. If --holdtime is given, each keystroke will be held for that many milliseconds. The default codeset is linux , but use of the --codeset option allows other codesets to be chosen."
+ },
+ {
+  "name":"send-process-signal",
+  "category":"domain-commands",
+  "syntax":"send-process-signal domain-id pid signame",
+  "summary":"Send a signal signame to the process identified by pid running in the virtual domain domain-id . The pid is a process ID in the virtual domain namespace."
+ },
+ {
+  "name":"set-lifecycle-action",
+  "category":"domain-commands",
+  "syntax":"set-lifecycle-action domain type action [[--config] [--live] | [--current]]",
+  "summary":"Set the lifecycle action for specified lifecycle type . The valid types are \"poweroff\", \"reboot\" and \"crash\", and for each of them valid action is one of \"destroy\", \"restart\", \"rename-restart\", \"preserve\". For type \"crash\", additional actions \"coredump-destroy\" and \"coredump-restart\" are supported."
+ },
+ {
+  "name":"set-user-password",
+  "category":"domain-commands",
+  "syntax":"set-user-password domain user password [--encrypted]",
+  "summary":"Set the password for the user account in the guest domain."
+ },
+ {
+  "name":"set-user-sshkeys",
+  "category":"domain-commands",
+  "syntax":"set-user-sshkeys domain user [--file FILE] [{--reset | --remove}]",
+  "summary":"Append keys read from FILE into user 's SSH authorized keys file in the guest domain . In the FILE keys must be on separate lines and each line must follow authorized keys format as defined by sshd(8) ."
+ },
+ {
+  "name":"setmaxmem",
+  "category":"domain-commands",
+  "syntax":"setmaxmem domain size [[--config] [--live] | [--current]]",
+  "summary":"Change the maximum memory allocation limit for a guest domain. If --live is specified, affect a running guest. If --config is specified, affect the next start of a persistent guest. If --current is specified, it is equivalent to either --live or --config , depending on the current state of the guest. Both --live and --config flags may be given, but --curr..."
+ },
+ {
+  "name":"setmem",
+  "category":"domain-commands",
+  "syntax":"setmem domain size [[--config] [--live] | [--current]]",
+  "summary":"Change the memory allocation for a guest domain. If --live is specified, perform a memory balloon of a running guest. If --config is specified, affect the next start of a persistent guest. If --current is specified, it is equivalent to either --live or --config , depending on the current state of the guest. Both --live and --config flags may be given, but..."
+ },
+ {
+  "name":"setvcpus",
+  "category":"domain-commands",
+  "syntax":"setvcpus domain count [--maximum] [[--config] [--live] | [--current]] [--guest] [--hotpluggable] [--async]",
+  "summary":"Change the number of virtual CPUs active in a guest domain. By default, this command works on active guest domains. To change the settings for an inactive guest domain, use the --config flag."
+ },
+ {
+  "name":"setvcpu",
+  "category":"domain-commands",
+  "syntax":"setvcpu domain vcpulist [--enable] | [--disable] [--async] [[--live] [--config] | [--current]]",
+  "summary":"Change state of individual vCPUs using hot(un)plug mechanism."
+ },
+ {
+  "name":"shutdown",
+  "category":"domain-commands",
+  "syntax":"shutdown domain [--mode MODE-LIST]",
+  "summary":"Gracefully shuts down a domain. This coordinates with the domain OS to perform graceful shutdown, so there is no guarantee that it will succeed, and may take a variable length of time depending on what services must be shutdown in the domain."
+ },
+ {
+  "name":"start",
+  "category":"domain-commands",
+  "syntax":"start domain-name-or-uuid [--console] [--paused] [--autodestroy] [--bypass-cache] [--force-boot] [--pass-fds N,M,...] [--reset-nvram]",
+  "summary":"Start a (previously defined) inactive domain, either from the last managedsave state, or via a fresh boot if no managedsave state is present. The domain will be paused if the --paused option is used and supported by the driver; otherwise it will be running. If --console is requested, attach to the console after creation. If --autodestroy is requested, the..."
+ },
+ {
+  "name":"suspend",
+  "category":"domain-commands",
+  "syntax":"suspend domain",
+  "summary":"Suspend a running domain. It is kept in memory but won't be scheduled anymore."
+ },
+ {
+  "name":"ttyconsole",
+  "category":"domain-commands",
+  "syntax":"ttyconsole domain",
+  "summary":"Output the device used for the TTY console of the domain. If the information is not available the processes will provide an exit code of 1."
+ },
+ {
+  "name":"undefine",
+  "category":"domain-commands",
+  "syntax":"undefine domain [--managed-save] [--snapshots-metadata] [--checkpoints-metadata] [--nvram] [--keep-nvram] [ {--storage volumes | --remove-all-storage [--delete-storage-volume-snapshots]} --wipe-storage] [--tpm] [--keep-tpm]",
+  "summary":"Undefine a domain. If the domain is running, this converts it to a transient domain, without stopping it. If the domain is inactive, the domain configuration is removed."
+ },
+ {
+  "name":"vcpucount",
+  "category":"domain-commands",
+  "syntax":"vcpucount domain [{--maximum | --active} {--config | --live | --current}] [--guest]",
+  "summary":"Print information about the virtual cpu counts of the given domain . If no flags are specified, all possible counts are listed in a table; otherwise, the output is limited to just the numeric value requested. For historical reasons, the table lists the label \"current\" on the rows that can be queried in isolation via the --active flag, rather than relating..."
+ },
+ {
+  "name":"vcpuinfo",
+  "category":"domain-commands",
+  "syntax":"vcpuinfo domain [--pretty]",
+  "summary":"Returns basic information about the domain virtual CPUs, like the number of vCPUs, the running time, the affinity to physical processors."
+ },
+ {
+  "name":"vcpupin",
+  "category":"domain-commands",
+  "syntax":"vcpupin domain [vcpu] [cpulist] [[--live] [--config] | [--current]]",
+  "summary":"Query or change the pinning of domain VCPUs to host physical CPUs. To pin a single vcpu , specify cpulist ; otherwise, you can query one vcpu or omit vcpu to list all at once."
+ },
+ {
+  "name":"vncdisplay",
+  "category":"domain-commands",
+  "syntax":"vncdisplay domain",
+  "summary":"Output the IP address and port number for the VNC display. If the information is not available the processes will provide an exit code of 1."
+ },
+ {
+  "name":"attach-device",
+  "category":"device-commands",
+  "syntax":"attach-device domain FILE [[[--live] [--config] | [--current]] | [--persistent]]",
+  "summary":"Attach a device to the domain, using a device definition in an XML file using a device definition element such as <disk> or <interface> as the top-level element. See the documentation at https://libvirt.org/formatdomain.html#elementsDevices to learn about libvirt XML format for a device. If --config is specified the command alters the persistent guest con..."
+ },
+ {
+  "name":"attach-disk",
+  "category":"device-commands",
+  "syntax":"attach-disk domain source target [[[--live] [--config] | [--current]] | [--persistent]] [--targetbus bus] [--driver driver] [--subdriver subdriver] [--iothread iothread] [--cache cache] [--io io] [--type type] [--alias alias] [--mode mode] [--sourcetype sourcetype] [--source-protocol protocol] [--source-host-name hostname:port] [--source-host-transport transport] [--source-host-socket socket] [--serial serial] [--wwn wwn] [--rawio] [--address address] [--multifunction] [--print-xml] [--throttle-groups groups]",
+  "summary":"Attach a new disk device to the domain. source is path for the files and devices unless --source-protocol is specified, in which case source is the name of a network disk. target controls the bus or device under which the disk is exposed to the guest OS. It indicates the \"logical\" device name; the optional targetbus attribute specifies the type of disk de..."
+ },
+ {
+  "name":"attach-interface",
+  "category":"device-commands",
+  "syntax":"attach-interface domain type source [[[--live] [--config] | [--current]] | [--persistent]] [--target target] [--mac mac] [--script script] [--model model] [--inbound average,peak,burst,floor] [--outbound average,peak,burst] [--alias alias] [--managed] [--print-xml] [--source-mode mode]",
+  "summary":"Attach a new network interface to the domain."
+ },
+ {
+  "name":"detach-device",
+  "category":"device-commands",
+  "syntax":"detach-device domain FILE [[[--live] [--config] | [--current]] | [--persistent]]",
+  "summary":"Detach a device from the domain, takes the same kind of XML descriptions as command attach-device . For passthrough host devices, see also nodedev-reattach , needed if the device does not use managed mode."
+ },
+ {
+  "name":"detach-device-alias",
+  "category":"device-commands",
+  "syntax":"detach-device-alias domain alias [[[--live] [--config] | [--current]]]]",
+  "summary":"Detach a device with given alias from the domain . This command returns successfully after the unplug request was sent to the hypervisor. The actual removal of the device is notified asynchronously via libvirt events (see virsh event)."
+ },
+ {
+  "name":"detach-disk",
+  "category":"device-commands",
+  "syntax":"detach-disk domain target [[[--live] [--config] | [--current]] | [--persistent]] [--print-xml]",
+  "summary":"Detach a disk device from a domain. The target is the device as seen from the domain."
+ },
+ {
+  "name":"detach-interface",
+  "category":"device-commands",
+  "syntax":"detach-interface domain [type] [--mac mac] [[[--live] [--config] | [--current]] | [--persistent]] [--print-xml]",
+  "summary":"Detach a network interface from a domain."
+ },
+ {
+  "name":"update-device",
+  "category":"device-commands",
+  "syntax":"update-device domain file [--force] [[[--live] [--config] | [--current]] | [--persistent]]",
+  "summary":"Update the characteristics of a device associated with domain , based on the device definition in an XML file . The --force option can be used to force device update, e.g., to eject a CD-ROM even if it is locked/mounted in the domain. See the documentation at https://libvirt.org/formatdomain.html#elementsDevices to learn about libvirt XML format for a dev..."
+ },
+ {
+  "name":"update-memory-device",
+  "category":"device-commands",
+  "syntax":"update-memory-device domain [--print-xml] [[--alias alias] | [--node node]] [[--live] [--config] | [--current]] [--requested-size size]",
+  "summary":"This command finds <memory/> device inside given domain , changes requested values and passes updated device XML to daemon. If --print-xml is specified then the device is not changed, but the updated device XML is printed to stdout. If there are more than one <memory/> devices in domain use --alias or --node to select the desired one."
+ },
+ {
+  "name":"change-media",
+  "category":"device-commands",
+  "syntax":"change-media domain path [--eject] [--insert] [--update] [source] [--force] [[--live] [--config] | [--current]] [--print-xml] [--block]",
+  "summary":"Change media of CDROM or floppy drive. path can be the fully-qualified path or the unique target name (<target dev='hdc'>) of the disk device. source specifies the path of the media to be inserted or updated. The --block flag allows setting the backing type in case a block device is used as media for the CDROM or floppy drive instead of a file."
+ },
+ {
+  "name":"dom-fd-associate",
+  "category":"device-commands",
+  "syntax":"dom-fd-associate domain --name FDGROUPNAME --pass-fds M,N,.... [--seclabel-writable] [--seclabel-restore]",
+  "summary":"Associate one or more fds described via --pass-fds argument to domain as --name . The lifetime of the passed fd group is the same as the connection, thus exiting virsh un-registers them afterwards."
+ },
+ {
+  "name":"nodedev-create",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-create FILE [--validate]",
+  "summary":"Create a device on the host node that can then be assigned to virtual machines. Normally, libvirt is able to automatically determine which host nodes are available for use, but this allows registration of host hardware that libvirt did not automatically detect. file contains xml for a top-level <device> description of a node device."
+ },
+ {
+  "name":"nodedev-update",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-update device FILE [[--live] [--config] | [--current]]",
+  "summary":"Update a device on the host. device can be either device name or wwn pair in \"wwnn,wwpn\" format (only works for vHBA currently). file contains xml for a top-level <device> description of the node device. --current can be either or both of live and config , depends on the hypervisor's implementation. Both --live and --config flags may be given, but --curre..."
+ },
+ {
+  "name":"nodedev-destroy",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-destroy device",
+  "summary":"Destroy (stop) a device on the host. device can be either device name or wwn pair in \"wwnn,wwpn\" format (only works for vHBA currently). Note that this makes libvirt quit managing a host device, and may even make that device unusable by the rest of the physical host until a reboot."
+ },
+ {
+  "name":"nodedev-define",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-define FILE [--validate]",
+  "summary":"Define an inactive persistent device or modify an existing persistent one from the XML FILE ."
+ },
+ {
+  "name":"nodedev-undefine",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-undefine device",
+  "summary":"Undefine the configuration for a persistent device. If the device is active, make it transient."
+ },
+ {
+  "name":"nodedev-start",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-start device",
+  "summary":"Start a (previously defined) inactive device."
+ },
+ {
+  "name":"nodedev-detach",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-detach nodedev [--driver backend_driver]",
+  "summary":"Detach nodedev from the host driver and bind it to a special driver that provides the API needed by the hypervisor for assigning the device to a virtual machine (using <hostdev> in the domain XML definition). This is reversed with nodedev-reattach , and is done automatically by the hypervisor driver for managed devices (those devices with \"managed='yes'\"..."
+ },
+ {
+  "name":"nodedev-dumpxml",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-dumpxml [--inactive] [--xpath EXPRESSION] [--wrap] device",
+  "summary":"Dump a <device> XML representation for the given node device, including such information as the device name, which bus owns the device, the vendor and product id, and any capabilities of the device usable by libvirt (such as whether device reset is supported). device can be either device name or wwn pair in \"wwnn,wwpn\" format (only works for HBA). An addi..."
+ },
+ {
+  "name":"nodedev-info",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-info device",
+  "summary":"Returns basic information about the device object."
+ },
+ {
+  "name":"nodedev-list",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-list [--cap capability] [--tree] [--inactive | --all] [--persistent | --transient]",
+  "summary":"List all of the devices available on the node that are known by libvirt. cap is used to filter the list by capability types, the types must be separated by comma, e.g. --cap pci,scsi. Valid capability types include 'system', 'pci', 'usb_device', 'usb', 'net', 'scsi_host', 'scsi_target', 'scsi', 'storage', 'fc_host', 'vports', 'scsi_generic', 'drm', 'mdev'..."
+ },
+ {
+  "name":"nodedev-reattach",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-reattach nodedev",
+  "summary":"Declare that nodedev is no longer in use by any guests, and that the host can resume normal use of the device. This is done automatically for PCI devices in managed mode and USB devices, but must be done explicitly to match any explicit nodedev-detach ."
+ },
+ {
+  "name":"nodedev-reset",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-reset nodedev",
+  "summary":"Trigger a device reset for nodedev , useful prior to transferring a node device between guest passthrough or the host. Libvirt will often do this action implicitly when required, but this command allows an explicit reset when needed."
+ },
+ {
+  "name":"nodedev-event",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-event {[nodedev] event [--loop] [--timeout seconds] [--timestamp] | --list}",
+  "summary":"Wait for a class of node device events to occur, and print appropriate details of events as they happen. The events can optionally be filtered by nodedev . Using --list as the only argument will provide a list of possible event values known by this client, although the connection might not allow registering for all these events."
+ },
+ {
+  "name":"nodedev-autostart",
+  "category":"nodedev-commands",
+  "syntax":"nodedev-autostart [--disable] device",
+  "summary":"Configure a device to be automatically started when the host machine boots or the parent device becomes available. With --disable , the device will be set to manual mode and will no longer be automatically started by the host. This command is only supported for persistently-defined mediated devices."
+ },
+ {
+  "name":"net-autostart",
+  "category":"virtual-network-commands",
+  "syntax":"net-autostart network [--disable]",
+  "summary":"Configure a virtual network to be automatically started at boot. The --disable option disable autostarting."
+ },
+ {
+  "name":"net-create",
+  "category":"virtual-network-commands",
+  "syntax":"net-create file [--validate]",
+  "summary":"Create a transient (temporary) virtual network from an XML file and instantiate (start) the network. See the documentation at https://libvirt.org/formatnetwork.html to get a description of the XML network format used by libvirt."
+ },
+ {
+  "name":"net-define",
+  "category":"virtual-network-commands",
+  "syntax":"net-define file [--validate]",
+  "summary":"Define an inactive persistent virtual network or modify an existing persistent one from the XML file . Optionally, the format of the input XML file can be validated against an internal RNG schema with --validate ."
+ },
+ {
+  "name":"net-desc",
+  "category":"virtual-network-commands",
+  "syntax":"net-desc network [[--live] [--config] | [--current]] [--title] [--edit] [--new-desc New description or title message]",
+  "summary":"Show or modify description and title of a network. These values are user fields that allow storing arbitrary textual data to allow easy identification of networks. Title should be short, although it's not enforced. (See also net-metadata that works with XML based network metadata.)"
+ },
+ {
+  "name":"net-destroy",
+  "category":"virtual-network-commands",
+  "syntax":"net-destroy network",
+  "summary":"Destroy (stop) a given transient or persistent virtual network specified by its name or UUID. This takes effect immediately."
+ },
+ {
+  "name":"net-dumpxml",
+  "category":"virtual-network-commands",
+  "syntax":"net-dumpxml [--inactive] [--xpath EXPRESSION] [--wrap] network",
+  "summary":"Output the virtual network information as an XML dump to stdout. If --inactive is specified, then physical functions are not expanded into their associated virtual functions."
+ },
+ {
+  "name":"net-edit",
+  "category":"virtual-network-commands",
+  "syntax":"net-edit network",
+  "summary":"Edit the XML configuration file for a network."
+ },
+ {
+  "name":"net-event",
+  "category":"virtual-network-commands",
+  "syntax":"net-event {[network] event [--loop] [--timeout seconds] [--timestamp] | --list}",
+  "summary":"Wait for a class of network events to occur, and print appropriate details of events as they happen. The events can optionally be filtered by network . Using --list as the only argument will provide a list of possible event values known by this client, although the connection might not allow registering for all these events."
+ },
+ {
+  "name":"net-info",
+  "category":"virtual-network-commands",
+  "syntax":"net-info network",
+  "summary":"Returns basic information about the network object."
+ },
+ {
+  "name":"net-list",
+  "category":"virtual-network-commands",
+  "syntax":"net-list [--inactive | --all] { [--table] | --name | --uuid } [--persistent] [<--transient>] [--autostart] [<--no-autostart>] [--title]",
+  "summary":"Returns the list of active networks, if --all is specified this will also include defined but inactive networks, if --inactive is specified only the inactive ones will be listed. You may also want to filter the returned networks by --persistent to list the persistent ones, --transient to list the transient ones, --autostart to list the ones with autostart..."
+ },
+ {
+  "name":"net-metadata",
+  "category":"virtual-network-commands",
+  "syntax":"net-metadata network [[--live] [--config] | [--current]] [--edit] [uri] [key] [set] [--remove]",
+  "summary":"Show or modify custom XML metadata of a network. The metadata is a user defined XML that allows storing arbitrary XML data in the network definition. Multiple separate custom metadata pieces can be stored in the network XML. The pieces are identified by a private XML namespace provided via the uri argument. (See also net-desc that works with textual metad..."
+ },
+ {
+  "name":"net-name",
+  "category":"virtual-network-commands",
+  "syntax":"net-name network-UUID",
+  "summary":"Convert a network UUID to network name."
+ },
+ {
+  "name":"net-start",
+  "category":"virtual-network-commands",
+  "syntax":"net-start network",
+  "summary":"Start a (previously defined) inactive network."
+ },
+ {
+  "name":"net-undefine",
+  "category":"virtual-network-commands",
+  "syntax":"net-undefine network",
+  "summary":"Undefine the configuration for a persistent network. If the network is active, make it transient."
+ },
+ {
+  "name":"net-uuid",
+  "category":"virtual-network-commands",
+  "syntax":"net-uuid network-name",
+  "summary":"Convert a network name to network UUID."
+ },
+ {
+  "name":"net-update",
+  "category":"virtual-network-commands",
+  "syntax":"net-update network command section xml [--parent-index index] [[--live] [--config] | [--current]]",
+  "summary":"Update the given section of an existing network definition, with the changes optionally taking effect immediately, without needing to destroy and re-start the network."
+ },
+ {
+  "name":"net-dhcp-leases",
+  "category":"virtual-network-commands",
+  "syntax":"net-dhcp-leases network [mac]",
+  "summary":"Get a list of dhcp leases for all network interfaces connected to the given virtual network or limited output just for one interface if mac is specified."
+ },
+ {
+  "name":"net-port-list",
+  "category":"network-port-commands",
+  "syntax":"net-port-list { [--table] | --uuid } network",
+  "summary":"List all network ports recorded against the network."
+ },
+ {
+  "name":"net-port-create",
+  "category":"network-port-commands",
+  "syntax":"net-port-create network file [--validate]",
+  "summary":"Allocate a new network port reserving resources based on the port description. Optionally, the format of the input XML file can be validated against an internal RNG schema with --validate ."
+ },
+ {
+  "name":"net-port-dumpxml",
+  "category":"network-port-commands",
+  "syntax":"net-port-dumpxml [--xpath EXPRESSION] [--wrap] network port",
+  "summary":"Output the network port information as an XML dump to stdout."
+ },
+ {
+  "name":"net-port-delete",
+  "category":"network-port-commands",
+  "syntax":"net-port-delete network port",
+  "summary":"Delete record of the network port and release its resources"
+ },
+ {
+  "name":"iface-bridge",
+  "category":"interface-commands",
+  "syntax":"iface-bridge interface bridge [--no-stp] [delay] [--no-start]",
+  "summary":"Create a bridge device named bridge , and attach the existing network device interface to the new bridge. The new bridge defaults to starting immediately, with STP enabled and a delay of 0; these settings can be altered with --no-stp , --no-start , and an integer number of seconds for delay . All IP address configuration of interface will be moved to the..."
+ },
+ {
+  "name":"iface-define",
+  "category":"interface-commands",
+  "syntax":"iface-define file [--validate]",
+  "summary":"Define an inactive persistent physical host interface or modify an existing persistent one from the XML file . Optionally, the format of the input XML file can be validated against an internal RNG schema with --validate ."
+ },
+ {
+  "name":"iface-destroy",
+  "category":"interface-commands",
+  "syntax":"iface-destroy interface",
+  "summary":"Destroy (stop) a given host interface, such as by running \"if-down\" to disable that interface from active use. This takes effect immediately."
+ },
+ {
+  "name":"iface-dumpxml",
+  "category":"interface-commands",
+  "syntax":"iface-dumpxml [--inactive] [--xpath EXPRESSION] [--wrap] interface",
+  "summary":"Output the host interface information as an XML dump to stdout. If --inactive is specified, then the output reflects the persistent state of the interface that will be used the next time it is started."
+ },
+ {
+  "name":"iface-edit",
+  "category":"interface-commands",
+  "syntax":"iface-edit interface",
+  "summary":"Edit the XML configuration file for a host interface."
+ },
+ {
+  "name":"iface-list",
+  "category":"interface-commands",
+  "syntax":"iface-list [--inactive | --all]",
+  "summary":"Returns the list of active host interfaces. If --all is specified this will also include defined but inactive interfaces. If --inactive is specified only the inactive ones will be listed."
+ },
+ {
+  "name":"iface-name",
+  "category":"interface-commands",
+  "syntax":"iface-name interface",
+  "summary":"Convert a host interface MAC to interface name, if the MAC address is unique among the host's interfaces."
+ },
+ {
+  "name":"iface-mac",
+  "category":"interface-commands",
+  "syntax":"iface-mac interface",
+  "summary":"Convert a host interface name to MAC address."
+ },
+ {
+  "name":"iface-start",
+  "category":"interface-commands",
+  "syntax":"iface-start interface",
+  "summary":"Start a (previously defined) host interface, such as by running \"if-up\"."
+ },
+ {
+  "name":"iface-unbridge",
+  "category":"interface-commands",
+  "syntax":"iface-unbridge bridge [--no-start]",
+  "summary":"Tear down a bridge device named bridge , releasing its underlying interface back to normal usage, and moving all IP address configuration from the bridge device to the underlying device. The underlying interface is restarted unless --no-start is present; this flag is present for symmetry, but generally not recommended."
+ },
+ {
+  "name":"iface-undefine",
+  "category":"interface-commands",
+  "syntax":"iface-undefine interface",
+  "summary":"Undefine the configuration for an inactive host interface."
+ },
+ {
+  "name":"iface-begin",
+  "category":"interface-commands",
+  "syntax":"iface-begin",
+  "summary":"Create a snapshot of current host interface settings, which can later be committed ( iface-commit ) or restored ( iface-rollback ). If a snapshot already exists, then this command will fail until the previous snapshot has been committed or restored. Undefined behavior results if any external changes are made to host interfaces outside of the libvirt API b..."
+ },
+ {
+  "name":"iface-commit",
+  "category":"interface-commands",
+  "syntax":"iface-commit",
+  "summary":"Declare all changes since the last iface-begin as working, and delete the rollback point. If no interface snapshot has already been started, then this command will fail."
+ },
+ {
+  "name":"iface-rollback",
+  "category":"interface-commands",
+  "syntax":"iface-rollback",
+  "summary":"Revert all host interface settings back to the state recorded in the last iface-begin . If no interface snapshot has already been started, then this command will fail. Rebooting the host also serves as an implicit rollback point."
+ },
+ {
+  "name":"find-storage-pool-sources",
+  "category":"storage-pool-commands",
+  "syntax":"find-storage-pool-sources type [srcSpec]",
+  "summary":"Returns XML describing all possible available storage pool sources that could be used to create or define a storage pool of a given type . If srcSpec is provided, it is a file that contains XML to further restrict the query for pools."
+ },
+ {
+  "name":"find-pool-sources-as",
+  "category":"storage-pool-commands",
+  "syntax":"find-storage-pool-sources-as type [host] [port] [initiator]",
+  "summary":"Generates the source query XML from type, host, port and initiator instead of reading a srcSpec file, then returns all matching storage pool sources."
+ },
+ {
+  "name":"pool-autostart",
+  "category":"storage-pool-commands",
+  "syntax":"pool-autostart pool-or-uuid [--disable]",
+  "summary":"Configure whether pool should automatically start at boot."
+ },
+ {
+  "name":"pool-build",
+  "category":"storage-pool-commands",
+  "syntax":"pool-build pool-or-uuid [--overwrite] [--no-overwrite]",
+  "summary":"Build a given pool."
+ },
+ {
+  "name":"pool-create",
+  "category":"storage-pool-commands",
+  "syntax":"pool-create file [--build] [[--overwrite] | [--no-overwrite]]",
+  "summary":"Create and start a pool object from the XML file ."
+ },
+ {
+  "name":"pool-create-as",
+  "category":"storage-pool-commands",
+  "syntax":"pool-create-as name type [--source-host hostname] [--source-path path] [--source-dev path] [--source-name name] [--target path] [--source-format format] [--source-initiator initiator-iqn] [--auth-type authtype --auth-username username [--secret-usage usage | --secret-uuid uuid]] [--source-protocol-ver ver] [[--adapter-name name] | [--adapter-wwnn wwnn --adapter-wwpn wwpn] [--adapter-parent parent | --adapter-parent-wwnn parent_wwnn adapter-parent-wwpn parent_wwpn | --adapter-parent-fabric-wwn parent_fabric_wwn]] [--build] [[--overwrite] | [--no-overwrite]] [--print-xml]",
+  "summary":"Create and start a pool object name from the raw parameters. If --print-xml is specified, then print the XML of the pool object without creating the pool. Otherwise, the pool has the specified type . When using pool-create-as for a pool of type \"disk\", the existing partitions found on the --source-dev path will be used to populate the disk pool. Therefore..."
+ },
+ {
+  "name":"pool-define",
+  "category":"storage-pool-commands",
+  "syntax":"pool-define file [--validate]",
+  "summary":"Define an inactive persistent storage pool or modify an existing persistent one from the XML file . Optionally, the format of the input XML file can be validated against an internal RNG schema with --validate ."
+ },
+ {
+  "name":"pool-define-as",
+  "category":"storage-pool-commands",
+  "syntax":"pool-define-as name type [--source-host hostname] [--source-path path] [--source-dev path] [*--source-name name*] [*--target path*] [*--source-format format*] [--source-initiator initiator-iqn] [*--auth-type authtype* *--auth-username username* [*--secret-usage usage* | *--secret-uuid uuid*]] [*--source-protocol-ver ver*] [[*--adapter-name name*] | [*--adapter-wwnn* *--adapter-wwpn*] [*--adapter-parent parent*]] [*--print-xml*]",
+  "summary":"Create, but do not start, a pool object name from the raw parameters. If --print-xml is specified, then print the XML of the pool object without defining the pool. Otherwise, the pool has the specified type ."
+ },
+ {
+  "name":"pool-destroy",
+  "category":"storage-pool-commands",
+  "syntax":"pool-destroy pool-or-uuid",
+  "summary":"Destroy (stop) a given pool object. Libvirt will no longer manage the storage described by the pool object, but the raw data contained in the pool is not changed, and can be later recovered with pool-create ."
+ },
+ {
+  "name":"pool-delete",
+  "category":"storage-pool-commands",
+  "syntax":"pool-delete pool-or-uuid",
+  "summary":"Destroy the resources used by a given pool object. This operation is non-recoverable. The pool object will still exist after this command, ready for the creation of new storage volumes."
+ },
+ {
+  "name":"pool-dumpxml",
+  "category":"storage-pool-commands",
+  "syntax":"pool-dumpxml [--inactive] [--xpath EXPRESSION] [--wrap] pool-or-uuid",
+  "summary":"Returns the XML information about the pool object. --inactive tells virsh to dump pool configuration that will be used on next start of the pool as opposed to the current pool configuration."
+ },
+ {
+  "name":"pool-edit",
+  "category":"storage-pool-commands",
+  "syntax":"pool-edit pool-or-uuid",
+  "summary":"Edit the XML configuration file for a storage pool."
+ },
+ {
+  "name":"pool-info",
+  "category":"storage-pool-commands",
+  "syntax":"pool-info [--bytes] pool-or-uuid",
+  "summary":"Returns basic information about the pool object. If --bytes is specified the sizes of basic info are not converted to human friendly units."
+ },
+ {
+  "name":"pool-list",
+  "category":"storage-pool-commands",
+  "syntax":"pool-list [--inactive] [--all] [--persistent] [--transient] [--autostart] [--no-autostart] [[--details] [--uuid] [--name] [<type>]",
+  "summary":"List pool objects known to libvirt. By default, only active pools are listed; --inactive lists just the inactive pools, and --all lists all pools."
+ },
+ {
+  "name":"pool-name",
+  "category":"storage-pool-commands",
+  "syntax":"pool-name uuid",
+  "summary":"Convert the uuid to a pool name."
+ },
+ {
+  "name":"pool-refresh",
+  "category":"storage-pool-commands",
+  "syntax":"pool-refresh pool-or-uuid",
+  "summary":"Refresh the list of volumes contained in pool ."
+ },
+ {
+  "name":"pool-start",
+  "category":"storage-pool-commands",
+  "syntax":"pool-start pool-or-uuid [--build] [[--overwrite] | [--no-overwrite]]",
+  "summary":"Start the storage pool , which is previously defined but inactive."
+ },
+ {
+  "name":"pool-undefine",
+  "category":"storage-pool-commands",
+  "syntax":"pool-undefine pool-or-uuid",
+  "summary":"Undefine the configuration for an inactive pool ."
+ },
+ {
+  "name":"pool-uuid",
+  "category":"storage-pool-commands",
+  "syntax":"pool-uuid pool",
+  "summary":"Returns the UUID of the named pool ."
+ },
+ {
+  "name":"pool-event",
+  "category":"storage-pool-commands",
+  "syntax":"pool-event {[pool] event [--loop] [--timeout seconds] [--timestamp] | --list}",
+  "summary":"Wait for a class of storage pool events to occur, and print appropriate details of events as they happen. The events can optionally be filtered by pool . Using --list as the only argument will provide a list of possible event values known by this client, although the connection might not allow registering for all these events."
+ },
+ {
+  "name":"vol-create",
+  "category":"volume-commands",
+  "syntax":"vol-create pool-or-uuid FILE [--prealloc-metadata] [--validate]",
+  "summary":"Create a volume from an XML <file>."
+ },
+ {
+  "name":"vol-create-from",
+  "category":"volume-commands",
+  "syntax":"vol-create-from pool-or-uuid FILE vol-name-or-key-or-path [--inputpool pool-or-uuid] [--prealloc-metadata] [--reflink] [--validate]",
+  "summary":"Create a volume, using another volume as input."
+ },
+ {
+  "name":"vol-create-as",
+  "category":"volume-commands",
+  "syntax":"vol-create-as pool-or-uuid name capacity [--allocation size] [--format string] [--backing-vol vol-name-or-key-or-path] [--backing-vol-format string] [--prealloc-metadata] [--print-xml]",
+  "summary":"Create a volume from a set of arguments unless --print-xml is specified, in which case just the XML of the volume object is printed out without any actual object creation."
+ },
+ {
+  "name":"vol-clone",
+  "category":"volume-commands",
+  "syntax":"vol-clone vol-name-or-key-or-path name [--pool pool-or-uuid] [--prealloc-metadata] [--reflink] [--print-xml]",
+  "summary":"Clone an existing volume within the parent pool. Less powerful, but easier to type, version of vol-create-from ."
+ },
+ {
+  "name":"vol-delete",
+  "category":"volume-commands",
+  "syntax":"vol-delete vol-name-or-key-or-path [--pool pool-or-uuid] [--delete-snapshots]",
+  "summary":"Delete a given volume."
+ },
+ {
+  "name":"vol-upload",
+  "category":"volume-commands",
+  "syntax":"vol-upload vol-name-or-key-or-path local-file [--pool pool-or-uuid] [--offset bytes] [--length bytes] [--sparse]",
+  "summary":"Upload the contents of local-file to a storage volume."
+ },
+ {
+  "name":"vol-download",
+  "category":"volume-commands",
+  "syntax":"vol-download vol-name-or-key-or-path local-file [--pool pool-or-uuid] [--offset bytes] [--length bytes] [--sparse]",
+  "summary":"Download the contents of a storage volume to local-file ."
+ },
+ {
+  "name":"vol-wipe",
+  "category":"volume-commands",
+  "syntax":"vol-wipe vol-name-or-key-or-path [--pool pool-or-uuid] [--algorithm algorithm]",
+  "summary":"Wipe a volume, ensure data previously on the volume is not accessible to future reads."
+ },
+ {
+  "name":"vol-dumpxml",
+  "category":"volume-commands",
+  "syntax":"vol-dumpxml [--pool pool-or-uuid] [--xpath EXPRESSION] [--wrap] vol-name-or-key-or-path",
+  "summary":"Output the volume information as an XML dump to stdout."
+ },
+ {
+  "name":"vol-info",
+  "category":"volume-commands",
+  "syntax":"vol-info vol-name-or-key-or-path [--pool pool-or-uuid] [--bytes] [--physical]",
+  "summary":"Returns basic information about the given storage volume."
+ },
+ {
+  "name":"vol-list",
+  "category":"volume-commands",
+  "syntax":"vol-list [--pool pool-or-uuid] [--details]",
+  "summary":"Return the list of volumes in the given storage pool."
+ },
+ {
+  "name":"vol-pool",
+  "category":"volume-commands",
+  "syntax":"vol-pool vol-key-or-path [--uuid]",
+  "summary":"Return the pool name or UUID for a given volume. By default, the pool name is returned."
+ },
+ {
+  "name":"vol-path",
+  "category":"volume-commands",
+  "syntax":"vol-path vol-name-or-key [--pool pool-or-uuid]",
+  "summary":"Return the path for a given volume."
+ },
+ {
+  "name":"vol-name",
+  "category":"volume-commands",
+  "syntax":"vol-name vol-key-or-path",
+  "summary":"Return the name for a given volume."
+ },
+ {
+  "name":"vol-key",
+  "category":"volume-commands",
+  "syntax":"vol-key vol-name-or-path [--pool pool-or-uuid]",
+  "summary":"Return the volume key for a given volume."
+ },
+ {
+  "name":"vol-resize",
+  "category":"volume-commands",
+  "syntax":"vol-resize vol-name-or-path capacity [--pool pool-or-uuid] [--allocate] [--delta] [--shrink]",
+  "summary":"Resize the capacity of the given volume, in bytes."
+ },
+ {
+  "name":"secret-define",
+  "category":"secret-commands",
+  "syntax":"secret-define file [--validate]",
+  "summary":"Create a secret with the properties specified in file , with no associated secret value. If file does not specify a UUID, choose one automatically. If file specifies a UUID of an existing secret, replace its properties by properties defined in file , without affecting the secret value."
+ },
+ {
+  "name":"secret-dumpxml",
+  "category":"secret-commands",
+  "syntax":"secret-dumpxml [--xpath EXPRESSION] [--wrap] secret",
+  "summary":"Output properties of secret (specified by its UUID) as an XML dump to stdout."
+ },
+ {
+  "name":"secret-event",
+  "category":"secret-commands",
+  "syntax":"secret-event {[secret] event [--loop] [--timeout seconds] [--timestamp] | --list}",
+  "summary":"Wait for a class of secret events to occur, and print appropriate details of events as they happen. The events can optionally be filtered by secret . Using --list as the only argument will provide a list of possible event values known by this client, although the connection might not allow registering for all these events."
+ },
+ {
+  "name":"secret-set-value",
+  "category":"secret-commands",
+  "syntax":"secret-set-value secret (--file filename [--plain] | --interactive | base64)",
+  "summary":"Set the value associated with secret (specified by its UUID) to the value Base64-encoded value base64 or Base-64-encoded contents of file named filename . Using the --plain flag is together with --file allows one to use the file contents directly as the secret value."
+ },
+ {
+  "name":"secret-get-value",
+  "category":"secret-commands",
+  "syntax":"secret-get-value [--plain] secret",
+  "summary":"Output the value associated with secret (specified by its UUID) to stdout, encoded using Base64."
+ },
+ {
+  "name":"secret-undefine",
+  "category":"secret-commands",
+  "syntax":"secret-undefine secret",
+  "summary":"Delete a secret (specified by its UUID), including the associated value, if any."
+ },
+ {
+  "name":"secret-list",
+  "category":"secret-commands",
+  "syntax":"secret-list [--ephemeral] [--no-ephemeral] [--private] [--no-private]",
+  "summary":"Returns the list of secrets. You may also want to filter the returned secrets by --ephemeral to list the ephemeral ones, --no-ephemeral to list the non-ephemeral ones, --private to list the private ones, and --no-private to list the non-private ones."
+ },
+ {
+  "name":"snapshot-create",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic] [--live]} [--validate]",
+  "summary":"Create a snapshot for domain domain with the properties specified in xmlfile . Optionally, the --validate option can be passed to validate the format of the input XML file against an internal RNG schema (identical to using the virt-xml-validate(1) tool). Normally, the only properties settable for a domain snapshot are the <name> and <description> elements..."
+ },
+ {
+  "name":"snapshot-create-as",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-create-as domain {[--print-xml] [--no-metadata] [--halt] [--reuse-external]} [name] [description] [--disk-only [--quiesce]] [--atomic] [--validate] [[--live] [--memspec memspec]] [--diskspec] diskspec]...",
+  "summary":"Create a snapshot for domain domain with the given <name> and <description>; if either value is omitted, libvirt will choose a value. If --print-xml is specified, then XML appropriate for snapshot-create is output, rather than actually creating a snapshot. Otherwise, if --halt is specified, the domain will be left in an inactive state after the snapshot i..."
+ },
+ {
+  "name":"snapshot-current",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-current domain {[--name] | [--security-info] | [snapshotname]}",
+  "summary":"Without snapshotname , this will output the snapshot XML for the domain's current snapshot (if any). If --name is specified, just the current snapshot name instead of the full xml. Otherwise, using --security-info will also include security sensitive information in the XML."
+ },
+ {
+  "name":"snapshot-edit",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-edit domain [snapshotname] [--current] {[--rename] | [--clone]}",
+  "summary":"Edit the XML configuration file for snapshotname of a domain. If both snapshotname and --current are specified, also force the edited snapshot to become the current snapshot. If snapshotname is omitted, then --current must be supplied, to edit the current snapshot."
+ },
+ {
+  "name":"snapshot-info",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-info domain {snapshot | --current}",
+  "summary":"Output basic information about a named <snapshot>, or the current snapshot with --current ."
+ },
+ {
+  "name":"snapshot-list",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-list domain [--metadata] [--no-metadata] [{--parent | --roots | [{--tree | --name}]}] [--topological] [{[--from] snapshot | --current} [--descendants]] [--leaves] [--no-leaves] [--inactive] [--active] [--disk-only] [--internal] [--external]",
+  "summary":"List all of the available snapshots for the given domain, defaulting to show columns for the snapshot name, creation time, and domain state."
+ },
+ {
+  "name":"snapshot-dumpxml",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-dumpxml [--security-info] [--xpath EXPRESSION] [--wrap] domain snapshot",
+  "summary":"Output the snapshot XML for the domain's snapshot named snapshot . Using --security-info will also include security sensitive information. Use snapshot-current to easily access the XML of the current snapshot."
+ },
+ {
+  "name":"snapshot-parent",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-parent domain {snapshot | --current}",
+  "summary":"Output the name of the parent snapshot, if any, for the given snapshot , or for the current snapshot with --current ."
+ },
+ {
+  "name":"snapshot-revert",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-revert domain {snapshot | --current} [{--running | --paused}] [--force] [--reset-nvram]",
+  "summary":"Revert the given domain to the snapshot specified by snapshot , or to the current snapshot with --current . Be aware that this is a destructive action; any changes in the domain since the last snapshot was taken will be lost. Also note that the state of the domain after snapshot-revert is complete will be the state of the domain at the time the original s..."
+ },
+ {
+  "name":"snapshot-delete",
+  "category":"snapshot-commands",
+  "syntax":"snapshot-delete domain {snapshot | --current} [--metadata] [{--children | --children-only}]",
+  "summary":"Delete the snapshot for the domain named snapshot , or the current snapshot with --current . If this snapshot has child snapshots, changes from this snapshot will be merged into the children. If --children is passed, then delete this snapshot and any children of this snapshot. If --children-only is passed, then delete any children of this snapshot, but le..."
+ },
+ {
+  "name":"checkpoint-create",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-create domain [xmlfile] { --redefine [--redefine-validate] | [--quiesce]}",
+  "summary":"Create a checkpoint for domain domain with the properties specified in xmlfile describing a <domaincheckpoint> top-level element. The format of the input XML file will be validated against an internal RNG schema (identical to using the virt-xml-validate(1) tool). If xmlfile is completely omitted, then libvirt will create a checkpoint with a name based on..."
+ },
+ {
+  "name":"checkpoint-create-as",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-create-as domain [--print-xml] [name] [description] [--quiesce] [--diskspec] diskspec]...",
+  "summary":"Create a checkpoint for domain domain with the given <name> and <description>; if either value is omitted, libvirt will choose a value. If --print-xml is specified, then XML appropriate for checkpoint-create is output, rather than actually creating a checkpoint."
+ },
+ {
+  "name":"checkpoint-edit",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-edit domain checkpointname",
+  "summary":"Edit the XML configuration file for checkpointname of a domain."
+ },
+ {
+  "name":"checkpoint-info",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-info domain checkpoint",
+  "summary":"Output basic information about a named <checkpoint>."
+ },
+ {
+  "name":"checkpoint-list",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-list domain [{--parent | --roots | [{--tree | --name}]}] [--topological] [[--from] checkpoint | [--descendants]] [--leaves] [--no-leaves]",
+  "summary":"List all of the available checkpoints for the given domain, defaulting to show columns for the checkpoint name and creation time."
+ },
+ {
+  "name":"checkpoint-dumpxml",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-dumpxml [--security-info] [--no-domain] [--size] [--xpath EXPRESSION] [--wrap] domain checkpoint",
+  "summary":"Output the checkpoint XML for the domain's checkpoint named checkpoint . Using --security-info will also include security sensitive information."
+ },
+ {
+  "name":"checkpoint-parent",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-parent domain checkpoint",
+  "summary":"Output the name of the parent checkpoint, if any, for the given checkpoint ."
+ },
+ {
+  "name":"checkpoint-delete",
+  "category":"checkpoint-commands",
+  "syntax":"checkpoint-delete domain checkpoint [--metadata] [{--children | --children-only}]",
+  "summary":"Delete the checkpoint for the domain named checkpoint . The record of which portions of the disk changed since the checkpoint are merged into the parent checkpoint (if any). If --children is passed, then delete this checkpoint and any children of this checkpoint. If --children-only is passed, then delete any children of this checkpoint, but leave this che..."
+ },
+ {
+  "name":"nwfilter-define",
+  "category":"nwfilter-commands",
+  "syntax":"nwfilter-define xmlfile [--validate]",
+  "summary":"Make a new network filter known to libvirt. If a network filter with the same name already exists, it will be replaced with the new XML. Any running virtual machine referencing this network filter will have its network traffic rules adapted. If for any reason the network traffic filtering rules cannot be instantiated by any of the running virtual machines..."
+ },
+ {
+  "name":"nwfilter-undefine",
+  "category":"nwfilter-commands",
+  "syntax":"nwfilter-undefine nwfilter-name",
+  "summary":"Delete a network filter. The deletion will fail if any running virtual machine is currently using this network filter."
+ },
+ {
+  "name":"nwfilter-list",
+  "category":"nwfilter-commands",
+  "syntax":"nwfilter-list",
+  "summary":"List all of the available network filters."
+ },
+ {
+  "name":"nwfilter-dumpxml",
+  "category":"nwfilter-commands",
+  "syntax":"nwfilter-dumpxml [--xpath EXPRESSION] [--wrap] nwfilter-name",
+  "summary":"Output the network filter XML."
+ },
+ {
+  "name":"nwfilter-edit",
+  "category":"nwfilter-commands",
+  "syntax":"nwfilter-edit nwfilter-name",
+  "summary":"Edit the XML of a network filter."
+ },
+ {
+  "name":"nwfilter-binding-create",
+  "category":"nwfilter-binding-commands",
+  "syntax":"nwfilter-binding-create xmlfile [--validate]",
+  "summary":"Associate a network port with a network filter. The network filter backend will immediately attempt to instantiate the filter rules on the port. This command may be used to associate a filter with a currently running guest that does not have a filter defined for a specific network port. Since the bindings are generally automatically managed by the hypervi..."
+ },
+ {
+  "name":"nwfilter-binding-delete",
+  "category":"nwfilter-binding-commands",
+  "syntax":"nwfilter-binding-delete port-name",
+  "summary":"Disassociate a network port from a network filter. The network filter backend will immediately tear down the filter rules that exist on the port. This command may be used to remove the network port binding for a filter currently in use for the guest while the guest is running without needing to restart the guest. Restoring the network port binding filter..."
+ },
+ {
+  "name":"nwfilter-binding-list",
+  "category":"nwfilter-binding-commands",
+  "syntax":"nwfilter-binding-list",
+  "summary":"List all of the network ports which have filters associated with them."
+ },
+ {
+  "name":"nwfilter-binding-dumpxml",
+  "category":"nwfilter-binding-commands",
+  "syntax":"nwfilter-binding-dumpxml [--xpath EXPRESSION] [--wrap] port-name",
+  "summary":"Output the network filter binding XML for the network device called port-name ."
+ },
+ {
+  "name":"qemu-attach",
+  "category":"hypervisor-specific-commands",
+  "syntax":"qemu-attach pid",
+  "summary":"Attach an externally launched QEMU process to the libvirt QEMU driver. The QEMU process must have been created with a monitor connection using the UNIX driver. Ideally the process will also have had the '-name' argument specified."
+ },
+ {
+  "name":"qemu-monitor-command",
+  "category":"hypervisor-specific-commands",
+  "syntax":"qemu-monitor-command domain { [--hmp] | [--pretty] [--return-value] } [--pass-fds N,M,...] command...",
+  "summary":"Send an arbitrary monitor command command to domain domain through the QEMU monitor. The results of the command will be printed on stdout."
+ },
+ {
+  "name":"qemu-agent-command",
+  "category":"hypervisor-specific-commands",
+  "syntax":"qemu-agent-command domain [--timeout seconds | --async | --block] command...",
+  "summary":"Send an arbitrary guest agent command command to domain domain through QEMU agent. --timeout , --async and --block options are exclusive. --timeout requires timeout seconds seconds and it must be positive. When --aysnc is given, the command waits for timeout whether success or failed. And when --block is given, the command waits forever with blocking time..."
+ },
+ {
+  "name":"qemu-monitor-event",
+  "category":"hypervisor-specific-commands",
+  "syntax":"qemu-monitor-event [domain] [--event event-name] [--loop] [--timeout seconds] [--pretty] [--regex] [--no-case] [--timestamp]",
+  "summary":"Wait for arbitrary QEMU monitor events to occur, and print out the details of events as they happen. The events can optionally be filtered by domain or event-name . The 'query-events' QMP command can be used via qemu-monitor-command to learn what events are supported. If --regex is used, event-name is a basic regular expression instead of a literal string..."
+ },
+ {
+  "name":"lxc-enter-namespace",
+  "category":"hypervisor-specific-commands",
+  "syntax":"lxc-enter-namespace domain [--noseclabel] -- /path/to/binary [arg1, [arg2, ...]]",
+  "summary":"Enter the namespace of domain and execute the command /path/to/binary passing the requested args. The binary path is relative to the container root filesystem, not the host root filesystem. The binary will inherit the environment variables / console visible to virsh. The command will be run with the same sVirt context and cgroups placement as processes wi..."
+ },
+ {
+  "name":"quit",
+  "category":"generic-commands",
+  "syntax":"quit",
+  "summary":"退出 virsh 交互终端；异步 Web 任务中不可用。"
+ },
+ {
+  "name":"exit",
+  "category":"generic-commands",
+  "syntax":"exit",
+  "summary":"退出 virsh 交互终端；异步 Web 任务中不可用。"
+ }
+]

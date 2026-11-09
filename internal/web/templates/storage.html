@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="page-head"><div><h1>存储 · {{.Data.Host.Name}}</h1><p class="muted">libvirt 存储池与卷清单。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}">返回主机</a></div>
+<section class="panel">
+  <h2>存储池</h2>
+  {{if .Data.Pools}}<table><thead><tr><th>名称</th><th>状态</th><th>自启动</th><th>持久</th><th></th></tr></thead><tbody>{{range .Data.Pools}}<tr><td><a href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">{{.Name}}</a></td><td>{{.State}}</td><td>{{.Autostart}}</td><td>{{.Persistent}}</td><td><a class="btn small" href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">卷</a></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有存储池。</p>{{end}}
+</section>
+{{if .Data.SelectedPool}}
+<section class="panel">
+  <h2>存储池 {{.Data.SelectedPool}}</h2>
+  <dl class="kv">{{range .Data.PoolInfo}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
+  {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
+</section>
+{{end}}
+{{if eq .User.Role "admin"}}<p class="hint">创建、删除、扩容卷等高级操作可在 <a href="/hosts/{{.Data.Host.ID}}/command">命令中心</a> 使用 <code>vol-create-as</code>、<code>vol-delete</code>、<code>vol-resize</code> 等完整参数执行。</p>{{end}}
+{{end}}
