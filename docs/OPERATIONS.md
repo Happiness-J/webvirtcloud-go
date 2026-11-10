@@ -17,6 +17,20 @@ sudo -u wvc cat /var/lib/webvirtcloud-go/data/reset-password-*.txt
 
 The command generates a fresh random password, atomically writes a mode-0600 one-time file, revokes every existing session for that account, and writes an audit event. Change the password after login and delete the file.
 
+## Operations workbench
+
+Open a host and choose **运维工作台** (Operations workbench) to inspect node information, current CPU/memory measurements, per-domain vCPU and balloon memory, and accumulated CPU time. The page uses read-only `virsh nodeinfo`, `nodecpustats --percent`, `nodememstats`, and `domstats` calls against the host execution target, including `qemu+ssh` targets.
+
+Operators and administrators can submit state-checked bulk actions for up to 50 VMs at a time: start, graceful shutdown, reboot, suspend, resume, and autostart policy. The complete selection is validated before the first job is queued, so a VM in an incompatible power state rejects the batch instead of producing a misleading partial request. Every accepted VM still becomes an individual asynchronous job with its own audit record; per-host writes remain serialized by the worker.
+
+VM detail pages expose vCPU and memory tuning:
+
+- **下次启动生效** changes persistent configuration with `virsh setvcpus --config` or `virsh setmem --config`.
+- **在线并持久化** requires a running or paused VM and applies `--live --config`; guest support, maximum vCPU/memory limits, and hot-plug capability still determine whether libvirt accepts the change.
+- **最大 vCPU 上限** updates the persistent maximum with `--maximum --config`; raise this before hot-adding vCPUs to an existing VM when the current maximum is too low.
+
+Resource tuning changes virtual hardware only. Extending partitions, filesystems, guest applications, or NUMA placement remains a guest/host administrator task. Review the resulting job output and confirm both live and persistent values before considering the change complete.
+
 ## Backups
 
 A restorable deployment requires both PostgreSQL and the master key:

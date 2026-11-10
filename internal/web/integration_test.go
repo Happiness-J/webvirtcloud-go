@@ -314,6 +314,12 @@ func TestWebIntegration(t *testing.T) {
 	if status != http.StatusOK || !strings.Contains(body, "电源与生命周期") {
 		t.Fatalf("VM detail status=%d", status)
 	}
+	opsPath := "/hosts/" + host.ID + "/ops"
+	status, body, _ = client.request(http.MethodGet, opsPath, nil)
+	if status != http.StatusOK || !strings.Contains(body, "运维工作台") ||
+		!strings.Contains(body, "虚拟机资源与批量操作") || !strings.Contains(body, "12.5%") {
+		t.Fatalf("operations workbench status=%d body=%s", status, body)
+	}
 
 	status, _, _ = client.request(http.MethodPost, "/hosts/"+host.ID+"/vms/web-prod/action", url.Values{
 		"_csrf": {csrf}, "action": {"destroy"},
@@ -383,6 +389,14 @@ func TestWebIntegration(t *testing.T) {
 			path: commandPath[:strings.Index(commandPath, "/command")] + "/vms/web-prod/disk-resize",
 			form: url.Values{"_csrf": {csrf}, "disk_target": {"vda"}, "disk_mode": {"grow"}, "disk_amount": {"10G"}},
 		},
+		{
+			path: "/hosts/" + host.ID + "/vms/web-prod/resource",
+			form: url.Values{"_csrf": {csrf}, "kind": {"cpu"}, "scope": {"config"}, "cpu_count": {"8"}},
+		},
+		{
+			path: "/hosts/" + host.ID + "/batch",
+			form: url.Values{"_csrf": {csrf}, "action": {"shutdown"}, "confirm": {"yes"}, "vm": {"web-prod"}},
+		},
 	} {
 		status, _, final = client.request(http.MethodPost, form.path, form.form)
 		if status != http.StatusOK || !strings.HasPrefix(final, "/jobs/job_") {
@@ -444,6 +458,10 @@ func TestWebIntegration(t *testing.T) {
 	status, body, _ = viewer.request(http.MethodGet, "/hosts/"+host.ID+"/vms/web-prod", nil)
 	if status != http.StatusOK || strings.Contains(body, "电源与生命周期") {
 		t.Fatalf("viewer VM detail status=%d must not expose mutation controls", status)
+	}
+	status, body, _ = viewer.request(http.MethodGet, opsPath, nil)
+	if status != http.StatusOK || strings.Contains(body, "执行批量任务") || strings.Contains(body, "提交 vCPU 调整") {
+		t.Fatalf("viewer operations workbench status=%d must not expose mutation controls", status)
 	}
 
 	audits, err := db.RecentAudit(ctx, 100)

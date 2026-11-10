@@ -105,6 +105,8 @@ details summary { cursor: pointer; color: var(--brand); }
 .confirm { font-size: 12px; font-weight: 500; color: var(--bad); display: inline-flex; }
 .inline-form { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .inline-form input, .inline-form select { width: auto; min-width: 130px; }
+.batch-bar { padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
+.batch-bar .hint { margin: 0; max-width: 560px; }
 .hidden { display: none !important; }
 .danger-zone { border-color: #efcaca; background: #fffafa; }
 .error-page { text-align: center; margin: 70px auto; padding: 40px; }

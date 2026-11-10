@@ -83,6 +83,47 @@ func TestParseBlockDevices(t *testing.T) {
 	}
 }
 
+func TestParseDomainStats(t *testing.T) {
+	output := `Domain: 'web-prod'
+  state.state=1
+  state.reason=1
+  cpu.time=180000000000
+  balloon.current=2097152
+  balloon.maximum=4194304
+  vcpu.current=4
+  vcpu.maximum=8
+
+Domain: 'db-staging'
+  state.state=5
+  state.reason=1
+  balloon.maximum=4194304
+  vcpu.maximum=4
+`
+	stats := ParseDomainStats(output)
+	if len(stats) != 2 {
+		t.Fatalf("stats = %#v", stats)
+	}
+	if stats[0].Name != "web-prod" || stats[0].State != "running" ||
+		stats[0].BalloonCurrent != 2097152 || stats[0].BalloonMaximum != 4194304 ||
+		stats[0].CPUTimeNanos != 180000000000 {
+		t.Fatalf("unexpected running stats: %#v", stats[0])
+	}
+	if stats[1].Name != "db-staging" || stats[1].State != "shut off" {
+		t.Fatalf("unexpected stopped stats: %#v", stats[1])
+	}
+}
+
+func TestParseKiBValue(t *testing.T) {
+	if got := parseKiBValue("4194304 KiB"); got != 4194304 {
+		t.Fatalf("parseKiBValue() = %d", got)
+	}
+	for _, value := range []string{"", "unknown", "4194304 MiB"} {
+		if got := parseKiBValue(value); got != 0 {
+			t.Errorf("parseKiBValue(%q) = %d, want 0", value, got)
+		}
+	}
+}
+
 func TestValidateName(t *testing.T) {
 	for _, name := range []string{"--connect", ".", "..", " vm", "vm/one"} {
 		if err := ValidateName(name); err == nil {

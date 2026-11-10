@@ -23,6 +23,15 @@ document.addEventListener('click', (event) => {
   }
 });
 
+document.addEventListener('change', (event) => {
+  const master = event.target.closest('input[type="checkbox"][data-select-all]');
+  if (!master) return;
+  const group = master.dataset.selectAll;
+  document.querySelectorAll('input[type="checkbox"][data-select-group]').forEach((item) => {
+    if (item.dataset.selectGroup === group && !item.disabled) item.checked = master.checked;
+  });
+});
+
 (() => {
   const panel = document.getElementById('job-output-panel');
   if (!panel) return;

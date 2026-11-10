@@ -24,6 +24,10 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "network start", kind: "network-action", tool: "virsh", args: []string{"net-start", "default"}, want: RoleOperator},
 		{name: "online disk grow", kind: "disk-action", tool: "virsh", args: []string{"blockresize", "vm", "vda", "50000000000"}, want: RoleOperator},
 		{name: "offline disk shrink", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "--shrink", "/var/lib/libvirt/images/vm.qcow2", "-10G"}, want: RoleOperator},
+		{name: "vm cpu persistent", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "vm", "8", "--config"}, want: RoleOperator},
+		{name: "vm cpu live persistent", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "vm", "8", "--live", "--config"}, want: RoleOperator},
+		{name: "vm cpu maximum", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "vm", "16", "--maximum", "--config"}, want: RoleOperator},
+		{name: "vm memory live persistent", kind: "vm-resource", tool: "virsh", args: []string{"setmem", "vm", "8388608", "--live", "--config"}, want: RoleOperator},
 		{name: "missing args", kind: "host-test", tool: "virsh", wantErr: true},
 		{name: "wrong command tool", kind: "command", tool: "unknown", args: []string{"list"}, wantErr: true},
 		{name: "wrong vm tool", kind: "vm-action", tool: "qemu-img", args: []string{"info", "a"}, wantErr: true},
@@ -37,6 +41,9 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "network rejects option injection", kind: "network-action", tool: "virsh", args: []string{"net-start", "--all"}, wantErr: true},
 		{name: "disk rejects sign mismatch", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "--shrink", "/var/lib/libvirt/images/vm.qcow2", "+10G"}, wantErr: true},
 		{name: "disk rejects relative path", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "vm.qcow2", "+10G"}, wantErr: true},
+		{name: "vm resource rejects option injection", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "--connect", "4", "--config"}, wantErr: true},
+		{name: "vm resource rejects unbounded cpu", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "vm", "2048", "--config"}, wantErr: true},
+		{name: "vm resource rejects unknown flags", kind: "vm-resource", tool: "virsh", args: []string{"setmem", "vm", "8388608", "--current"}, wantErr: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

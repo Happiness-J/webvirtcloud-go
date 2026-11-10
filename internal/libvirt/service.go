@@ -141,6 +141,10 @@ func (s *Service) ListDomains(ctx context.Context, hostID string) ([]Domain, err
 		if infoErr == nil {
 			domains[i].ID = info["Id"]
 			domains[i].State = info["State"]
+			domains[i].Autostart = info["Autostart"]
+			domains[i].VCPUs, _ = strconv.Atoi(info["CPU(s)"])
+			domains[i].MaxMemoryKiB = parseKiBValue(info["Max memory"])
+			domains[i].UsedMemoryKiB = parseKiBValue(info["Used memory"])
 		}
 	})
 	return domains, nil
@@ -420,6 +424,149 @@ func (s *Service) ListNetworks(ctx context.Context, hostID string) ([]Network, e
 		}
 	})
 	return out, nil
+}
+
+// HostResourceStats collects the three node-level measurements used by the
+// operations workbench. The queries are independent and run concurrently, but
+// any one of them may fail without hiding the other usable measurements.
+func (s *Service) HostResourceStats(ctx context.Context, hostID string) HostResourceStats {
+	stats := HostResourceStats{
+		NodeInfo:    make(map[string]string),
+		CPUStats:    make(map[string]string),
+		MemoryStats: make(map[string]string),
+	}
+	type query struct {
+		index   int
+		args    []string
+		target  *map[string]string
+		label   string
+		timeout time.Duration
+	}
+	queries := []query{
+		{index: 0, args: []string{"nodeinfo"}, target: &stats.NodeInfo, label: "节点信息", timeout: 12 * time.Second},
+		{index: 1, args: []string{"nodecpustats", "--percent"}, target: &stats.CPUStats, label: "节点 CPU 统计", timeout: 12 * time.Second},
+		{index: 2, args: []string{"nodememstats"}, target: &stats.MemoryStats, label: "节点内存统计", timeout: 12 * time.Second},
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var warnings [3]string
+	for _, item := range queries {
+		wg.Add(1)
+		go func(item query) {
+			defer wg.Done()
+			res, err := s.run(ctx, hostID, item.args, item.timeout)
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				warnings[item.index] = item.label + "读取失败"
+				return
+			}
+			*item.target = ParseKeyValue(res.Stdout)
+		}(item)
+	}
+	wg.Wait()
+	for _, warning := range warnings {
+		if warning != "" {
+			stats.Warnings = append(stats.Warnings, warning)
+		}
+	}
+	return stats
+}
+
+// DomainStats returns resource usage for all active domains in one libvirt
+// query. Querying active domains avoids an argv size proportional to the guest
+// count; stopped domains still appear in the surrounding VM inventory with
+// their persistent state and autostart policy.
+func (s *Service) DomainStats(ctx context.Context, hostID string) ([]DomainResourceStats, error) {
+	args := []string{"domstats", "--state", "--cpu-total", "--balloon", "--list-active"}
+	res, err := s.run(ctx, hostID, args, 20*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	return ParseDomainStats(res.Stdout), nil
+}
+
+// ParseDomainStats parses the key=value blocks emitted by virsh domstats.
+// Unknown keys are ignored so newer libvirt releases and optional statistics
+// can be added without breaking the resource view.
+func ParseDomainStats(output string) []DomainResourceStats {
+	var out []DomainResourceStats
+	var current *DomainResourceStats
+	values := make(map[string]string)
+	flush := func() {
+		if current == nil {
+			return
+		}
+		if state, ok := values["state.state"]; ok {
+			current.State = domainStateName(state)
+		}
+		if value, ok := values["balloon.current"]; ok {
+			current.BalloonCurrent, _ = strconv.ParseUint(value, 10, 64)
+		}
+		if value, ok := values["balloon.maximum"]; ok {
+			current.BalloonMaximum, _ = strconv.ParseUint(value, 10, 64)
+		}
+		if value, ok := values["cpu.time"]; ok {
+			current.CPUTimeNanos, _ = strconv.ParseUint(value, 10, 64)
+		}
+		out = append(out, *current)
+		values = make(map[string]string)
+	}
+	for _, raw := range strings.Split(strings.ReplaceAll(output, "\r\n", "\n"), "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "Domain: '") && strings.HasSuffix(line, "'") {
+			flush()
+			name := strings.TrimSuffix(strings.TrimPrefix(line, "Domain: '"), "'")
+			if ValidateName(name) != nil {
+				current = nil
+				continue
+			}
+			current = &DomainResourceStats{Name: name}
+			continue
+		}
+		if current == nil {
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if ok {
+			values[strings.TrimSpace(key)] = strings.TrimSpace(value)
+		}
+	}
+	flush()
+	return out
+}
+
+func domainStateName(code string) string {
+	switch strings.TrimSpace(code) {
+	case "1":
+		return "running"
+	case "2":
+		return "blocked"
+	case "3":
+		return "paused"
+	case "4":
+		return "shutdown"
+	case "5":
+		return "shut off"
+	case "6":
+		return "crashed"
+	case "7":
+		return "pmsuspended"
+	default:
+		return "unknown"
+	}
+}
+
+func parseKiBValue(value string) uint64 {
+	fields := strings.Fields(value)
+	if len(fields) == 0 || (len(fields) > 1 && fields[1] != "KiB") {
+		return 0
+	}
+	parsed, _ := strconv.ParseUint(fields[0], 10, 64)
+	return parsed
 }
 
 // forEachIndex runs at most workers callbacks at once and keeps the worker
