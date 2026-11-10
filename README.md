@@ -133,6 +133,14 @@ sudo ./deploy/install-ubuntu-local.sh
 
 脚本会安装 PostgreSQL、创建 `wvc` 运行用户、生成环境文件、注册 systemd 服务并执行就绪检查。可通过 `WVC_PANEL_ADDR` 修改监听地址；UFW 不会自动修改，除非显式设置 `WVC_UFW_ALLOW_CIDRS`。已有 `/etc/webvirtcloud-go/env` 会被保留。设置 `WVC_INSTALL_EXTENDED_TOOLS=1` 可同时安装发行版提供的 libguestfs、virt-v2v、virt-what、virt-top、virt-p2v 等完整工具集。
 
+Debian/Ubuntu 默认的 `/var/lib/libvirt/images` 通常不允许 `wvc` 写入，因此离线 `qemu-img` 扩缩容会失败。确认要让面板直接管理本机镜像后，可运行：
+
+```bash
+sudo env WVC_GRANT_IMAGE_ACCESS=1 ./deploy/install-ubuntu-local.sh
+```
+
+安装器会通过 POSIX ACL 仅授予 `wvc` 对 `WVC_IMAGE_DIR` 的读写和执行权限，并把同一路径写入 `WVC_LOCAL_IMAGE_DIR` 供 `wvc doctor` 检查。若只管理远程 `qemu+ssh` 主机，不需要开启该选项。
+
 #### 手工安装步骤
 
 #### 1. 启动 libvirt 并验证连接
@@ -217,10 +225,10 @@ WVC_LOG_FORMAT=text
 说明：
 
 - `WVC_ADDR=0.0.0.0:8080` 监听所有 IPv4 地址；`127.0.0.1:8080` 只允许本机访问（适合前面有 Nginx）。
-- `WVC_ADMIN_PASSWORD` 只在空数据库首次启动时使用，长度至少 10 个字符。留空则由程序生成一次性密码。
+- `WVC_ADMIN_PASSWORD` 只在空数据库首次启动时使用，长度至少 10 个字符。留空则由程序生成一次性密码。首次管理员创建后应从服务环境删除该变量，后续改密请使用页面或 `reset-password`。
 - 修改数据库密码后必须同步修改 `WVC_DATABASE_URL`。密码含 `@ : / ? # [ ] %` 等字符时必须百分号编码。
 - 如果 `virsh`、`virt-*` 或 `qemu-*` 不在 systemd 默认 PATH，使用绝对路径设置 `WVC_VIRSH_BIN`、`WVC_QEMU_IMG_BIN` 等变量；完整清单见 `.env.example`。
-- systemd 单元已将 `TMPDIR` 固定为 `/var/lib/webvirtcloud-go/tmp`；确认该目录有足够空间且属于 `wvc`。若在 `/etc/webvirtcloud-go/env` 中覆盖 `TMPDIR`，也要保证目录可写。
+- systemd 单元已将 `TMPDIR` 固定为 `/var/lib/webvirtcloud-go/tmp`；确认该目录有足够空间且属于 `wvc`。若在 `/etc/webvirtcloud-go/env` 中覆盖 `TMPDIR`，也要保证目录可写。仓库自带的单元使用 `ProtectSystem=strict`、`ProtectHome=true`、空 capability 集合、`RestrictAddressFamilies`、`RestrictNamespaces=~user`、`LimitCORE=0` 和 `TasksMax=1024`；可用 `systemd-analyze security webvirtcloud-go.service` 检查实际生效情况。
 - 直接通过 HTTP 访问时不要设置 `WVC_TRUST_PROXY=true`；经过反向代理时必须设置，并把 `WVC_TRUSTED_PROXY_CIDRS` 收紧到实际代理地址。
 
 #### 6. 启动并获取初始密码
@@ -583,6 +591,7 @@ Web 控制台默认只允许本机 libvirt、`qemu+ssh`，或显式开启有风�
 | `WVC_ADDR` | `:8080` | 监听地址 |
 | `WVC_DATABASE_URL` | 必填 | PostgreSQL DSN；原生部署通常写 `5432`，Compose 未显式设置时由 `POSTGRES_*` 自动生成。程序不会使用内置弱口令连接数据库 |
 | `WVC_MASTER_KEY_FILE` | `data/master.key` | AES-256-GCM 主密钥文件；必须独立备份且仅进程用户可读 |
+| `WVC_LOCAL_IMAGE_DIR` | `/var/lib/libvirt/images` | `wvc doctor` 检查的本机镜像目录；必须与原生安装的 `WVC_IMAGE_DIR` 指向同一位置 |
 | `WVC_ADMIN_USERNAME` | `admin` | 空库首次启动创建的管理员名 |
 | `WVC_ADMIN_PASSWORD` | 空 | 留空则生成一次性密码并写入 `initial-admin-password-*.txt`，权限 `0600` |
 | `WVC_WORKERS` | `2` | worker 数，1–32 |
@@ -634,6 +643,7 @@ Web 控制台默认只允许本机 libvirt、`qemu+ssh`，或显式开启有风�
 - 公网部署优先使用 TLS 反向代理，并设置 `WVC_ADDR=127.0.0.1:8080`、`WVC_PUBLISH_ADDR=127.0.0.1`、`WVC_SECURE_COOKIES=true`、`WVC_TRUST_PROXY=true`；`WVC_TRUSTED_PROXY_CIDRS` 只包含实际代理地址，不能使用 `0.0.0.0/0`。
 - 无反向代理时，`WVC_ADDR=0.0.0.0:8080` 或 Compose 的 `WVC_PUBLISH_ADDR=0.0.0.0` 只能用于可信内网、VPN 或跳板机环境。HTTP 模式下密码、会话和控制台数据都没有传输加密。
 - 只放行实际需要的端口。PostgreSQL `5432`（Compose 宿主映射为 `55433`）、libvirt socket 和 QEMU VNC 端口不应暴露到公网。
+- 把 libvirt VNC `listen` 绑定到 `127.0.0.1` 并使用面板内的 noVNC 代理。虚拟机详情页和控制台页会提示监听所有接口、非回环地址或未设置 VNC 密码的配置。
 - 高级命令中心等价于宿主机管理员权限，只授予可信管理员；泄露管理员账号等同于泄露宿主机控制权。
 
 ### 备份与恢复

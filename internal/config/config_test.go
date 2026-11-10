@@ -18,6 +18,7 @@ var configEnvKeys = []string{
 	"WVC_LOGIN_GLOBAL_MAX_FAILURES", "WVC_ARGON2_CONCURRENCY", "WVC_JOB_RETENTION",
 	"WVC_AUDIT_RETENTION", "WVC_ALLOW_INSECURE_VNC", "WVC_LOG_LEVEL", "WVC_LOG_FORMAT",
 	"WVC_ALLOW_INSECURE_CONSOLE", "WVC_METRICS_TOKEN", "WVC_CONSOLE_LOOPBACK_ADDRESS", "WVC_AUDIT_VERIFY_TIMEOUT",
+	"WVC_LOCAL_IMAGE_DIR",
 }
 
 func clearConfigEnv(t *testing.T) {
@@ -42,6 +43,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.MetricsToken != "" || cfg.AllowInsecureVNC || cfg.AllowInsecureConsole {
 		t.Fatal("secure-by-default options are not secure")
+	}
+	if cfg.ImageDir != "/var/lib/libvirt/images" {
+		t.Fatalf("ImageDir = %q", cfg.ImageDir)
 	}
 	if cfg.ConsoleMaxSessions != DefaultMaxConsoleSessions || cfg.LoginIPMaxFailures != DefaultLoginIPMaxFailures || cfg.LoginGlobalMaxFailures != 200 {
 		t.Fatalf("unexpected resource/rate limits: %+v", cfg)
@@ -80,6 +84,7 @@ func TestLoadValidOverrides(t *testing.T) {
 	t.Setenv("WVC_CONSOLE_LOOPBACK_ADDRESS", "host.docker.internal")
 	t.Setenv("WVC_AUDIT_VERIFY_TIMEOUT", "45m")
 	t.Setenv("WVC_ALLOW_INSECURE_CONSOLE", "true")
+	t.Setenv("WVC_LOCAL_IMAGE_DIR", "/srv/libvirt/images")
 	t.Setenv("WVC_VIRT_INSTALL_BIN", "/opt/virt/bin/virt-install")
 	cfg, err := Load()
 	if err != nil {
@@ -102,6 +107,9 @@ func TestLoadValidOverrides(t *testing.T) {
 	}
 	if !cfg.AllowInsecureConsole {
 		t.Fatal("WVC_ALLOW_INSECURE_CONSOLE override was not applied")
+	}
+	if cfg.ImageDir != "/srv/libvirt/images" {
+		t.Fatalf("ImageDir override = %q", cfg.ImageDir)
 	}
 	if len(cfg.TrustedProxyCIDRs) != 2 {
 		t.Fatalf("trusted proxy CIDRs = %v", cfg.TrustedProxyCIDRs)
@@ -138,6 +146,8 @@ func TestLoadRejectsInvalidEnvironment(t *testing.T) {
 		{"WVC_LOGIN_IP_MAX_FAILURES", "1", "between"},
 		{"WVC_CONSOLE_LOOPBACK_ADDRESS", "host.docker.internal:5900", "CONSOLE_LOOPBACK"},
 		{"WVC_AUDIT_VERIFY_TIMEOUT", "10s", "AUDIT_VERIFY_TIMEOUT"},
+		{"WVC_LOCAL_IMAGE_DIR", "relative/images", "WVC_LOCAL_IMAGE_DIR"},
+		{"WVC_LOCAL_IMAGE_DIR", "/srv/\nimages", "WVC_LOCAL_IMAGE_DIR"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.key+"="+tc.value, func(t *testing.T) {

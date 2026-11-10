@@ -37,6 +37,21 @@ sudo install -m 0600 /var/lib/webvirtcloud-go/data/master.key /secure-backup/mas
 
 Retention and off-host backup policy depends on the organization and may include encrypted storage and restore drills.
 
+## Local image-tool access
+
+The panel service runs as the unprivileged `wvc` user. `virsh` operations use the libvirt socket, but offline `qemu-img`, libguestfs, and `virt-v2v` commands access disk files directly and therefore need filesystem permission in addition to the systemd `ReadWritePaths` sandbox exception. The path checked by `wvc doctor` is `WVC_LOCAL_IMAGE_DIR` and defaults to `/var/lib/libvirt/images`.
+
+Debian and Ubuntu commonly ship `/var/lib/libvirt/images` as `root:root` mode `0711`, which is not writable by `wvc`. A reviewed native installation can grant a narrow POSIX ACL:
+
+```bash
+sudo apt install acl
+sudo setfacl -R -m u:wvc:rwX /var/lib/libvirt/images
+sudo setfacl -d -m u:wvc:rwx /var/lib/libvirt/images
+sudo -u wvc bash -c 'set -a; . /etc/webvirtcloud-go/env; set +a; /usr/local/bin/wvc doctor'
+```
+
+The Ubuntu installer performs the same operation only when invoked with `WVC_GRANT_IMAGE_ACCESS=1`. This grants the management plane effective write access to local VM disks; omit it when managing only remote `qemu+ssh` hosts or when using a separate, narrowly scoped image directory.
+
 ## Restore
 
 Restore the database and key from the same point in time, then start a matching or newer application version:
@@ -99,6 +114,40 @@ Open the panel through the resulting `https://<machine>.<tailnet>.ts.net/` URL f
 VNC has no transport encryption. Prefer local libvirt or `qemu+ssh` consoles. `WVC_ALLOW_INSECURE_VNC=true` weakens the default console boundary and should only be used when another encrypted network layer protects VNC.
 
 For a trusted intranet where the panel is intentionally served over plain HTTP, set `WVC_ALLOW_INSECURE_CONSOLE=true`. This allows noVNC to initialize outside a browser secure context. It does not encrypt login credentials, sessions, VNC passwords, or console traffic. The example systemd drop-in is `deploy/wvc-intranet-http.conf`.
+
+Direct VNC targets are restricted to loopback, RFC 1918/4193 private addresses, and the RFC 6598 `100.64.0.0/10` shared range used by Tailscale and some internal VPNs. Public VNC addresses remain rejected.
+
+Bind libvirt VNC graphics to `127.0.0.1` and use the panel's WebSocket proxy:
+
+```xml
+<graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1' passwd='CHANGE_ME'/>
+```
+
+The VM and console pages warn when VNC listens on `0.0.0.0`, a non-loopback address, or has no password. A wildcard listener without a password lets any reachable client bypass panel authentication and take over the console. Correct the libvirt definition and restart or update the graphics device; do not rely on the application proxy to protect a separately exposed VNC port.
+
+Virtinst can update the live and persistent graphics definition without dropping the guest:
+
+```bash
+read -r -s -p 'New VNC password: ' VNC_PASSWORD
+printf '\n'
+virt-xml DOMAIN --update --define --edit \
+  --graphics "vnc,listen=127.0.0.1,password=${VNC_PASSWORD}"
+unset VNC_PASSWORD
+```
+
+Review the resulting definition with `virsh dumpxml DOMAIN` before relying on it. Some QEMU or libvirt versions may require a guest restart for graphics changes.
+
+## systemd sandbox
+
+The packaged `deploy/wvc.service` uses `ProtectSystem=strict`, `ProtectHome=true`, an empty capability bounding set, `RestrictAddressFamilies`, `RestrictRealtime`, `RestrictNamespaces=~user`, `SystemCallArchitectures=native`, core-dump suppression, and a `TasksMax` limit. `ReadWritePaths` allows only the application state directory, its private `/var/tmp`, and the optional libvirt image directory.
+
+If an organization installs additional QEMU/libguestfs helpers that require a Linux namespace or device, add a reviewed systemd drop-in rather than removing all hardening:
+
+```bash
+systemd-analyze security webvirtcloud-go.service
+```
+
+After the first administrator is created, remove `WVC_ADMIN_PASSWORD` from the service environment. It is only a bootstrap input; keeping it in the environment adds no benefit and increases the chance that deployment backups or diagnostics capture it.
 
 ## Logs and retention
 

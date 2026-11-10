@@ -342,10 +342,18 @@ func checkPrivateIP(ip net.IP) error {
 	if ip == nil || ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 		return fmt.Errorf("地址不可用于控制台连接")
 	}
-	if ip.IsLoopback() || ip.IsPrivate() {
+	if ip.IsLoopback() || ip.IsPrivate() || isSharedAddress(ip) {
 		return nil
 	}
 	return fmt.Errorf("仅允许回环或私有网络地址")
+}
+
+// isSharedAddress recognizes the RFC 6598 carrier-grade NAT range used by
+// Tailscale and some private VPN deployments. It is not globally routable and
+// is treated as an internal console target when explicitly configured.
+func isSharedAddress(ip net.IP) bool {
+	ip4 := ip.To4()
+	return ip4 != nil && ip4[0] == 100 && ip4[1] >= 64 && ip4[1] <= 127
 }
 
 type lockedBuffer struct {

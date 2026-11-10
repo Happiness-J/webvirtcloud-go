@@ -74,6 +74,22 @@ func TestRunDoctorRequiresConfiguration(t *testing.T) {
 	}
 }
 
+func TestImageDirStatus(t *testing.T) {
+	if got := imageDirStatus(filepath.Join(t.TempDir(), "missing")); !strings.Contains(got, "not present") {
+		t.Fatalf("missing image directory status = %q", got)
+	}
+	if got := imageDirStatus(t.TempDir()); got != "ok" {
+		t.Fatalf("writable image directory status = %q", got)
+	}
+	file := filepath.Join(t.TempDir(), "image.qcow2")
+	if err := os.WriteFile(file, []byte("test"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := imageDirStatus(file); !strings.Contains(got, "not a directory") {
+		t.Fatalf("regular file image path status = %q", got)
+	}
+}
+
 type passwordResetFake struct {
 	user       store.User
 	newHash    string

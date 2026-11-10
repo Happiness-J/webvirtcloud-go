@@ -1,5 +1,6 @@
 {{define "content"}}
 <div class="console-head"><div><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.HostName}} · noVNC WebSocket 代理</p></div><div class="actions"><span id="console-status" class="pill warn">连接中</span><a class="btn" href="/hosts/{{.Data.HostID}}/vms/{{pathEscape .Data.VM}}">返回虚拟机</a></div></div>
+{{range .Data.ConsoleWarnings}}<div class="flash error"><strong>控制台安全：</strong>{{.}}</div>{{end}}
 <div id="console-security-warning" class="flash error" hidden></div>
 <div class="console-shell">
   <div id="screen" class="screen" tabindex="0" data-ws="{{.Data.WSURL}}" data-password-url="{{.Data.PasswordURL}}" data-allow-insecure-console="{{if .Data.AllowInsecureConsole}}true{{else}}false{{end}}"></div>

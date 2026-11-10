@@ -115,6 +115,13 @@ func run() error {
 	if cfg.AllowInsecureVNC {
 		log.Warn("WVC_ALLOW_INSECURE_VNC is enabled; VNC traffic is not encrypted")
 	}
+	if cfg.AllowInsecureConsole {
+		log.Warn("WVC_ALLOW_INSECURE_CONSOLE is enabled; the panel, session cookies and console traffic are exposed to plain HTTP")
+	}
+	if status := imageDirStatus(cfg.ImageDir); strings.HasPrefix(status, "not writable") {
+		log.Warn("local image directory is not writable; offline qemu-img and libguestfs operations will fail",
+			"path", cfg.ImageDir, "status", status)
+	}
 	if cfg.SecureCookies && !cfg.TrustProxy {
 		log.Warn("WVC_SECURE_COOKIES is enabled without WVC_TRUST_PROXY; HTTPS reverse-proxy WebSocket consoles will reject same-origin upgrades unless the proxy is trusted")
 	}
@@ -257,6 +264,9 @@ func bootstrapAdmin(ctx context.Context, db *store.Store, cfg config.Config, log
 		return err
 	}
 	if count > 0 {
+		if cfg.AdminPassword != "" {
+			log.Warn("WVC_ADMIN_PASSWORD is still configured after bootstrap; remove it from the service environment and use the password-change or reset-password flow")
+		}
 		return nil
 	}
 	password := cfg.AdminPassword

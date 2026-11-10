@@ -14,6 +14,8 @@ WebVirtCloud Go is designed for small infrastructure teams that need a practical
 - purpose-bound AES-256-GCM encryption for host URIs and sensitive task fields
 - audit hash chain with durable outbox recovery
 - built-in noVNC 1.7.0 and WebSocket-to-VNC proxy
+- host-side VNC exposure diagnostics for wildcard listeners and missing VNC passwords
+- hardened native systemd sandbox and local QEMU image permission diagnostics
 - structured command center for libvirt, QEMU tools, virtinst, and libguestfs
 - systemd, Docker Compose, and Nginx deployment examples
 

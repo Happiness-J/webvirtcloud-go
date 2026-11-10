@@ -279,6 +279,19 @@ func TestResolvePrivateTargets(t *testing.T) {
 	}
 }
 
+func TestCheckPrivateIPAcceptsTailscaleSharedRange(t *testing.T) {
+	for _, address := range []string{"100.64.0.1", "100.111.153.26", "100.127.255.254"} {
+		if err := checkPrivateIP(net.ParseIP(address)); err != nil {
+			t.Errorf("checkPrivateIP(%s) = %v", address, err)
+		}
+	}
+	for _, address := range []string{"100.63.255.255", "100.128.0.1", "8.8.8.8"} {
+		if err := checkPrivateIP(net.ParseIP(address)); err == nil {
+			t.Errorf("checkPrivateIP(%s) unexpectedly succeeded", address)
+		}
+	}
+}
+
 func TestDialValidatesURI(t *testing.T) {
 	con := libvirt.Console{Address: "127.0.0.1", Port: 5900}
 	if _, err := Dial(context.Background(), "qemu+ssh://-oProxyCommand=x/system", con, DialOptions{}); err == nil {

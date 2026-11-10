@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -55,16 +56,19 @@ func virtBinEnv(name string) string {
 // Config contains process-wide settings. It is intentionally environment
 // driven so the same binary can run under systemd, Docker or a small VM.
 type Config struct {
-	Addr                 string
-	DatabaseURL          string
-	SessionTTL           time.Duration
-	MaxSessionsPerUser   int
-	CommandTimeout       time.Duration
-	MaxTimeout           time.Duration
-	SecureCookies        bool
-	TrustProxy           bool
-	TrustedProxyCIDRs    []string
-	MasterKeyFile        string
+	Addr               string
+	DatabaseURL        string
+	SessionTTL         time.Duration
+	MaxSessionsPerUser int
+	CommandTimeout     time.Duration
+	MaxTimeout         time.Duration
+	SecureCookies      bool
+	TrustProxy         bool
+	TrustedProxyCIDRs  []string
+	MasterKeyFile      string
+	// ImageDir is used by diagnostics to verify that local QEMU image tools
+	// can write the directory referenced by local libvirt VM definitions.
+	ImageDir             string
 	AdminUsername        string
 	AdminPassword        string
 	VirshBin             string
@@ -136,6 +140,7 @@ func Load() (Config, error) {
 	cfg.Addr = env("WVC_ADDR", DefaultAddr)
 	cfg.DatabaseURL = strings.TrimSpace(os.Getenv("WVC_DATABASE_URL"))
 	cfg.MasterKeyFile = env("WVC_MASTER_KEY_FILE", "data/master.key")
+	cfg.ImageDir = env("WVC_LOCAL_IMAGE_DIR", "/var/lib/libvirt/images")
 	cfg.AdminUsername = env("WVC_ADMIN_USERNAME", "admin")
 	cfg.AdminPassword = os.Getenv("WVC_ADMIN_PASSWORD")
 	cfg.VirshBin = env("WVC_VIRSH_BIN", "virsh")
@@ -243,6 +248,9 @@ func Load() (Config, error) {
 	}
 	if strings.TrimSpace(cfg.MasterKeyFile) == "" {
 		return Config{}, fmt.Errorf("WVC_MASTER_KEY_FILE is required")
+	}
+	if !filepath.IsAbs(cfg.ImageDir) || strings.ContainsAny(cfg.ImageDir, "\x00\r\n") {
+		return Config{}, fmt.Errorf("WVC_LOCAL_IMAGE_DIR must be an absolute path without control characters")
 	}
 	if strings.TrimSpace(cfg.SSHBin) == "" {
 		return Config{}, fmt.Errorf("WVC_SSH_BIN is required")

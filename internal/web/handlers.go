@@ -379,6 +379,12 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadGateway, "无法读取虚拟机", "无法从目标主机读取虚拟机信息，请检查主机连接或查看服务日志。")
 		return
 	}
+	var consoleWarnings []string
+	if consoleAvailable(detail.Domain.State) {
+		if con, consoleErr := s.libvirt.Console(r.Context(), host.ID, vmName); consoleErr == nil {
+			consoleWarnings = consoleSecurityWarnings(con)
+		}
+	}
 	infoRows := make([]kvRow, 0, len(detail.Info))
 	for key, value := range detail.Info {
 		infoRows = append(infoRows, kvRow{Key: key, Value: value})
@@ -387,6 +393,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	actions := vmActions(sess.User.Role, detail.Domain.State, detail.Info["Autostart"])
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
 		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions,
+		"ConsoleWarnings": consoleWarnings,
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
