@@ -116,7 +116,12 @@ install -o root -g root -m 0755 "${SOURCE_BINARY}" /usr/local/bin/wvc
 install -o root -g root -m 0644 \
   "${PROJECT_DIR}/deploy/wvc.service" \
   /etc/systemd/system/webvirtcloud-go.service
+install -d -o root -g root -m 0755 /etc/polkit-1/rules.d
+install -o root -g root -m 0644 \
+  "${PROJECT_DIR}/deploy/60-webvirtcloud-go.rules" \
+  /etc/polkit-1/rules.d/60-webvirtcloud-go.rules
 systemctl daemon-reload
+systemctl restart polkit
 
 echo "[5/8] Starting WebVirtCloud Go"
 systemctl enable webvirtcloud-go

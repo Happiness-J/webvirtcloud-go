@@ -54,6 +54,10 @@ func DecryptURI(cipher *secret.Cipher, host store.Host) (string, error) {
 }
 
 func (s *Service) run(ctx context.Context, hostID string, args []string, timeout time.Duration) (command.Result, error) {
+	return s.runWithAccess(ctx, hostID, args, timeout, true)
+}
+
+func (s *Service) runWithAccess(ctx context.Context, hostID string, args []string, timeout time.Duration, readOnly bool) (command.Result, error) {
 	// ListDomains and ListPools may issue several virsh calls per request.
 	// Cap them process-wide so many concurrent viewers cannot multiply into an
 	// unbounded number of remote libvirt connections and child processes.
@@ -69,7 +73,7 @@ func (s *Service) run(ctx context.Context, hostID string, args []string, timeout
 	if err != nil {
 		return command.Result{}, err
 	}
-	request, err := hostToolRequest(s.cipher, host, "virsh", args, true, timeout)
+	request, err := hostToolRequest(s.cipher, host, "virsh", args, readOnly, timeout)
 	if err != nil {
 		return command.Result{}, err
 	}
@@ -154,10 +158,28 @@ func (s *Service) DomainInfo(ctx context.Context, hostID, name string) (map[stri
 }
 
 func (s *Service) DomainXML(ctx context.Context, hostID, name string) (string, error) {
+	return s.domainXML(ctx, hostID, name, false)
+}
+
+// DomainXMLSecure requests libvirt security-sensitive XML fields such as VNC
+// passwords. Callers must keep the result server-side unless the requesting
+// user is explicitly authorized to view those secrets.
+func (s *Service) DomainXMLSecure(ctx context.Context, hostID, name string) (string, error) {
+	return s.domainXML(ctx, hostID, name, true)
+}
+
+func (s *Service) domainXML(ctx context.Context, hostID, name string, includeSecurity bool) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err
 	}
-	res, err := s.run(ctx, hostID, []string{"dumpxml", name}, 10*time.Second)
+	args := []string{"dumpxml"}
+	if includeSecurity {
+		args = append(args, "--security-info")
+	}
+	args = append(args, name)
+	// A read-only libvirt connection may not request secure XML, even when
+	// polkit allows the service account to read domain secrets.
+	res, err := s.runWithAccess(ctx, hostID, args, 10*time.Second, !includeSecurity)
 	if err != nil {
 		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
 	}
@@ -455,7 +477,7 @@ type graphicsXML struct {
 }
 
 func (s *Service) Console(ctx context.Context, hostID, name string) (Console, error) {
-	xmlText, err := s.DomainXML(ctx, hostID, name)
+	xmlText, err := s.DomainXMLSecure(ctx, hostID, name)
 	if err != nil {
 		return Console{}, err
 	}

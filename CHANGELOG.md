@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `wvc version`, `wvc doctor`, `wvc reset-password`, and `wvc help` commands.
 - Trusted-intranet HTTP mode for noVNC via `WVC_ALLOW_INSECURE_CONSOLE`.
 - Console security diagnostics for wildcard/non-loopback VNC listeners and unpassworded VNC.
+- Console password retrieval now requests libvirt security-sensitive XML, which is required when VNC passwords are configured.
 - Console dialing now accepts the RFC 6598 shared address range used by Tailscale and private VPNs.
 - Optional installer ACL setup and `wvc doctor` diagnostics for local QEMU image directory access.
 - VM disk growth and offline grow/shrink controls with explicit destructive confirmation.
@@ -39,6 +40,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Updated `golang.org/x/crypto` to a revision containing the `GO-2026-5932` module fix.
 - The service logs explicit startup warnings for plain-HTTP consoles and for a bootstrap password left in the service environment.
 - VM and console pages now warn when libvirt exposes VNC on all interfaces, a non-loopback address, or without a password.
+- Native installation includes a scoped polkit rule that permits only the `wvc` service account to read libvirt secure domain XML for authenticated VNC access.
 
 ## [0.1.0] - Initial development
 

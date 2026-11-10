@@ -261,6 +261,10 @@ func TestInstallerDoesNotPrintBootstrapPassword(t *testing.T) {
 	if !strings.Contains(script, "systemctl restart webvirtcloud-go") {
 		t.Fatal("installer can install a new binary without restarting the running service")
 	}
+	if !strings.Contains(script, `"${PROJECT_DIR}/deploy/60-webvirtcloud-go.rules"`) ||
+		!strings.Contains(script, "/etc/polkit-1/rules.d/60-webvirtcloud-go.rules") {
+		t.Fatal("installer does not install the scoped libvirt secure-domain policy")
+	}
 }
 
 func TestStaticHandlerRejectsLegacyNoVNCAssets(t *testing.T) {

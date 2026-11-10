@@ -195,10 +195,12 @@ postgres://wvc:CHANGE_ME_URL_SAFE_PASSWORD@127.0.0.1:5432/wvc?sslmode=disable
 make build
 sudo install -o root -g root -m 0755 bin/wvc /usr/local/bin/wvc
 sudo install -o root -g root -m 0644 deploy/wvc.service /etc/systemd/system/webvirtcloud-go.service
+sudo install -o root -g root -m 0644 deploy/60-webvirtcloud-go.rules /etc/polkit-1/rules.d/60-webvirtcloud-go.rules
 sudo systemctl daemon-reload
+sudo systemctl restart polkit
 ```
 
-`deploy/wvc.service` 使用 `/etc/webvirtcloud-go/env`、运行用户 `wvc` 和 `libvirt` 组；如目录不同，先修改 unit 中的 `WorkingDirectory`、`EnvironmentFile` 和 `ReadWritePaths`。
+`deploy/wvc.service` 使用 `/etc/webvirtcloud-go/env`、运行用户 `wvc` 和 `libvirt` 组；如目录不同，先修改 unit 中的 `WorkingDirectory`、`EnvironmentFile` 和 `ReadWritePaths`。`deploy/60-webvirtcloud-go.rules` 只允许 `wvc` 读取 libvirt secure domain XML，这是带密码 VNC 控制台正常工作所必需的。
 
 #### 5. 写环境变量文件
 

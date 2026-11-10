@@ -1,9 +1,10 @@
 #!/bin/sh
 set -eu
 
+readonly=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --readonly) shift ;;
+    --readonly) readonly=1; shift ;;
     --connect) shift 2 ;;
     --connect=*) shift ;;
     *) break ;;
@@ -27,7 +28,16 @@ case "$cmd" in
     printf 'Id:             7\nName:           %s\nUUID:           11111111-2222-3333-4444-555555555555\nState:          running\nCPU(s):         4\nMax memory:     4194304 KiB\nUsed memory:    2097152 KiB\nAutostart:      disable\nPersistent:     yes\n' "${1:-vm}"
     ;;
   dumpxml)
-    printf '<domain type="kvm"><name>%s</name><devices><graphics type="vnc" port="5900" autoport="yes" listen="127.0.0.1" passwd="vnc-secret"/></devices></domain>\n' "${1:-vm}"
+    case " $* " in
+      *" --security-info "*)
+        if [ "$readonly" -eq 0 ]; then
+          printf '<domain type="kvm"><name>%s</name><devices><graphics type="vnc" port="5900" autoport="yes" listen="127.0.0.1" passwd="vnc-secret"/></devices></domain>\n' "${2:-vm}"
+        else
+          printf '<domain type="kvm"><name>%s</name><devices><graphics type="vnc" port="5900" autoport="yes" listen="127.0.0.1"/></devices></domain>\n' "${2:-vm}"
+        fi
+        ;;
+      *) printf '<domain type="kvm"><name>%s</name><devices><graphics type="vnc" port="5900" autoport="yes" listen="127.0.0.1"/></devices></domain>\n' "${1:-vm}" ;;
+    esac
     ;;
   domblklist)
     case " $* " in

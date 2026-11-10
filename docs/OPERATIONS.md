@@ -125,6 +125,8 @@ Bind libvirt VNC graphics to `127.0.0.1` and use the panel's WebSocket proxy:
 
 The VM and console pages warn when VNC listens on `0.0.0.0`, a non-loopback address, or has no password. A wildcard listener without a password lets any reachable client bypass panel authentication and take over the console. Correct the libvirt definition and restart or update the graphics device; do not rely on the application proxy to protect a separately exposed VNC port.
 
+Password-protected VNC requires libvirt security-sensitive domain XML. The packaged `deploy/60-webvirtcloud-go.rules` grants `org.libvirt.api.domain.read-secure` only to the `wvc` service account. For a manual installation, install that file under `/etc/polkit-1/rules.d/` and restart polkit before using the panel console. Do not grant this action to interactive or unrelated users.
+
 Virtinst can update the live and persistent graphics definition without dropping the guest:
 
 ```bash

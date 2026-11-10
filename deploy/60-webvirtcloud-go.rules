@@ -1,0 +1,8 @@
+/* Allow only the panel service account to read security-sensitive domain XML
+   needed for authenticated VNC console access. */
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.libvirt.api.domain.read-secure" &&
+        subject.user == "wvc") {
+        return polkit.Result.YES;
+    }
+});
