@@ -10,6 +10,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - `wvc version`, `wvc doctor`, `wvc reset-password`, and `wvc help` commands.
 - Trusted-intranet HTTP mode for noVNC via `WVC_ALLOW_INSECURE_CONSOLE`.
+- Console security diagnostics for wildcard/non-loopback VNC listeners and unpassworded VNC.
+- Console dialing now accepts the RFC 6598 shared address range used by Tailscale and private VPNs.
+- Optional installer ACL setup and `wvc doctor` diagnostics for local QEMU image directory access.
 - VM disk growth and offline grow/shrink controls with explicit destructive confirmation.
 - Storage pool refresh/start/autostart controls and volume create/clone/resize/delete operations.
 - Virtual-network start/stop/autostart controls.
@@ -28,10 +31,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The command center limits its initial rendered list and correctly discovers current virsh and qemu-img help formats.
 - Audit details, stopped-VM console errors, job timestamps, favicon handling, and dashboard tool-list density were corrected.
 - noVNC now refuses insecure HTTP contexts with a clear message instead of reporting a false connected state.
+- Native systemd deployment now uses a strict filesystem view, an empty capability set, private home directories, process limits, and additional kernel/namespace protections.
+- The Ubuntu installer no longer prints the generated initial administrator password into installer logs.
 
 ### Security
 
 - Updated `golang.org/x/crypto` to a revision containing the `GO-2026-5932` module fix.
+- The service logs explicit startup warnings for plain-HTTP consoles and for a bootstrap password left in the service environment.
+- VM and console pages now warn when libvirt exposes VNC on all interfaces, a non-loopback address, or without a password.
 
 ## [0.1.0] - Initial development
 

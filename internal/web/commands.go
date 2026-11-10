@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -323,18 +324,7 @@ func (s *Server) commandDiscovery(ctx context.Context, target command.Target) co
 	entry.inFlight = wait
 	s.catalogMu.Unlock()
 
-	probeCtx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	var discovery command.Discovery
-	cacheable := false
-	if target.SSH != nil {
-		var err error
-		discovery, err = command.DiscoverRemote(probeCtx, s.runner, *target.SSH, 4*time.Second)
-		cacheable = err == nil
-	} else {
-		discovery = command.Discover(probeCtx, s.runner)
-		cacheable = probeCtx.Err() == nil && s.discoveryCacheable(discovery)
-	}
-	cancel()
+	discovery, cacheable := s.probeCommandDiscovery(target)
 
 	s.catalogMu.Lock()
 	if cacheable {
@@ -349,6 +339,29 @@ func (s *Server) commandDiscovery(ctx context.Context, target command.Target) co
 	close(wait)
 	s.catalogMu.Unlock()
 	return result
+}
+
+func (s *Server) probeCommandDiscovery(target command.Target) (discovery command.Discovery, cacheable bool) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			discovery = command.Discovery{Tools: make(map[string]command.ToolCapability)}
+			cacheable = false
+			if s.log != nil {
+				s.log.Error("command discovery panicked", "target", target.Label,
+					"panic", fmt.Sprint(recovered), "stack", string(debug.Stack()))
+			}
+		}
+	}()
+
+	probeCtx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	if target.SSH != nil {
+		var err error
+		discovery, err = command.DiscoverRemote(probeCtx, s.runner, *target.SSH, 4*time.Second)
+		return discovery, err == nil
+	}
+	discovery = command.Discover(probeCtx, s.runner)
+	return discovery, probeCtx.Err() == nil && s.discoveryCacheable(discovery)
 }
 
 func commandDiscoveryKey(target command.Target) string {
@@ -640,7 +653,8 @@ func (s *Server) consolePage(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusConflict, "虚拟机未运行", "当前虚拟机状态为“"+state+"”，请先启动虚拟机再打开控制台。")
 		return
 	}
-	if _, err := s.libvirt.Console(r.Context(), host.ID, vmName); err != nil {
+	con, err := s.libvirt.Console(r.Context(), host.ID, vmName)
+	if err != nil {
 		s.logRequestError(r, "read console configuration", err)
 		s.renderError(w, r, http.StatusBadGateway, "无法打开控制台", "无法读取虚拟机控制台配置，请检查主机连接或查看服务日志。")
 		return
@@ -660,7 +674,7 @@ func (s *Server) consolePage(w http.ResponseWriter, r *http.Request) {
 	passwordURL := "/console/" + url.PathEscape(host.ID) + "/" + url.PathEscape(vmName) + "/password?token=" + url.QueryEscape(passwordToken)
 	s.render(w, r, "console", pageData{Title: "控制台 · " + vmName, Nav: "vms", Data: map[string]any{
 		"HostID": host.ID, "HostName": host.Name, "VM": vmName, "WSURL": wsPath, "PasswordURL": passwordURL,
-		"AllowInsecureConsole": s.cfg.AllowInsecureConsole,
+		"AllowInsecureConsole": s.cfg.AllowInsecureConsole, "ConsoleWarnings": consoleSecurityWarnings(con),
 	}})
 }
 

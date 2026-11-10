@@ -41,8 +41,10 @@
 - argv-based local execution with catalog/policy validation
 - hardened OpenSSH options and strict known-host verification for remote execution
 - short-lived, single-use, purpose-scoped console tokens
+- host-side VNC exposure diagnostics for wildcard/non-loopback listeners and missing passwords
 - PostgreSQL-backed per-host write serialization
 - durable audit outbox and HMAC hash-chain verification
+- native systemd sandboxing with no ambient capabilities and a read-only OS hierarchy
 - non-root container process, dropped capabilities, and no-new-privileges
 
 ## Assumptions

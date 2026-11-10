@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"webvirtcloud-go/internal/auth"
 	"webvirtcloud-go/internal/command"
 	"webvirtcloud-go/internal/config"
@@ -160,6 +162,7 @@ func runDoctor(w io.Writer) error {
 		return fmt.Errorf("master key: %w", statErr)
 	}
 	fmt.Fprintf(w, "master-key: %s (%s)\n", keyStatus, filepath.Clean(cfg.MasterKeyFile))
+	fmt.Fprintf(w, "image-dir: %s (%s)\n", imageDirStatus(cfg.ImageDir), filepath.Clean(cfg.ImageDir))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -190,6 +193,23 @@ func runDoctor(w io.Writer) error {
 	}
 	fmt.Fprintln(w, "doctor: complete")
 	return nil
+}
+
+func imageDirStatus(path string) string {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return "not present (optional unless local QEMU image tools are used)"
+	}
+	if err != nil {
+		return "unreadable: " + err.Error()
+	}
+	if !info.IsDir() {
+		return "invalid: not a directory"
+	}
+	if err := unix.Access(path, unix.W_OK); err != nil {
+		return "not writable by service user; grant reviewed ACL access or run install-ubuntu-local.sh with WVC_GRANT_IMAGE_ACCESS=1"
+	}
+	return "ok"
 }
 
 func errorsRedactedDatabase(err error, databaseURL string) error {

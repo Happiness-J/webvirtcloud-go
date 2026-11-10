@@ -216,6 +216,50 @@ func TestDockerIgnoreExcludesSSHMaterial(t *testing.T) {
 	}
 }
 
+func TestSystemdUnitHardensService(t *testing.T) {
+	data, err := os.ReadFile("../../deploy/wvc.service")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit := string(data)
+	for _, want := range []string{
+		"NoNewPrivileges=true",
+		"CapabilityBoundingSet=\n",
+		"AmbientCapabilities=\n",
+		"ProtectSystem=strict",
+		"ProtectHome=true",
+		"ProtectKernelLogs=true",
+		"ProtectClock=true",
+		"RestrictRealtime=true",
+		"RestrictNamespaces=~user",
+		"SystemCallArchitectures=native",
+		"LimitCORE=0",
+		"TasksMax=1024",
+	} {
+		if !strings.Contains(unit, want) {
+			t.Errorf("service unit is missing %q", want)
+		}
+	}
+}
+
+func TestInstallerDoesNotPrintBootstrapPassword(t *testing.T) {
+	data, err := os.ReadFile("../../deploy/install-ubuntu-local.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := string(data)
+	if strings.Contains(script, `cat "${initial_password_file}"`) {
+		t.Fatal("installer prints the generated bootstrap password into installer logs")
+	}
+	if !strings.Contains(script, "intentionally not printed") {
+		t.Fatal("installer does not document why the bootstrap password is withheld")
+	}
+	if !strings.Contains(script, `GRANT_IMAGE_ACCESS=${WVC_GRANT_IMAGE_ACCESS:-0}`) ||
+		!strings.Contains(script, `setfacl -R -m "u:${SERVICE_USER}:rwX" "${IMAGE_DIR}"`) {
+		t.Fatal("installer is missing reviewed image directory ACL support")
+	}
+}
+
 func TestStaticHandlerRejectsLegacyNoVNCAssets(t *testing.T) {
 	handler := (&Server{}).staticHandler()
 	for _, path := range []string{
