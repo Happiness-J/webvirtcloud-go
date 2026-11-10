@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Per-host operations workbench with host CPU/memory measurements, per-domain balloon/vCPU statistics, state-aware bulk lifecycle controls, autostart policy changes, and persisted/online vCPU and memory tuning.
 - `wvc version`, `wvc doctor`, `wvc reset-password`, and `wvc help` commands.
 - Trusted-intranet HTTP mode for noVNC via `WVC_ALLOW_INSECURE_CONSOLE`.
 - Console security diagnostics for wildcard/non-loopback VNC listeners and unpassworded VNC.

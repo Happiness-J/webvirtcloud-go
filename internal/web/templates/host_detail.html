@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-head">
   <div><h1>{{.Data.Host.Name}}</h1><p class="muted">{{.Data.Host.Description}}</p></div>
-  <div class="actions">{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form>{{end}}</div>
+  <div class="actions"><a class="btn primary" href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a>{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form>{{end}}</div>
 </div>
 <div class="grid two">
   <section class="panel">
@@ -10,7 +10,7 @@
   </section>
   <section class="panel">
     <h2>快捷入口</h2>
-    <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/vms">虚拟机</a><a href="/hosts/{{.Data.Host.ID}}/storage">存储池</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络</a>{{if eq .User.Role "admin"}}<a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a>{{end}}</div>
+    <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a><a href="/hosts/{{.Data.Host.ID}}/vms">虚拟机</a><a href="/hosts/{{.Data.Host.ID}}/storage">存储池</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络</a>{{if eq .User.Role "admin"}}<a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a>{{end}}</div>
   </section>
 </div>
 <section class="panel">

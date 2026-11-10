@@ -74,8 +74,54 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", err
 		}
 		return RoleOperator, nil
+	case "vm-resource":
+		if err := validateVMResourceArgs(tool, args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	default:
 		return "", fmt.Errorf("未知任务类型 %q", kind)
+	}
+}
+
+func validateVMResourceArgs(tool string, args []string) error {
+	if tool != "virsh" || len(args) < 3 {
+		return fmt.Errorf("虚拟机资源调优参数不正确")
+	}
+	if err := validateActionOperand(args[1]); err != nil {
+		return fmt.Errorf("虚拟机名称无效: %w", err)
+	}
+	switch args[0] {
+	case "setvcpus":
+		count, err := strconv.Atoi(args[2])
+		if err != nil || count < 1 || count > 1024 {
+			return fmt.Errorf("vCPU 数量必须在 1-1024 之间")
+		}
+		switch {
+		case len(args) == 4 && args[3] == "--config":
+			return nil
+		case len(args) == 5 && args[3] == "--live" && args[4] == "--config":
+			return nil
+		case len(args) == 5 && args[3] == "--maximum" && args[4] == "--config":
+			return nil
+		default:
+			return fmt.Errorf("vCPU 调优参数不正确")
+		}
+	case "setmem":
+		kiB, err := strconv.ParseUint(args[2], 10, 64)
+		if err != nil || kiB < 64*1024 || kiB > 1<<40 {
+			return fmt.Errorf("内存容量必须在 64 MiB 到 1 TiB 之间")
+		}
+		switch {
+		case len(args) == 4 && args[3] == "--config":
+			return nil
+		case len(args) == 5 && args[3] == "--live" && args[4] == "--config":
+			return nil
+		default:
+			return fmt.Errorf("内存调优参数不正确")
+		}
+	default:
+		return fmt.Errorf("不支持的虚拟机资源操作 %q", args[0])
 	}
 }
 

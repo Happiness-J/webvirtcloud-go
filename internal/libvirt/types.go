@@ -1,11 +1,15 @@
 package libvirt
 
 type Domain struct {
-	HostID   string
-	HostName string
-	Name     string
-	ID       string
-	State    string
+	HostID        string
+	HostName      string
+	Name          string
+	ID            string
+	State         string
+	Autostart     string
+	VCPUs         int
+	MaxMemoryKiB  uint64
+	UsedMemoryKiB uint64
 }
 
 type Snapshot struct {
@@ -66,4 +70,26 @@ type DomainDetail struct {
 	// failed. The VM page can still render its core information without hiding
 	// partial libvirt outages.
 	Warnings []string
+}
+
+// HostResourceStats contains the inexpensive, read-only libvirt measurements
+// used by the operations workbench. Values intentionally remain as the
+// human-readable strings reported by virsh so operators can correlate the UI
+// with command-line diagnostics. Missing keys indicate a partial query
+// failure; Warnings explains which measurement was unavailable.
+type HostResourceStats struct {
+	NodeInfo    map[string]string
+	CPUStats    map[string]string
+	MemoryStats map[string]string
+	Warnings    []string
+}
+
+// DomainResourceStats is parsed from `virsh domstats`. Sizes are KiB and CPU
+// time is nanoseconds, matching libvirt's documented output units.
+type DomainResourceStats struct {
+	Name           string
+	State          string
+	BalloonCurrent uint64
+	BalloonMaximum uint64
+	CPUTimeNanos   uint64
 }
