@@ -258,6 +258,9 @@ func TestInstallerDoesNotPrintBootstrapPassword(t *testing.T) {
 		!strings.Contains(script, `setfacl -R -m "u:${SERVICE_USER}:rwX" "${IMAGE_DIR}"`) {
 		t.Fatal("installer is missing reviewed image directory ACL support")
 	}
+	if !strings.Contains(script, "systemctl restart webvirtcloud-go") {
+		t.Fatal("installer can install a new binary without restarting the running service")
+	}
 }
 
 func TestStaticHandlerRejectsLegacyNoVNCAssets(t *testing.T) {

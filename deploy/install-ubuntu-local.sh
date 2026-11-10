@@ -119,7 +119,8 @@ install -o root -g root -m 0644 \
 systemctl daemon-reload
 
 echo "[5/8] Starting WebVirtCloud Go"
-systemctl enable --now webvirtcloud-go
+systemctl enable webvirtcloud-go
+systemctl restart webvirtcloud-go
 
 echo "[6/8] Waiting for readiness"
 ready=false
