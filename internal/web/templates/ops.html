@@ -4,7 +4,7 @@
   <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}">返回主机</a><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">虚拟机列表</a><a class="btn" href="/hosts/{{.Data.Host.ID}}/storage">存储池</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator")) (eq .Data.Host.Enabled true)}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn primary">测试连接</button></form>{{end}}</div>
 </div>
 {{if .Data.Warnings}}<div class="flash warn">{{range .Data.Warnings}}<div>{{.}}</div>{{end}}</div>{{end}}
-<div class="grid two">
+<div class="grid two ops-summary">
   <section class="panel"><h2>节点信息</h2><dl class="kv">{{range .Data.HostRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
   <section class="panel"><h2>节点实时资源</h2><dl class="kv">{{range .Data.CPUStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}{{range .Data.MemoryStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
 </div>
@@ -24,9 +24,9 @@
     <span class="hint">单次最多 50 台；状态不匹配时整批操作会拒绝提交。</span>
   </form>
   {{end}}
-  <table><thead><tr><th><input type="checkbox" data-select-all="vm-batch" aria-label="全选虚拟机"></th><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th>vCPU</th><th>内存当前</th><th>内存上限</th><th>累计 CPU 时间</th></tr></thead><tbody>
+  <div class="table-wrap"><table class="ops-table"><thead><tr><th><input type="checkbox" data-select-all="vm-batch" aria-label="全选虚拟机"></th><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th>vCPU</th><th>内存当前</th><th>内存上限</th><th>累计 CPU 时间</th></tr></thead><tbody>
   {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{.State}}</span></td><td>{{if .Autostart}}{{.Autostart}}{{else}}-{{end}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
-  </tbody></table>
+  </tbody></table></div>
   <p class="hint">资源数据来自 <code>virsh domstats</code>。内存单位为 libvirt balloon 当前值与上限；“累计 CPU 时间”是虚拟机自启动以来的累计消耗，不是瞬时利用率。</p>
   {{else}}<p class="empty">该主机没有可展示的虚拟机。</p>{{end}}
 </section>
