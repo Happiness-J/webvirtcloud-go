@@ -124,6 +124,11 @@ func validateStorageActionArgs(args []string) error {
 		return fmt.Errorf("存储操作缺少参数")
 	}
 	switch args[0] {
+	case "pool-info":
+		if len(args) != 2 {
+			return fmt.Errorf("存储池诊断参数数量不正确")
+		}
+		return validateActionOperand(args[1])
 	case "pool-refresh", "pool-start":
 		if len(args) != 2 {
 			return fmt.Errorf("存储池操作参数数量不正确")
@@ -196,6 +201,11 @@ func validateNetworkActionArgs(args []string) error {
 		return fmt.Errorf("网络操作缺少参数")
 	}
 	switch args[0] {
+	case "net-dhcp-leases", "net-info":
+		if len(args) != 2 {
+			return fmt.Errorf("网络诊断参数数量不正确")
+		}
+		return validateActionOperand(args[1])
 	case "net-start", "net-destroy":
 		if len(args) != 2 {
 			return fmt.Errorf("网络操作参数数量不正确")
@@ -337,12 +347,12 @@ func validateVMActionArgs(args []string) error {
 		if len(args) != 2 {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
 		}
-	case "snapshot-create-as", "snapshot-revert", "snapshot-delete":
+	case "snapshot-create-as", "snapshot-revert", "snapshot-delete", "backup-create-as", "backup-restore", "backup-delete":
 		if len(args) != 3 {
-			return fmt.Errorf("快照操作 %s 的参数数量不正确", args[0])
+			return fmt.Errorf("恢复点操作 %s 的参数数量不正确", args[0])
 		}
 		if err := validateActionOperand(args[2]); err != nil {
-			return fmt.Errorf("快照名称无效: %w", err)
+			return fmt.Errorf("恢复点名称无效: %w", err)
 		}
 	default:
 		return fmt.Errorf("任务类型 vm-action 不支持操作 %q", args[0])

@@ -32,6 +32,9 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 	var args []string
 	label := ""
 	switch action {
+	case "pool-capacity":
+		args = []string{"pool-info", pool}
+		label = "检查存储池容量 " + pool
 	case "pool-refresh":
 		args = []string{"pool-refresh", pool}
 		label = "刷新存储池 " + pool
@@ -135,6 +138,12 @@ func (s *Server) networkAction(w http.ResponseWriter, r *http.Request) {
 	var args []string
 	var label string
 	switch action {
+	case "net-dhcp-leases":
+		args = []string{"net-dhcp-leases", networkName}
+		label = "查看 DHCP 租约 " + networkName
+	case "net-info":
+		args = []string{"net-info", networkName}
+		label = "检查虚拟网络 " + networkName
 	case "net-start":
 		args = []string{"net-start", networkName}
 		label = "启动虚拟网络 " + networkName

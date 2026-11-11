@@ -137,17 +137,23 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		return []string{"autostart", "--disable", vm}, false, nil
 	case "undefine":
 		return []string{"undefine", vm}, true, nil
-	case "snapshot-create", "snapshot-revert", "snapshot-delete":
+	case "snapshot-create", "snapshot-revert", "snapshot-delete", "backup-create", "backup-restore", "backup-delete":
 		if err := libvirt.ValidateName(snapshot); err != nil {
-			return nil, false, fmt.Errorf("快照名称无效")
+			return nil, false, fmt.Errorf("恢复点名称无效")
 		}
 		switch action {
 		case "snapshot-create":
 			return []string{"snapshot-create-as", vm, snapshot}, false, nil
 		case "snapshot-revert":
 			return []string{"snapshot-revert", vm, snapshot}, true, nil
-		default:
+		case "snapshot-delete":
 			return []string{"snapshot-delete", vm, snapshot}, true, nil
+		case "backup-create":
+			return []string{"backup-create-as", vm, snapshot}, false, nil
+		case "backup-restore":
+			return []string{"backup-restore", vm, snapshot}, true, nil
+		default:
+			return []string{"backup-delete", vm, snapshot}, true, nil
 		}
 	default:
 		return nil, false, fmt.Errorf("未知操作")
