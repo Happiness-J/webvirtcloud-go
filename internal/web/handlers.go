@@ -1147,13 +1147,19 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 	out := make([]dashboardVMLive, 0, len(stats))
 	for _, item := range stats {
-		usage := memoryUsagePercent(item.BalloonCurrent, item.BalloonMaximum)
-		diskUsage := memoryUsagePercent(item.BlockAllocation, item.BlockCapacity)
-		out = append(out, dashboardVMLive{
-			Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos),
-			Memory: fmt.Sprintf("%d%% · %s / %s", usage, formatKiB(item.BalloonCurrent), formatKiB(item.BalloonMaximum)),
-			Disk:   fmt.Sprintf("%d%% · %s / %s", diskUsage, formatBytes(item.BlockAllocation), formatBytes(item.BlockCapacity)), Usage: usage,
-		})
+		usedKiB, ok := guestMemoryUsedKiB(item)
+		usage := 0
+		memory := "客户机未报告实际内存"
+		if ok {
+			usage = memoryUsagePercent(usedKiB, item.BalloonMaximum)
+			memory = fmt.Sprintf("%d%% · 已用 %s / 总计 %s", usage, formatKiB(usedKiB), formatKiB(item.BalloonMaximum))
+		}
+		disk := "磁盘容量不可用"
+		if item.BlockCapacity > 0 && item.BlockAllocation <= item.BlockCapacity {
+			diskUsage := memoryUsagePercent(item.BlockAllocation, item.BlockCapacity)
+			disk = fmt.Sprintf("%d%% · 已分配 %s / 容量 %s", diskUsage, formatBytes(item.BlockAllocation), formatBytes(item.BlockCapacity))
+		}
+		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage})
 	}
 	return out
 }
@@ -1175,4 +1181,15 @@ func (s *Server) apiResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"generated_at": time.Now().UTC().Format(time.RFC3339), "hosts": s.dashboardLive(r.Context(), hosts)})
+}
+
+func guestMemoryUsedKiB(item libvirt.DomainResourceStats) (uint64, bool) {
+	available := item.BalloonUsable
+	if available == 0 {
+		available = item.BalloonAvailable
+	}
+	if available == 0 || item.BalloonMaximum == 0 || available > item.BalloonMaximum {
+		return 0, false
+	}
+	return item.BalloonMaximum - available, true
 }

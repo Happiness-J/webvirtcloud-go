@@ -111,11 +111,13 @@ type HostResourceStats struct {
 // DomainResourceStats is parsed from `virsh domstats`. Sizes are KiB and CPU
 // time is nanoseconds, matching libvirt's documented output units.
 type DomainResourceStats struct {
-	Name            string
-	State           string
-	BalloonCurrent  uint64
-	BalloonMaximum  uint64
-	CPUTimeNanos    uint64
-	BlockCapacity   uint64
-	BlockAllocation uint64
+	Name             string
+	State            string
+	BalloonCurrent   uint64
+	BalloonMaximum   uint64
+	BalloonAvailable uint64
+	BalloonUsable    uint64
+	CPUTimeNanos     uint64
+	BlockCapacity    uint64
+	BlockAllocation  uint64
 }

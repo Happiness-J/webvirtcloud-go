@@ -10,7 +10,7 @@
   <div class="stat"><strong>{{.Data.Stats.Running}}</strong><span>运行任务</span></div>
 </section>
 <section class="panel resource-board" id="resource-board" data-resource-url="/api/v1/resources">
-  <div class="panel-head"><h2>实时资源</h2><span class="muted">每 15 秒自动刷新，图表保留最近趋势</span></div>
+  <div class="panel-head"><h2>实时资源</h2><span class="muted">内存百分比仅在客户机报告可用内存时显示；未安装客户机代理时显示不可用，避免把配置上限误报为 100%</span></div>
   {{if .Data.Live}}<div class="resource-groups">{{range .Data.Live}}
     <section class="resource-group">
       <h3>{{.Host.Name}}</h3>
