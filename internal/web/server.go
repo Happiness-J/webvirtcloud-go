@@ -356,6 +356,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /api/v1/hosts", s.protect("viewer", s.apiHosts))
 	mux.Handle("GET /api/v1/hosts/{id}/vms", s.protect("viewer", s.apiHostVMs))
 	mux.Handle("GET /api/v1/hosts/{id}/vms/{vm}", s.protect("viewer", s.apiVM))
+	mux.Handle("GET /api/v1/resources", s.protect("viewer", s.apiResources))
 	mux.Handle("GET /audit", s.protect("operator", s.auditPage))
 	mux.Handle("GET /users", s.protect("admin", s.usersPage))
 	mux.Handle("GET /users/new", s.protect("admin", s.userNewPage))

@@ -208,3 +208,5 @@ details summary { cursor: pointer; color: var(--brand); }
 .table-wrap { overflow-x: auto; }
 .ops-table { min-width: 860px; }
 .ops-table td:nth-child(n+5), .ops-table th:nth-child(n+5) { text-align: right; font-variant-numeric: tabular-nums; }
+
+.resource-card canvas { width: 100%; height: 72px; margin-top: 10px; }

@@ -1167,3 +1167,12 @@ func memoryUsagePercent(current, maximum uint64) int {
 	}
 	return int(float64(current) * 100 / float64(maximum))
 }
+
+func (s *Server) apiResources(w http.ResponseWriter, r *http.Request) {
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"generated_at": time.Now().UTC().Format(time.RFC3339), "hosts": s.dashboardLive(r.Context(), hosts)})
+}
