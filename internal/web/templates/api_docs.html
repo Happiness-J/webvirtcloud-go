@@ -1,0 +1,10 @@
+{{define "content"}}
+<div class="page-head"><div><h1>OpenAPI</h1><p class="muted">只读接口，适合监控、资产同步和自动化查询。</p></div></div>
+<section class="panel"><h2>认证</h2><p>浏览器登录后可直接访问。外部系统使用请求头 <code>Authorization: Bearer &lt;WVC_METRICS_TOKEN&gt;</code>。令牌只有查看权限。</p></section>
+<section class="panel"><h2>接口</h2><table><thead><tr><th>方法</th><th>路径</th><th>返回</th></tr></thead><tbody>
+<tr><td>GET</td><td><a href="/api/v1/hosts"><code>/api/v1/hosts</code></a></td><td>主机 ID、名称、启用状态</td></tr>
+<tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms</code></td><td>虚拟机名称、状态、自启动</td></tr>
+<tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms/{vm}</code></td><td>状态、客户机 IP、摘要</td></tr>
+<tr><td>GET</td><td><code>/api/v1/resources</code></td><td>实时 CPU、内存、磁盘使用</td></tr>
+</tbody></table><p class="hint">接口不返回数据库密码、主机连接 URI、VNC 密码或会话令牌。</p></section>
+{{end}}
