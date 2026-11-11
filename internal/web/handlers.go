@@ -1309,6 +1309,6 @@ func validInstallISO(dir, path string) bool {
 	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
 		return false
 	}
-	info, err := os.Stat(clean)
+	info, err := os.Stat(clean) // #nosec G703 -- clean is confined to the configured image directory and a regular .iso name.
 	return err == nil && info.Mode().IsRegular()
 }
