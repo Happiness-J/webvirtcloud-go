@@ -94,7 +94,7 @@ func TestBuildOpsVMRows(t *testing.T) {
 	if len(rows) != 2 || rows[0].Name != "db" || rows[1].Name != "web" {
 		t.Fatalf("rows = %#v", rows)
 	}
-	if rows[1].VCPU != "4" || rows[1].MemoryCurrent != "2.0 GiB" || rows[1].CPUTime != "3m" || rows[1].Autostart != "enable" {
+	if rows[1].VCPU != "4" || rows[1].MemoryCurrent != "2.0 GB" || rows[1].CPUTime != "3m" || rows[1].Autostart != "enable" {
 		t.Fatalf("unexpected web row: %#v", rows[1])
 	}
 }
