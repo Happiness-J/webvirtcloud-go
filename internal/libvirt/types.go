@@ -77,6 +77,9 @@ type DomainDetail struct {
 	Events      string
 	GuestAgent  string
 	Backups     []Backup
+	// PowerRequest reports a pending guest ACPI shutdown or reboot request.
+	// An empty value means libvirt currently reports no pending request.
+	PowerRequest string
 	// Warnings contains user-safe notices for optional detail queries that
 	// failed. The VM page can still render its core information without hiding
 	// partial libvirt outages.

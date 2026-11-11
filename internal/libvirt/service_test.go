@@ -160,11 +160,11 @@ func TestForEachIndexBoundsWorkers(t *testing.T) {
 }
 
 func TestDetailWarningsReportPartialFailures(t *testing.T) {
-	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), errors.New("backups"), nil, errors.New("memory"), nil, errors.New("guest"))
-	if len(warnings) != 6 {
-		t.Fatalf("warnings = %#v, want 3", warnings)
+	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), errors.New("backups"), nil, errors.New("memory"), nil, errors.New("guest"), errors.New("power"))
+	if len(warnings) != 7 {
+		t.Fatalf("warnings = %#v, want 7", warnings)
 	}
-	for _, fragment := range []string{"块设备信息", "XML", "快照", "备份", "guest 内存统计", "guest agent"} {
+	for _, fragment := range []string{"块设备信息", "XML", "快照", "备份", "guest 内存统计", "guest agent", "电源请求"} {
 		found := false
 		for _, warning := range warnings {
 			if strings.Contains(warning, fragment) {
@@ -176,7 +176,7 @@ func TestDetailWarningsReportPartialFailures(t *testing.T) {
 			t.Errorf("warnings do not mention %s: %#v", fragment, warnings)
 		}
 	}
-	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
+	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
 		t.Fatalf("unexpected warnings: %#v", warnings)
 	}
 }
@@ -303,5 +303,14 @@ esac
 	}
 	if got := strings.Fields(string(raw)); strings.Join(got, ",") != "root@kvm-a,root@kvm-b" {
 		t.Fatalf("SSH destinations = %v, want each host routed independently", got)
+	}
+}
+
+func TestParsePowerRequest(t *testing.T) {
+	if got := parsePowerRequest("running (shutdown)"); !strings.Contains(got, "ACPI") {
+		t.Fatalf("shutdown request = %q", got)
+	}
+	if got := parsePowerRequest("running\n"); got != "" {
+		t.Fatalf("normal state = %q", got)
 	}
 }
