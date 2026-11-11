@@ -29,7 +29,7 @@ func TestAuthorizeQueuedJob(t *testing.T) {
 		{name: "vm action viewer", kind: "vm-action", tool: "virsh", args: []string{"start", "vm"}, role: "viewer", wantErr: "当前角色"},
 		{name: "vm action wrong tool", kind: "vm-action", tool: "qemu-img", args: []string{"info", "a"}, role: "admin", wantErr: "仅支持 virsh"},
 		{name: "host test operator", kind: "host-test", tool: "virsh", args: []string{"version"}, role: "operator"},
-		{name: "host test wrong tool", kind: "host-test", tool: "qemu-img", args: []string{"info", "a"}, role: "admin", wantErr: "仅支持 virsh"},
+		{name: "host test wrong tool", kind: "host-test", tool: "qemu-img", args: []string{"info", "a"}, role: "admin", wantErr: "不支持工具"},
 		{name: "unknown kind", kind: "unknown", tool: "virsh", args: []string{"list"}, role: "admin", wantErr: "未知任务类型"},
 		{name: "missing args", kind: "vm-action", tool: "virsh", args: nil, role: "admin", wantErr: "缺少命令参数"},
 	}

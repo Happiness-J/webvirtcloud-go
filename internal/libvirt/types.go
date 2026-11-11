@@ -59,13 +59,16 @@ type Console struct {
 }
 
 type DomainDetail struct {
-	Domain    Domain
-	Info      map[string]string
-	BlockDevs string
-	BlockList []BlockDevice
-	Ifaces    string
-	Snapshots []Snapshot
-	XML       string
+	Domain      Domain
+	Info        map[string]string
+	BlockDevs   string
+	BlockList   []BlockDevice
+	Ifaces      string
+	Snapshots   []Snapshot
+	XML         string
+	BlockErrors string
+	MemoryStats string
+	Events      string
 	// Warnings contains user-safe notices for optional detail queries that
 	// failed. The VM page can still render its core information without hiding
 	// partial libvirt outages.

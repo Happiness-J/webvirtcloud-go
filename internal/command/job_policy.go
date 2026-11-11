@@ -29,14 +29,8 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 		}
 		return RoleAdmin, nil
 	case "host-test":
-		if len(args) == 0 {
-			return "", fmt.Errorf("任务缺少命令参数")
-		}
-		if tool != "virsh" {
-			return "", fmt.Errorf("任务类型 host-test 仅支持 virsh")
-		}
-		if len(args) != 1 || args[0] != "version" {
-			return "", fmt.Errorf("任务类型 host-test 仅允许执行 virsh version")
+		if err := validateHostTestArgs(tool, args); err != nil {
+			return "", err
 		}
 		return RoleOperator, nil
 	case "vm-action":
@@ -278,6 +272,38 @@ func validateScaledAmount(value string, signed bool) error {
 func validVolumeFormatArg(format string) bool {
 	switch format {
 	case "raw", "qcow", "qcow2", "qed", "vmdk", "iso":
+		return true
+	default:
+		return false
+	}
+}
+
+func validateHostTestArgs(tool string, args []string) error {
+	switch tool {
+	case "virsh":
+		if len(args) == 1 && args[0] == "version" {
+			return nil
+		}
+		return fmt.Errorf("任务类型 host-test 仅允许执行 virsh version")
+	case "virt-host-validate":
+		switch {
+		case len(args) == 0:
+			return nil
+		case len(args) == 1 && validHypervisorType(args[0]):
+			return nil
+		case len(args) == 2 && args[0] == "--quiet" && validHypervisorType(args[1]):
+			return nil
+		default:
+			return fmt.Errorf("宿主机健康检查参数不正确")
+		}
+	default:
+		return fmt.Errorf("任务类型 host-test 不支持工具 %q", tool)
+	}
+}
+
+func validHypervisorType(value string) bool {
+	switch value {
+	case "qemu", "lxc", "xen", "bhyve", "vmx", "test":
 		return true
 	default:
 		return false

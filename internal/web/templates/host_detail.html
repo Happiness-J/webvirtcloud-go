@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-head">
   <div><h1>{{.Data.Host.Name}}</h1><p class="muted">{{.Data.Host.Description}}</p></div>
-  <div class="actions"><a class="btn primary" href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a>{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form>{{end}}</div>
+  <div class="actions"><a class="btn primary" href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a>{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/health" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="hypervisor" value="qemu"><button class="btn">健康检查</button></form>{{end}}</div>
 </div>
 <div class="grid two">
   <section class="panel">
