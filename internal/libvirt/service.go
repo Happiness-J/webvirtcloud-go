@@ -558,10 +558,64 @@ func (s *Service) ListVolumes(ctx context.Context, hostID, pool string) ([]Volum
 		}
 		info := ParseKeyValue(infoRes.Stdout)
 		out[i].Type = info["Type"]
-		out[i].Capacity = info["Capacity"]
-		out[i].Allocation = info["Allocation"]
+		out[i].Capacity = readableCapacity(info["Capacity"])
+		out[i].Allocation = readableCapacity(info["Allocation"])
+		out[i].Filesystem = FilesystemFromPath(out[i].Path)
 	})
 	return out, nil
+}
+
+func FilesystemFromPath(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".qcow2", ".qcow":
+		return "QCOW2 磁盘（分区内可包含 ext4、xfs、NTFS、ZFS 等）"
+	case ".raw", ".img":
+		return "原始磁盘（文件系统在客户机分区内）"
+	case ".iso":
+		return "ISO 9660 安装或启动介质"
+	case ".vmdk":
+		return "VMDK 磁盘"
+	case ".vdi":
+		return "VirtualBox VDI 磁盘"
+	default:
+		if path == "" {
+			return "-"
+		}
+		return "未知容器格式"
+	}
+}
+
+func readableCapacity(value string) string {
+	fields := strings.Fields(strings.TrimSpace(value))
+	if len(fields) < 2 {
+		return value
+	}
+	number, err := strconv.ParseFloat(strings.ReplaceAll(fields[0], ",", ""), 64)
+	if err != nil {
+		return value
+	}
+	unit := strings.ToLower(fields[1])
+	multiplier := map[string]float64{"bytes": 1, "b": 1, "kib": 1024, "mib": 1024 * 1024, "gib": 1024 * 1024 * 1024, "tib": 1024 * 1024 * 1024 * 1024}
+	scale, ok := multiplier[unit]
+	if !ok {
+		return value
+	}
+	bytes := number * scale
+	return humanBytes(uint64(bytes))
+}
+
+func humanBytes(value uint64) string {
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
+	size := float64(value)
+	index := 0
+	for size >= 1024 && index < len(units)-1 {
+		size /= 1024
+		index++
+	}
+	if index == 0 {
+		return fmt.Sprintf("%d %s", value, units[index])
+	}
+	return fmt.Sprintf("%.1f %s", size, units[index])
 }
 
 func (s *Service) ListNetworks(ctx context.Context, hostID string) ([]Network, error) {

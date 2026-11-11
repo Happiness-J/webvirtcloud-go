@@ -8,7 +8,7 @@
 <section class="panel">
   <h2>存储池 {{.Data.SelectedPool}}</h2>
   <dl class="kv">{{range .Data.PoolInfo}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
-  {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
+  {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>文件系统识别</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Filesystem}}{{.Filesystem}}{{else}}-{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
 </section>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
@@ -52,5 +52,5 @@
 </section>
 {{end}}
 {{end}}
-{{if eq .User.Role "admin"}}<p class="hint">创建、删除、扩容卷等高级操作可在 <a href="/hosts/{{.Data.Host.ID}}/command">命令中心</a> 使用 <code>vol-create-as</code>、<code>vol-delete</code>、<code>vol-resize</code> 等完整参数执行。</p>{{end}}
+{{if eq .User.Role "admin"}}<p class="hint">ext4、xfs、NTFS、ZFS 等文件系统位于客户机分区内部；存储池层只能可靠识别 qcow2、raw、ISO 等容器格式。创建、删除、扩容卷等高级操作可在 <a href="/hosts/{{.Data.Host.ID}}/command">命令中心</a> 使用 <code>vol-create-as</code>、<code>vol-delete</code>、<code>vol-resize</code> 等完整参数执行。</p>{{end}}
 {{end}}

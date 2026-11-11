@@ -35,6 +35,7 @@ type Volume struct {
 	Type       string
 	Capacity   string
 	Allocation string
+	Filesystem string
 }
 
 type BlockDevice struct {
