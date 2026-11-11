@@ -127,7 +127,9 @@ document.addEventListener('change', (event) => {
     root.innerHTML = '';
     (payload.hosts || []).forEach((host) => {
       const section = document.createElement('section'); section.className='resource-group';
-      section.innerHTML = '<h3>' + host.Host.Name + '</h3>';
+      const title = document.createElement('h3'); title.textContent = host.Host && host.Host.Name ? host.Host.Name : '主机';
+      section.appendChild(title);
+      if (host.Warning) { const warn = document.createElement('p'); warn.className='flash warn'; warn.textContent = host.Warning; section.appendChild(warn); }
       const grid = document.createElement('div'); grid.className='resource-grid';
       (host.Domains || []).forEach((vm) => {
         const key = host.Host.ID + ':' + vm.Name;

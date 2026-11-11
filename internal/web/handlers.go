@@ -661,7 +661,7 @@ func (s *Server) usersPage(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		rows = append(rows, userRow{User: user, Self: user.ID == sess.User.ID})
 	}
-	s.render(w, r, "users", pageData{Title: "用户", Nav: "users", Data: map[string]any{"Users": rows, "Page": page, "HasNext": hasNext}})
+	s.render(w, r, "users", pageData{Title: "用户", Nav: "users", Data: map[string]any{"Users": rows, "Page": page, "HasNext": hasNext, "LDAP": s.ldap != nil && s.ldap.Enabled(), "Webhook": s.hooks != nil && s.hooks.Enabled()}})
 }
 
 func (s *Server) userNewPage(w http.ResponseWriter, r *http.Request) {
@@ -1201,7 +1201,17 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host}})
+	networks, netErr := s.libvirt.ListNetworks(r.Context(), host.ID)
+	if netErr != nil {
+		s.logRequestError(r, "list networks for VM create", netErr)
+	}
+	active := make([]string, 0)
+	for _, network := range networks {
+		if network.State == "active" && network.Name != "" {
+			active = append(active, network.Name)
+		}
+	}
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "NetworkError": netErr != nil}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
@@ -1225,7 +1235,28 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU 为 1-128，内存为 1-1024 GB，磁盘为 1-10000 GB")
 		return
 	}
-	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=default", "--osinfo", "generic", "--noautoconsole"}
+	network := strings.TrimSpace(r.Form.Get("network"))
+	if err := libvirt.ValidateName(network); err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "虚拟网络名称无效")
+		return
+	}
+	networks, netErr := s.libvirt.ListNetworks(r.Context(), host.ID)
+	if netErr != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "无法读取主机虚拟网络")
+		return
+	}
+	allowedNetwork := false
+	for _, item := range networks {
+		if item.Name == network && item.State == "active" {
+			allowedNetwork = true
+			break
+		}
+	}
+	if !allowedNetwork {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "只能选择当前主机上已启动的虚拟网络")
+		return
+	}
+	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=" + network, "--osinfo", "generic", "--noautoconsole"}
 	if cdrom := strings.TrimSpace(r.Form.Get("cdrom")); cdrom != "" {
 		if !strings.HasPrefix(cdrom, "/var/lib/libvirt/images/") || strings.Contains(cdrom, "..") || !strings.HasSuffix(strings.ToLower(cdrom), ".iso") {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "ISO 必须是镜像目录中的 .iso 文件")

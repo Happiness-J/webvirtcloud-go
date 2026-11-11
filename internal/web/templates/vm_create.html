@@ -6,8 +6,10 @@
 <label>vCPU<input name="vcpus" value="2" required pattern="[1-9][0-9]*"></label>
 <label>内存<input name="memory" value="4" required pattern="[1-9][0-9]*"><span class="hint">单位 GB</span></label>
 <label>磁盘大小<input name="disk" value="40" required pattern="[1-9][0-9]*"><span class="hint">单位 GB，自动创建 qcow2</span></label>
-<label>网络<select name="network"><option value="default">default</option></select></label>
+<label>网络<select name="network" required>{{if .Data.Networks}}{{range .Data.Networks}}<option value="{{.}}">{{.}}</option>{{end}}{{else}}<option value="" disabled selected>没有已启动的虚拟网络</option>{{end}}</select></label>
+{{if .Data.NetworkError}}<p class="hint bad-text">读取虚拟网络失败，请先检查主机连接。</p>{{else if not .Data.Networks}}<p class="hint bad-text">这台主机没有已启动的虚拟网络。请先到网络页启动一个网络，再创建虚拟机。</p>{{end}}
 <label>安装 ISO（可选）<input name="cdrom" placeholder="/var/lib/libvirt/images/installer.iso"></label>
-<button class="btn primary" data-confirm="确定创建虚拟机吗？">创建</button>
+{{if not .Data.Networks}}<p class="hint">创建按钮会在选择有效网络后可用。</p>{{end}}
+<button class="btn primary" {{if not .Data.Networks}}disabled{{end}} data-confirm="确定创建虚拟机吗？">创建</button>
 </form><p class="hint">不填写 ISO 时创建可稍后安装的磁盘虚拟机。删除虚拟机只删除 libvirt 定义，不自动删除磁盘。</p></section>
 {{end}}

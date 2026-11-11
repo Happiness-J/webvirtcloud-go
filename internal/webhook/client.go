@@ -44,6 +44,8 @@ func New(url, token string, timeout time.Duration, log *slog.Logger) *Client {
 
 // Send delivers one event without blocking the caller. Delivery failures are
 // logged because the panel action itself has already been accepted.
+func (c *Client) Enabled() bool { return c != nil && c.url != "" }
+
 func (c *Client) Send(event Event) {
 	if c == nil || c.url == "" {
 		return

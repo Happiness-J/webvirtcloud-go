@@ -714,7 +714,7 @@ docker compose logs --tail=100 app
 
 - 当前是单组织角色模型，没有租户、项目或按 VM 的细粒度 ACL；同角色用户看到同一套主机资源。
 - 主机级写任务锁按 Host ID 生效。同一台物理机不要重复登记成多个 Host，否则这些记录不会自动互斥；`virsh migrate` 等跨主机操作只锁定发起任务的主机，目标主机上的并发写任务需由运维避让或在维护窗口执行。
-- 没有内建 SMTP、OAuth/LDAP、备份调度器或计费。
+- 支持可选 OpenLDAP/Active Directory 登录和任务 Webhook。没有内建 SMTP、OAuth、备份调度器或计费。
 - `qemu+ssh` 远程执行依赖目标物理机已安装对应工具、SSH 用户权限和 `WVC_REMOTE_PATH`；`qemu+tcp/tls` 主机没有 SSH 端点，无法执行独立 QEMU 工具。远程目标有 `setsid` 时，命令以独立进程组运行，超时、取消或 SSH 通道断开会清理整个进程组；目标机没有 `setsid` 时退化为清理直接子进程，自行创建新会话并逃逸的孙进程仍可能残留。
 - Docker 镜像只包含 Debian 可提供的工具子集，命令目录比镜像实际安装的二进制更完整。Debian 未打包的 `qemu-vnc`、`virt-convert`、`virt-list-filesystems` 等工具会显示“缺失”；没有安装或未设置可用的 `WVC_*_BIN` 时不会伪装成可执行。
 - `qemu-vmsr-helper` 依赖 Intel RAPL/powercap；宿主机没有相应驱动时，即使二进制存在也无法启动。
