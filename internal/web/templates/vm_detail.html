@@ -77,6 +77,20 @@
     <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
     <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
   </div>
+  <h2>备份</h2>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="backup-create">
+    <input name="snapshot" placeholder="备份名称" maxlength="128" required>
+    <button class="btn" data-confirm="确定创建虚拟机备份吗？">创建备份</button>
+  </form>
+  {{if .Data.Detail.Backups}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Backups}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-restore"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">恢复</button></form>
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
+  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有备份。</p>{{end}}
+  <p class="hint">备份恢复会替换虚拟机当前磁盘状态。执行前请确认虚拟机已停止，并保留至少一个可回退的备份。</p>
+</section>
+<section class="panel">
+  <h2>运行诊断</h2>
   <h3>近期事件</h3>
   <pre class="output">{{if .Data.Detail.Events}}{{.Data.Detail.Events}}{{else}}检查窗口内没有新事件。{{end}}</pre>
 </section>

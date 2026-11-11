@@ -72,6 +72,9 @@ case "$cmd" in
   domiflist)
     printf ' Interface   Type      Source     Model    MAC\n--------------------------------------------------------------\n vnet0       network   default    virtio   52:54:00:00:00:01\n'
     ;;
+  backup-list)
+    printf ' Name      Creation Time               State\n---------------------------------------------------\n nightly   2026-11-11 00:00:00 +0800  complete\n'
+    ;;
   snapshot-list)
     case " $* " in
       *" --name "*) printf 'clean\n' ;;
@@ -102,7 +105,7 @@ case "$cmd" in
   net-info)
     printf 'Name:           default\nUUID:           11111111-2222-3333-4444-555555555555\nActive:         yes\nPersistent:     yes\nAutostart:      yes\nBridge:         virbr0\n'
     ;;
-  start|shutdown|reboot|destroy|suspend|resume|autostart|undefine|snapshot-create-as|snapshot-revert|snapshot-delete|blockresize|setvcpus|setmem|vol-create-as|vol-clone|vol-resize|vol-delete|pool-refresh|pool-start|pool-autostart|net-start|net-destroy|net-autostart)
+  start|shutdown|reboot|destroy|suspend|resume|autostart|undefine|snapshot-create-as|snapshot-revert|snapshot-delete|backup-create-as|backup-restore|backup-delete|blockresize|setvcpus|setmem|vol-create-as|vol-clone|vol-resize|vol-delete|pool-refresh|pool-start|pool-autostart|pool-info|net-start|net-destroy|net-autostart|net-info|net-dhcp-leases)
     printf 'Domain operation accepted: %s\n' "$cmd"
     ;;
   slow)

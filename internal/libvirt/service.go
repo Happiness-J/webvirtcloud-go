@@ -230,6 +230,32 @@ func (s *Service) RecentEvents(ctx context.Context, hostID, name string) (string
 	return res.Output(), err
 }
 
+func (s *Service) ListBackups(ctx context.Context, hostID, name string) ([]Backup, error) {
+	if err := ValidateName(name); err != nil {
+		return nil, err
+	}
+	res, err := s.run(ctx, hostID, []string{"backup-list", name}, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	rows := ParseTable(res.Stdout)
+	out := make([]Backup, 0, len(rows))
+	for _, row := range rows {
+		if len(row) == 0 || ValidateName(row[0]) != nil {
+			continue
+		}
+		backup := Backup{Name: row[0]}
+		if len(row) > 1 {
+			backup.CreatedAt = row[1]
+		}
+		if len(row) > 2 {
+			backup.State = row[2]
+		}
+		out = append(out, backup)
+	}
+	return out, nil
+}
+
 func (s *Service) ListSnapshots(ctx context.Context, hostID, name string) ([]Snapshot, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, err
@@ -268,7 +294,7 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.Info = info
 	detail.Domain.State = info["State"]
 	detail.Domain.ID = info["Id"]
-	var blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memoryErr, eventErr error
+	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr error
 	var wg sync.WaitGroup
 	wg.Add(5)
 	go func() {
@@ -301,7 +327,8 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	wg.Wait()
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
-	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memoryErr, eventErr)
+	detail.Backups, backupErr = s.ListBackups(ctx, hostID, name)
+	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr)
 	return detail, nil
 }
 
@@ -340,7 +367,7 @@ func (s *Service) BlockDeviceCapacity(ctx context.Context, hostID, name, target 
 	return capacity, nil
 }
 
-func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memoryErr, eventErr error) []string {
+func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr error) []string {
 	var warnings []string
 	if blockErr != nil {
 		warnings = append(warnings, "块设备信息读取失败")
@@ -353,6 +380,9 @@ func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memo
 	}
 	if snapshotErr != nil {
 		warnings = append(warnings, "快照信息读取失败")
+	}
+	if backupErr != nil {
+		warnings = append(warnings, "备份信息读取失败")
 	}
 	if blockErrorErr != nil {
 		warnings = append(warnings, "块设备错误状态读取失败")

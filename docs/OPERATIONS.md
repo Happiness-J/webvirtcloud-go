@@ -1,5 +1,11 @@
 # Operations
 
+## Backup, capacity, and network checks
+
+Operators can create, restore, and delete libvirt backups from a VM page. Restore and delete require the confirmation checkbox. A restore replaces the current VM disk state, so the VM should be shut down and at least one fallback backup retained.
+
+Each storage pool has a capacity check that records `pool-info` as a job. Virtual networks have two diagnostic actions: `net-info` for bridge and activation state, and `net-dhcp-leases` for current DHCP assignments.
+
 ## Host and VM diagnostics
 
 Operators can queue `virt-host-validate --quiet qemu` from a host page. The result is stored as a normal job, including any failed KVM, cgroup, device, or security-driver checks.
