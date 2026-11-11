@@ -91,9 +91,22 @@ const connect = async () => {
 
 document.getElementById('send-ctrl-alt-del')?.addEventListener('click', () => rfb?.sendCtrlAltDel());
 document.getElementById('paste-local')?.addEventListener('click', async () => {
-  if (!rfb || !navigator.clipboard?.readText) return;
-  const text = await navigator.clipboard.readText();
-  if (text) rfb.clipboardPasteFrom(text);
+  if (!rfb) return;
+  if (!navigator.clipboard?.readText) {
+    setStatus('浏览器不支持读取剪贴板', 'bad');
+    return;
+  }
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text) {
+      setStatus('本机剪贴板是空的', 'warn');
+      return;
+    }
+    rfb.clipboardPasteFrom(text);
+    setStatus('已发送剪贴板文本', 'ok');
+  } catch (err) {
+    setStatus('无法读取剪贴板，请允许浏览器权限', 'bad');
+  }
 });
 document.getElementById('scale-toggle')?.addEventListener('click', () => {
   if (!rfb) return;

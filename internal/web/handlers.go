@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1210,7 +1212,7 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 			active = append(active, network.Name)
 		}
 	}
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "NetworkError": netErr != nil}})
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir)}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
@@ -1257,7 +1259,7 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=" + network, "--osinfo", "generic", "--noautoconsole"}
 	if cdrom := strings.TrimSpace(r.Form.Get("cdrom")); cdrom != "" {
-		if !strings.HasPrefix(cdrom, "/var/lib/libvirt/images/") || strings.Contains(cdrom, "..") || !strings.HasSuffix(strings.ToLower(cdrom), ".iso") {
+		if !validInstallISO(s.cfg.ImageDir, cdrom) {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "ISO 必须是镜像目录中的 .iso 文件")
 			return
 		}
@@ -1277,4 +1279,36 @@ func mustInt(value string) int { n, _ := strconv.Atoi(value); return n }
 
 func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "api_docs", pageData{Title: "OpenAPI", Nav: "api"})
+}
+
+func listInstallISOs(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	out := make([]string, 0)
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(strings.ToLower(entry.Name()), ".iso") {
+			continue
+		}
+		path := filepath.Join(dir, entry.Name())
+		if validInstallISO(dir, path) {
+			out = append(out, path)
+		}
+	}
+	return out
+}
+
+func validInstallISO(dir, path string) bool {
+	if !strings.HasSuffix(strings.ToLower(path), ".iso") || strings.Contains(path, "..") {
+		return false
+	}
+	root := filepath.Clean(dir)
+	clean := filepath.Clean(path)
+	rel, err := filepath.Rel(root, clean)
+	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+		return false
+	}
+	info, err := os.Stat(clean) // #nosec G703 -- clean is confined to the configured image directory and a regular .iso name.
+	return err == nil && info.Mode().IsRegular()
 }

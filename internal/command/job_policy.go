@@ -514,7 +514,7 @@ func validateVMCreateArgs(args []string) error {
 		return fmt.Errorf("网络或系统参数无效")
 	}
 	if len(args) == len(expected)*2+2 {
-		if args[14] != "--cdrom" || !strings.HasPrefix(args[15], "/var/lib/libvirt/images/") || strings.Contains(args[15], "..") || !strings.HasSuffix(strings.ToLower(args[15]), ".iso") {
+		if args[14] != "--cdrom" || !strings.HasPrefix(args[15], "/") || strings.Contains(args[15], "..") || !strings.HasSuffix(strings.ToLower(args[15]), ".iso") {
 			return fmt.Errorf("安装 ISO 路径无效")
 		}
 	}
