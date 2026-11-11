@@ -44,6 +44,8 @@ type ldapConn interface {
 }
 
 // NewLDAPAuthenticator validates configuration and returns nil when LDAP is disabled.
+func (a *LDAPAuthenticator) Enabled() bool { return a != nil && a.cfg.Enabled }
+
 func NewLDAPAuthenticator(cfg LDAPConfig) (*LDAPAuthenticator, error) {
 	if !cfg.Enabled {
 		return nil, nil

@@ -463,7 +463,8 @@ func validateVMCreateArgs(args []string) error {
 	if !strings.HasPrefix(args[7], "size=") || !strings.HasSuffix(args[7], ",format=qcow2") {
 		return fmt.Errorf("磁盘参数无效")
 	}
-	if args[9] != "network=default" || args[11] != "generic" {
+	network, ok := strings.CutPrefix(args[9], "network=")
+	if !ok || network == "" || strings.ContainsAny(network, " \t\r\n") || args[11] != "generic" {
 		return fmt.Errorf("网络或系统参数无效")
 	}
 	if len(args) == len(expected)*2+2 {
