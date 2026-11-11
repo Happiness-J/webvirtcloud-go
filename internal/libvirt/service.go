@@ -734,6 +734,12 @@ func ParseDomainStats(output string) []DomainResourceStats {
 		if value, ok := values["balloon.current"]; ok {
 			current.BalloonCurrent, _ = strconv.ParseUint(value, 10, 64)
 		}
+		if value, ok := values["balloon.unused"]; ok {
+			current.BalloonUnused, _ = strconv.ParseUint(value, 10, 64)
+		}
+		if value, ok := values["balloon.rss"]; ok {
+			current.BalloonRSS, _ = strconv.ParseUint(value, 10, 64)
+		}
 		if value, ok := values["cpu.time"]; ok {
 			current.CPUTimeNanos, _ = strconv.ParseUint(value, 10, 64)
 		}

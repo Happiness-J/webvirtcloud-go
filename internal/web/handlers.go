@@ -1184,12 +1184,11 @@ func (s *Server) apiResources(w http.ResponseWriter, r *http.Request) {
 }
 
 func guestMemoryUsedKiB(item libvirt.DomainResourceStats) (uint64, bool) {
-	available := item.BalloonUsable
-	if available == 0 {
-		available = item.BalloonAvailable
+	if item.BalloonAvailable > 0 && item.BalloonUnused <= item.BalloonAvailable {
+		return item.BalloonAvailable - item.BalloonUnused, true
 	}
-	if available == 0 || item.BalloonMaximum == 0 || available > item.BalloonMaximum {
-		return 0, false
+	if item.BalloonRSS > 0 {
+		return item.BalloonRSS, true
 	}
-	return item.BalloonMaximum - available, true
+	return 0, false
 }
