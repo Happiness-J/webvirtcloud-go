@@ -1218,11 +1218,12 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	vcpus := strings.TrimSpace(r.Form.Get("vcpus"))
 	memory := strings.TrimSpace(r.Form.Get("memory"))
 	disk := strings.TrimSpace(r.Form.Get("disk"))
-	for _, value := range []string{vcpus, memory, disk} {
-		if _, err := strconv.Atoi(value); err != nil {
-			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU、内存或磁盘参数无效")
-			return
-		}
+	vcpuCount, cpuErr := strconv.Atoi(vcpus)
+	memoryCount, memoryErr := strconv.Atoi(memory)
+	diskCount, diskErr := strconv.Atoi(disk)
+	if cpuErr != nil || vcpuCount < 1 || vcpuCount > 128 || memoryErr != nil || memoryCount < 1 || memoryCount > 1024 || diskErr != nil || diskCount < 1 || diskCount > 10000 {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU 为 1-128，内存为 1-1024 GB，磁盘为 1-10000 GB")
+		return
 	}
 	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=default", "--osinfo", "generic", "--noautoconsole"}
 	if cdrom := strings.TrimSpace(r.Form.Get("cdrom")); cdrom != "" {
