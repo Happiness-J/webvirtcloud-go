@@ -99,7 +99,7 @@
   </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有快照。</p>{{end}}
 </section>
 <section class="panel">
-  <h2>运行诊断</h2>
+  <h2>磁盘与内存诊断</h2>
   <div class="grid two">
     <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
     <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
