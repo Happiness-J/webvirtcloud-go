@@ -1,10 +1,24 @@
 {{define "content"}}
-<div class="page-head"><div><h1>OpenAPI</h1><p class="muted">只读接口，适合监控、资产同步和自动化查询。</p></div></div>
-<section class="panel"><h2>认证</h2><p>浏览器登录后可直接访问。外部系统使用请求头 <code>Authorization: Bearer &lt;WVC_METRICS_TOKEN&gt;</code>。令牌只有查看权限。</p></section>
-<section class="panel"><h2>接口</h2><table><thead><tr><th>方法</th><th>路径</th><th>返回</th></tr></thead><tbody>
-<tr><td>GET</td><td><a href="/api/v1/hosts"><code>/api/v1/hosts</code></a></td><td>主机 ID、名称、启用状态</td></tr>
-<tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms</code></td><td>虚拟机名称、状态、自启动</td></tr>
-<tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms/{vm}</code></td><td>状态、客户机 IP、摘要</td></tr>
-<tr><td>GET</td><td><code>/api/v1/resources</code></td><td>实时 CPU、内存、磁盘使用</td></tr>
-</tbody></table><p class="hint">接口不返回数据库密码、主机连接 URI、VNC 密码或会话令牌。</p></section>
+<div class="page-head"><div><h1>OpenAPI</h1><p class="muted">外部系统只读对接。浏览器登录后可直接打开链接；脚本使用 Bearer 令牌。</p></div></div>
+<section class="panel">
+  <h2>怎么对接</h2>
+  <ol class="steps">
+    <li>在服务环境变量 <code>WVC_METRICS_TOKEN</code> 中配置一枚随机令牌。令牌只给查看权限，不能开关机、创建或删除。</li>
+    <li>请求头使用 <code>Authorization: Bearer &lt;令牌&gt;</code>。不要把令牌放到 URL 或前端页面里。</li>
+    <li>先拉主机列表，再用返回的 <code>host_id</code> 拉虚拟机。所有响应都是 JSON，不含数据库密码、主机 URI、VNC 密码。</li>
+  </ol>
+  <pre class="output">curl -sS -H "Authorization: Bearer $WVC_METRICS_TOKEN" \
+  "$WVC_BASE_URL/api/v1/hosts"</pre>
+  <p class="hint"><code>WVC_BASE_URL</code> 用实际访问地址，例如 <code>http://127.0.0.1:8080</code> 或 Nginx 反代后的域名。</p>
+</section>
+<section class="panel">
+  <h2>接口</h2>
+  <table><thead><tr><th>方法</th><th>路径</th><th>用途</th><th>示例</th></tr></thead><tbody>
+    <tr><td>GET</td><td><a href="/api/v1/hosts"><code>/api/v1/hosts</code></a></td><td>主机 ID、名称、是否启用</td><td><code>{"hosts":[{"id":"...","name":"kvm-01","enabled":true}]}</code></td></tr>
+    <tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms</code></td><td>该主机全部虚拟机</td><td>把上一接口的 id 填进路径</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms/{vm}</code></td><td>单台状态、客户机 IP、摘要</td><td>名称含空格时做 URL 编码</td></tr>
+    <tr><td>GET</td><td><a href="/api/v1/resources"><code>/api/v1/resources</code></a></td><td>看板同款 CPU、内存、磁盘占用</td><td>可给监控系统每 15 秒拉取</td></tr>
+  </tbody></table>
+  <p class="hint">未登录返回 401，令牌错误返回 401，没有该虚拟机权限返回 403，libvirt 连不上返回 502。创建、删除、电源操作走网页任务，不开放给这个只读令牌。</p>
+</section>
 {{end}}

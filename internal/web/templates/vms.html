@@ -1,8 +1,12 @@
 {{define "content"}}
-<div class="page-head"><div><h1>虚拟机</h1><p class="muted">创建、查看、打开控制台和删除虚拟机。</p></div>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator")) .Data.Groups}}{{with index .Data.Groups 0}}<a class="btn primary" href="/hosts/{{.Host.ID}}/vms/new">创建虚拟机</a>{{end}}{{end}}</div>
+<div class="page-head"><div><h1>虚拟机</h1><p class="muted">创建、查看、打开控制台和删除虚拟机。</p></div>
+{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
+  {{if .Data.Groups}}{{with index .Data.Groups 0}}<a class="btn primary" href="/hosts/{{.Host.ID}}/vms/new">创建虚拟机</a>{{end}}{{else}}<a class="btn primary" href="/hosts">先添加主机</a>{{end}}
+{{end}}</div>
+{{if not .Data.Groups}}<section class="panel"><p class="empty">还没有计算主机。管理员请先到「主机」页添加 libvirt 连接，然后再创建虚拟机。</p></section>{{end}}
 {{range $group := .Data.Groups}}
 <section class="panel">
-  <div class="panel-head"><h2><a href="/hosts/{{$group.Host.ID}}">{{$group.Host.Name}}</a></h2><a href="/hosts/{{$group.Host.ID}}/vms">主机视图</a></div>
+  <div class="panel-head"><h2><a href="/hosts/{{$group.Host.ID}}">{{$group.Host.Name}}</a></h2><span class="actions">{{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}<a class="btn small primary" href="/hosts/{{$group.Host.ID}}/vms/new">在此主机创建</a>{{end}}<a href="/hosts/{{$group.Host.ID}}/vms">主机视图</a></span></div>
   {{if $group.Err}}<div class="flash error">{{$group.Err}}</div>{{else if $group.Domains}}
   <table><thead><tr><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th></th></tr></thead><tbody>
   {{range $domain := $group.Domains}}<tr><td><a href="/hosts/{{$group.Host.ID}}/vms/{{pathEscape $domain.Name}}">{{$domain.Name}}</a></td><td>{{if $domain.ID}}{{$domain.ID}}{{else}}-{{end}}</td><td><span class="pill {{statusClass $domain.State}}">{{$domain.State}}</span></td><td>{{if $domain.Autostart}}{{$domain.Autostart}}{{else}}-{{end}}</td><td class="actions">{{if and (eq $.User.Role "admin") (or (eq $domain.State "shut off") (eq $domain.State "crashed"))}}<form method="post" action="/hosts/{{$group.Host.ID}}/vms/{{pathEscape $domain.Name}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="undefine"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn small danger">删除</button></form>{{end}}<a class="btn small" href="/hosts/{{$group.Host.ID}}/vms/{{pathEscape $domain.Name}}">详情</a>{{if and (or (eq $.User.Role "admin") (eq $.User.Role "operator") (eq $.User.Role "desktop")) (consoleAvailable $domain.State)}}<a class="btn small" href="/console/{{$group.Host.ID}}/{{pathEscape $domain.Name}}">控制台</a>{{end}}</td></tr>{{end}}
