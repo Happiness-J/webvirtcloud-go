@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: WebVirtCloud Go API
+  version: 0.3.0
+  description: 只读接口。浏览器会话或 Bearer 令牌都可访问，令牌只有查看权限。
+servers:
+  - url: /
+paths:
+  /api/v1/hosts:
+    get:
+      summary: 列出计算主机
+      responses:
+        "200":
+          description: 主机 ID、名称和启用状态
+  /api/v1/hosts/{hostID}/vms:
+    get:
+      summary: 列出主机上的虚拟机
+      parameters:
+        - name: hostID
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: 虚拟机名称、状态和自启动}
+        "502": {description: libvirt 不可用}
+  /api/v1/hosts/{hostID}/vms/{vm}:
+    get:
+      summary: 查看一台虚拟机
+      parameters:
+        - {name: hostID, in: path, required: true, schema: {type: string}}
+        - {name: vm, in: path, required: true, schema: {type: string}}
+      responses:
+        "200": {description: 状态、客户机 IP 和摘要}
+        "403": {description: 没有该虚拟机权限}
+  /api/v1/resources:
+    get:
+      summary: 读取实时资源
+      responses:
+        "200": {description: CPU、内存和磁盘占用}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+security:
+  - bearerAuth: []

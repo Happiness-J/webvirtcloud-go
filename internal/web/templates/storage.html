@@ -25,28 +25,28 @@
     <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
       <h3>克隆卷</h3>
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-clone">
-      <label>源卷<select name="volume" required>{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
+      <label>源卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
       <label>新卷名称<input name="name" required maxlength="128"></label>
-      <button class="btn">克隆卷</button>
+      <button class="btn" {{if not .Data.Volumes}}disabled{{end}}>克隆卷</button>
     </form>
   </div>
   <div class="grid two">
     <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
       <h3>调整卷容量</h3>
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-resize">
-      <label>卷<select name="volume" required>{{range .Data.ResizableVolumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
+      <label>卷<select name="volume" required>{{if .Data.ResizableVolumes}}{{range .Data.ResizableVolumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有可调整的卷</option>{{end}}</select></label>
       <label>操作<select name="resize_mode"><option value="grow">扩容</option><option value="shrink">缩容</option></select></label>
       <label>调整量<input name="capacity" value="10G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]?"></label>
       <label>缩容确认<input name="confirm_text" placeholder="缩容时输入 SHRINK"></label>
       <p class="hint bad-text">卷缩容前必须先缩小 guest 文件系统和分区，并确保卷未被运行中的虚拟机使用；错误缩容可能破坏数据。</p>
-      <button class="btn danger" data-confirm="确定调整卷容量吗？">执行容量调整</button>
+      <button class="btn danger" data-confirm="确定调整卷容量吗？" {{if not .Data.ResizableVolumes}}disabled{{end}}>执行容量调整</button>
     </form>
     <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
       <h3>删除卷</h3>
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-delete">
-      <label>卷<select name="volume" required>{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
+      <label>卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
       <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>我确认删除该卷</label>
-      <button class="btn danger" data-confirm="删除卷会永久删除其数据，确定继续吗？">删除卷</button>
+      <button class="btn danger" data-confirm="删除卷会永久删除其数据，确定继续吗？" {{if not .Data.Volumes}}disabled{{end}}>删除卷</button>
     </form>
   </div>
 </section>
@@ -55,8 +55,8 @@
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="inline-form">
   <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-filesystems">
-  <label>卷<select name="volume" required>{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></label>
-  <button class="btn">检查分区和文件系统</button>
+  <label>卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
+  <button class="btn" {{if not .Data.Volumes}}disabled{{end}}>检查分区和文件系统</button>
 </form>
 <p class="hint">检查要求虚拟机已关机，并且本机安装了 virt-filesystems。结果会出现在任务输出里，包含分区、文件系统类型和容量。</p>
 {{else}}<p class="hint">只读用户不能发起磁盘检查。请让运维人员在虚拟机关机后执行。</p>{{end}}
