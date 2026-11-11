@@ -3,7 +3,7 @@
 <section class="panel narrow"><form method="post" class="stack"><input type="hidden" name="_csrf" value="{{.CSRF}}">
   <label>用户名<input name="username" required minlength="3" maxlength="64" pattern="[A-Za-z0-9_.-]+" autocomplete="off"></label>
   <label>初始密码<input name="password" type="password" required minlength="10" autocomplete="new-password"></label>
-  <label>角色<select name="role"><option value="viewer">只读</option><option value="operator">运维</option><option value="admin">管理员</option></select></label>
+  <label>角色<select name="role"><option value="viewer">只读</option><option value="desktop">桌面用户</option><option value="operator">运维</option><option value="admin">管理员</option></select></label>
   <div class="form-actions"><button class="btn primary">创建</button><a class="btn" href="/users">取消</a></div>
 </form></section>
 {{end}}

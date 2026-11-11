@@ -160,11 +160,11 @@ func TestForEachIndexBoundsWorkers(t *testing.T) {
 }
 
 func TestDetailWarningsReportPartialFailures(t *testing.T) {
-	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), errors.New("backups"), nil, errors.New("memory"), nil)
-	if len(warnings) != 5 {
+	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), errors.New("backups"), nil, errors.New("memory"), nil, errors.New("guest"))
+	if len(warnings) != 6 {
 		t.Fatalf("warnings = %#v, want 3", warnings)
 	}
-	for _, fragment := range []string{"块设备信息", "XML", "快照", "备份", "guest 内存统计"} {
+	for _, fragment := range []string{"块设备信息", "XML", "快照", "备份", "guest 内存统计", "guest agent"} {
 		found := false
 		for _, warning := range warnings {
 			if strings.Contains(warning, fragment) {
@@ -176,7 +176,7 @@ func TestDetailWarningsReportPartialFailures(t *testing.T) {
 			t.Errorf("warnings do not mention %s: %#v", fragment, warnings)
 		}
 	}
-	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
+	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
 		t.Fatalf("unexpected warnings: %#v", warnings)
 	}
 }

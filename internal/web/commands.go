@@ -655,6 +655,10 @@ func (s *Server) consolePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state := info["State"]
+	if allowed, accessErr := s.canUseConsole(r, host.ID, vmName); accessErr != nil || !allowed {
+		s.renderError(w, r, http.StatusForbidden, "无权打开控制台", "当前账号没有该虚拟机的桌面授权。")
+		return
+	}
 	if !consoleAvailable(state) {
 		s.renderError(w, r, http.StatusConflict, "虚拟机未运行", "当前虚拟机状态为“"+state+"”，请先启动虚拟机再打开控制台。")
 		return
@@ -809,6 +813,11 @@ func (s *Server) validateConsoleRequest(w http.ResponseWriter, r *http.Request, 
 	}
 	if !host.Enabled {
 		writeJSONError(w, http.StatusBadGateway, "host unavailable")
+		return consolepkg.Claims{}, store.Host{}, "", false
+	}
+	allowed, err := s.canUseConsole(r, host.ID, claims.VM)
+	if err != nil || !allowed {
+		writeJSONError(w, http.StatusForbidden, "console access denied")
 		return consolepkg.Claims{}, store.Host{}, "", false
 	}
 	return claims, host, token, true

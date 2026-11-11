@@ -75,6 +75,7 @@ type DomainDetail struct {
 	BlockErrors string
 	MemoryStats string
 	Events      string
+	GuestAgent  string
 	Backups     []Backup
 	// Warnings contains user-safe notices for optional detail queries that
 	// failed. The VM page can still render its core information without hiding

@@ -1,5 +1,11 @@
 # Operations
 
+## Desktop users
+
+The `desktop` role is intended for people who need a graphical console but must not administer the platform. An administrator grants access to specific VM names. A desktop user can open only those VNC consoles; power actions, storage changes, command execution, and user administration remain unavailable.
+
+Windows, Linux, and other graphical guests use the same console path. Install and run the QEMU Guest Agent in the guest when operators need OS, user, and filesystem information from the VM page.
+
 ## Backup, capacity, and network checks
 
 Operators can create, restore, and delete libvirt backups from a VM page. Restore and delete require the confirmation checkbox. A restore replaces the current VM disk state, so the VM should be shut down and at least one fallback backup retained.

@@ -176,6 +176,8 @@ func parseTemplates() (map[string]*template.Template, error) {
 				return "管理员"
 			case "operator":
 				return "运维"
+			case "desktop":
+				return "桌面用户"
 			case "viewer":
 				return "只读"
 			default:
@@ -342,11 +344,13 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /users/{id}/role", s.protect("admin", s.userRole))
 	mux.Handle("POST /users/{id}/disabled", s.protect("admin", s.userDisabled))
 	mux.Handle("POST /users/{id}/password", s.protect("admin", s.userPassword))
+	mux.Handle("GET /users/{id}/access", s.protect("admin", s.userAccessPage))
+	mux.Handle("POST /users/{id}/access", s.protect("admin", s.userAccessUpdate))
 	mux.Handle("GET /account/password", s.protect("viewer", s.accountPasswordPage))
 	mux.Handle("POST /account/password", s.protect("viewer", s.accountPassword))
-	mux.Handle("GET /console/{host}/{vm}", s.protect("operator", s.consolePage))
-	mux.Handle("GET /console/{host}/{vm}/ws", s.protect("operator", s.consoleWS))
-	mux.Handle("GET /console/{host}/{vm}/password", s.protect("operator", s.consolePassword))
+	mux.Handle("GET /console/{host}/{vm}", s.protect("viewer", s.consolePage))
+	mux.Handle("GET /console/{host}/{vm}/ws", s.protect("viewer", s.consoleWS))
+	mux.Handle("GET /console/{host}/{vm}/password", s.protect("viewer", s.consolePassword))
 
 	mux.HandleFunc("/", s.notFound)
 	return s.middleware(mux)

@@ -417,9 +417,14 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(infoRows, func(i, j int) bool { return infoRows[i].Key < infoRows[j].Key })
 	actions := vmActions(sess.User.Role, detail.Domain.State, detail.Info["Autostart"])
+	consoleAllowed, accessErr := s.canUseConsole(r, host.ID, vmName)
+	if accessErr != nil {
+		s.serverError(w, r, accessErr)
+		return
+	}
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
 		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions,
-		"ConsoleWarnings": consoleWarnings,
+		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
@@ -665,6 +670,66 @@ func (s *Server) userDisabled(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, flashURL("/users", "账号状态已更新", "ok"), http.StatusSeeOther)
 }
 
+func (s *Server) userAccessPage(w http.ResponseWriter, r *http.Request) {
+	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	access, err := s.db.ListVMAccess(r.Context(), target.ID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.render(w, r, "user_access", pageData{Title: "桌面授权 · " + target.Username, Nav: "users", Data: map[string]any{
+		"Target": target, "Hosts": hosts, "Access": access,
+	}})
+}
+
+func (s *Server) userAccessUpdate(w http.ResponseWriter, r *http.Request) {
+	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	if target.Role != "desktop" {
+		s.redirectError(w, r, "/users/"+target.ID+"/access", "只有桌面用户可以分配虚拟机控制台")
+		return
+	}
+	hostID := strings.TrimSpace(r.Form.Get("host_id"))
+	vmName := strings.TrimSpace(r.Form.Get("vm_name"))
+	if _, err := s.db.GetHost(r.Context(), hostID); err != nil {
+		s.redirectError(w, r, "/users/"+target.ID+"/access", "主机不存在")
+		return
+	}
+	if err := libvirt.ValidateName(vmName); err != nil {
+		s.redirectError(w, r, "/users/"+target.ID+"/access", "虚拟机名称无效")
+		return
+	}
+	action := r.Form.Get("action")
+	switch action {
+	case "grant":
+		err = s.db.GrantVMAccess(r.Context(), target.ID, hostID, vmName)
+	case "revoke":
+		err = s.db.RevokeVMAccess(r.Context(), target.ID, hostID, vmName)
+	default:
+		s.redirectError(w, r, "/users/"+target.ID+"/access", "未知授权操作")
+		return
+	}
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.vm_access." + action, RemoteIP: s.clientIP(r), HostID: hostID, VMName: vmName, Detail: map[string]any{"user_id": target.ID}})
+	http.Redirect(w, r, flashURL("/users/"+target.ID+"/access", "桌面授权已更新", "ok"), http.StatusSeeOther)
+}
+
 func (s *Server) userPassword(w http.ResponseWriter, r *http.Request) {
 	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -884,5 +949,17 @@ func auditDetailText(detail map[string]any) string {
 }
 
 func validRole(role string) bool {
-	return role == "admin" || role == "operator" || role == "viewer"
+	return role == "admin" || role == "operator" || role == "desktop" || role == "viewer"
+}
+
+func (s *Server) canUseConsole(r *http.Request, hostID, vmName string) (bool, error) {
+	sess, _ := sessionFrom(r.Context())
+	switch sess.User.Role {
+	case "admin", "operator":
+		return true, nil
+	case "desktop":
+		return s.db.UserCanAccessVM(r.Context(), sess.User.ID, hostID, vmName)
+	default:
+		return false, nil
+	}
 }

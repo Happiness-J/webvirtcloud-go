@@ -222,6 +222,14 @@ func (s *Service) MemoryStats(ctx context.Context, hostID, name string) (string,
 	return res.Output(), err
 }
 
+func (s *Service) GuestAgentInfo(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"guestinfo", name}, 10*time.Second)
+	return res.Output(), err
+}
+
 func (s *Service) RecentEvents(ctx context.Context, hostID, name string) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err
@@ -294,9 +302,9 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.Info = info
 	detail.Domain.State = info["State"]
 	detail.Domain.ID = info["Id"]
-	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr error
+	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr error
 	var wg sync.WaitGroup
-	wg.Add(5)
+	wg.Add(6)
 	go func() {
 		defer wg.Done()
 		detail.BlockDevs, blockErr = s.BlockDevices(ctx, hostID, name)
@@ -317,6 +325,10 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 		defer wg.Done()
 		detail.Events, eventErr = s.RecentEvents(ctx, hostID, name)
 	}()
+	go func() {
+		defer wg.Done()
+		detail.GuestAgent, guestErr = s.GuestAgentInfo(ctx, hostID, name)
+	}()
 	if includeXML {
 		wg.Add(1)
 		go func() {
@@ -328,7 +340,7 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
 	detail.Backups, backupErr = s.ListBackups(ctx, hostID, name)
-	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr)
+	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr)
 	return detail, nil
 }
 
@@ -367,7 +379,7 @@ func (s *Service) BlockDeviceCapacity(ctx context.Context, hostID, name, target 
 	return capacity, nil
 }
 
-func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr error) []string {
+func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr error) []string {
 	var warnings []string
 	if blockErr != nil {
 		warnings = append(warnings, "块设备信息读取失败")
@@ -392,6 +404,9 @@ func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErr
 	}
 	if eventErr != nil {
 		warnings = append(warnings, "近期事件读取失败")
+	}
+	if guestErr != nil {
+		warnings = append(warnings, "guest agent 信息读取失败")
 	}
 	return warnings
 }
