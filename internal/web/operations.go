@@ -99,6 +99,34 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "请选择扩容或缩容")
 			return
 		}
+	case "volume-filesystems":
+		if err := libvirt.ValidateName(volume); err != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "卷名称无效")
+			return
+		}
+		volumes, volErr := s.libvirt.ListVolumes(r.Context(), host.ID, pool)
+		if volErr != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法读取存储卷")
+			return
+		}
+		path := ""
+		for _, item := range volumes {
+			if item.Name == volume {
+				path = item.Path
+				break
+			}
+		}
+		if path == "" || !strings.HasPrefix(path, "/") || strings.Contains(path, "..") {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "该卷没有可检查的本地磁盘路径")
+			return
+		}
+		jobID, err := s.enqueueCommand(r, sess.User, host.ID, "filesystem-inspect", "检查文件系统 "+volume, "virt-filesystems", []string{"-a", path, "--all", "--long", "--human-readable"}, "", boundedOperationTimeout(s.cfg.MaxTimeout, 300))
+		if err != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), err.Error())
+			return
+		}
+		http.Redirect(w, r, "/jobs/"+jobID, http.StatusSeeOther)
+		return
 	case "volume-delete":
 		if err := libvirt.ValidateName(volume); err != nil {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "卷名称无效")

@@ -42,6 +42,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", err
 		}
 		return RoleOperator, nil
+	case "filesystem-inspect":
+		if tool != "virt-filesystems" {
+			return "", fmt.Errorf("任务类型 filesystem-inspect 仅支持 virt-filesystems")
+		}
+		if len(args) != 5 || args[0] != "-a" || args[2] != "--all" || args[3] != "--long" || args[4] != "--human-readable" || !strings.HasPrefix(args[1], "/") || strings.Contains(args[1], "..") {
+			return "", fmt.Errorf("文件系统检查参数不正确")
+		}
+		return RoleOperator, nil
 	case "vm-clone":
 		if tool != "virt-clone" {
 			return "", fmt.Errorf("任务类型 vm-clone 仅支持 virt-clone")
