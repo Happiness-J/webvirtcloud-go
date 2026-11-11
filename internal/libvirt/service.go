@@ -560,20 +560,20 @@ func (s *Service) ListVolumes(ctx context.Context, hostID, pool string) ([]Volum
 func FilesystemFromPath(path string) string {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".qcow2", ".qcow":
-		return "QCOW2 磁盘（分区内可包含 ext4、xfs、NTFS、ZFS 等）"
+		return "QCOW2 容器"
 	case ".raw", ".img":
-		return "原始磁盘（文件系统在客户机分区内）"
+		return "原始磁盘容器"
 	case ".iso":
-		return "ISO 9660 安装或启动介质"
+		return "ISO 9660 介质"
 	case ".vmdk":
-		return "VMDK 磁盘"
+		return "VMDK 容器"
 	case ".vdi":
-		return "VirtualBox VDI 磁盘"
+		return "VDI 容器"
 	default:
 		if path == "" {
 			return "-"
 		}
-		return "未知容器格式"
+		return "未知容器"
 	}
 }
 
