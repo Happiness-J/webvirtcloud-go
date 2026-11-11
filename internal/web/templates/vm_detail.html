@@ -106,17 +106,16 @@
   </div>
 </section>
 <section class="panel">
-  <h2>备份</h2>
+  <h2>增量备份检查点</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="backup-create">
-    <input name="snapshot" placeholder="备份名称" maxlength="128" required>
-    <button class="btn" data-confirm="确定创建虚拟机备份吗？">创建备份</button>
+    <input name="snapshot" placeholder="检查点名称" maxlength="128" required>
+    <button class="btn" data-confirm="确定创建增量备份检查点吗？这不会立刻生成一份可直接恢复的整机副本。">创建检查点</button>
   </form>
   {{if .Data.Detail.Backups}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Backups}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
-    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-restore"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">恢复</button></form>
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
-  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有备份。</p>{{end}}
-  <p class="hint">备份恢复会替换虚拟机当前磁盘状态。执行前请确认虚拟机已停止，并保留至少一个可回退的备份。</p>
+  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有增量检查点。</p>{{end}}
+  <p class="hint">这里记录的是 libvirt 增量备份检查点，不是可一键回滚的整机快照。需要回滚请使用上面的快照。删除检查点只删除备份位图元数据。</p>
 </section>
 <section class="panel">
   <h2>运行诊断</h2>

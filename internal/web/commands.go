@@ -176,11 +176,11 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		case "snapshot-delete":
 			return []string{"snapshot-delete", vm, snapshot}, true, nil
 		case "backup-create":
-			return []string{"backup-create-as", vm, snapshot}, false, nil
-		case "backup-restore":
-			return []string{"backup-restore", vm, snapshot}, true, nil
+			return []string{"checkpoint-create-as", vm, "--name", snapshot}, false, nil
+		case "backup-delete":
+			return []string{"checkpoint-delete", vm, snapshot}, true, nil
 		default:
-			return []string{"backup-delete", vm, snapshot}, true, nil
+			return nil, true, fmt.Errorf("增量检查点不能直接恢复整机，请使用快照恢复")
 		}
 	default:
 		return nil, false, fmt.Errorf("未知操作")
