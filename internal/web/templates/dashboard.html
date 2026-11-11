@@ -15,7 +15,7 @@
     <h3>{{.Host.Name}}</h3>
     {{if .Warning}}<p class="flash warn">{{.Warning}}</p>{{end}}
     {{if .Domains}}<table><thead><tr><th>虚拟机</th><th>状态</th><th>CPU 时间</th><th>内存</th><th>磁盘分配 / 容量</th></tr></thead><tbody>
-      {{range .Domains}}<tr><td><a href="/hosts/{{.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.State}}</td><td>{{.CPUTimeNanos}}</td><td>{{.BalloonCurrent}} / {{.BalloonMaximum}} KiB</td><td>{{.BlockAllocation}} / {{.BlockCapacity}}</td></tr>{{end}}
+      {{range .Domains}}<tr><td>{{.Name}}</td><td>{{.State}}</td><td>{{.CPUTimeNanos}}</td><td>{{.BalloonCurrent}} / {{.BalloonMaximum}} KiB</td><td>{{.BlockAllocation}} / {{.BlockCapacity}}</td></tr>{{end}}
     </tbody></table>{{else}}<p class="empty">没有正在运行的虚拟机。</p>{{end}}
   {{end}}{{else}}<p class="empty">没有启用的计算主机。</p>{{end}}
 </section>

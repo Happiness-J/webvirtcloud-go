@@ -200,6 +200,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	keys := loginKeys(ip, username)
 	allowed, err := s.reserveLoginAttempt(r, keys)
 	if err != nil {
+		s.log.Error("reserve login", "error", err)
 		s.serverError(w, r, err)
 		return
 	}
@@ -229,6 +230,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
+		s.log.Error("load login user", "error", err)
 		s.serverError(w, r, err)
 		return
 	}
@@ -249,6 +251,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 			s.renderLoginFailure(w, r)
 			return
 		}
+		s.log.Error("create login session", "error", err)
 		s.serverError(w, r, err)
 		return
 	}
