@@ -98,3 +98,15 @@ func TestBuildOpsVMRows(t *testing.T) {
 		t.Fatalf("unexpected web row: %#v", rows[1])
 	}
 }
+
+func TestReadableStatValue(t *testing.T) {
+	if got := readableStatValue("Memory size", "16301972 KiB"); got != "15.5 GB" {
+		t.Fatalf("memory = %q", got)
+	}
+	if got := readableStatValue("CPU frequency", "3600 MHz"); got != "3.60 GHz" {
+		t.Fatalf("cpu = %q", got)
+	}
+	if got := readableStatValue("CPU(s)", "8"); got != "8" {
+		t.Fatalf("count = %q", got)
+	}
+}

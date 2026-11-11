@@ -203,3 +203,8 @@ details summary { cursor: pointer; color: var(--brand); }
 .resource-card dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
 .meter { height: 7px; margin-top: 12px; overflow: hidden; border-radius: 999px; background: #d9e3ee; }
 .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2f80ed, #18a999); }
+
+.ops-summary .kv dd { font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+.ops-table { min-width: 860px; }
+.ops-table td:nth-child(n+5), .ops-table th:nth-child(n+5) { text-align: right; font-variant-numeric: tabular-nums; }
