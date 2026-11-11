@@ -64,8 +64,9 @@ document.addEventListener('change', (event) => {
     return 'muted';
   };
 
+  const labels = {queued:'排队', running:'运行中', succeeded:'成功', failed:'失败', cancelled:'已取消'};
   const poll = async () => {
-    if (!['queued', 'running'].includes(status.textContent.trim())) return;
+    if (!['queued', 'running'].includes(status.dataset.status || '')) return;
     try {
       const response = await fetch('/api/jobs/' + encodeURIComponent(id), {
         credentials: 'same-origin',
@@ -73,7 +74,8 @@ document.addEventListener('change', (event) => {
       });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const job = await response.json();
-      status.textContent = job.status;
+      status.dataset.status = job.status;
+      status.textContent = labels[job.status] || job.status;
       status.className = 'pill ' + classify(job.status);
       output.textContent = job.output || '（暂无输出）';
       if (created) created.textContent = formatTime(job.created_at);
@@ -138,7 +140,7 @@ document.addEventListener('change', (event) => {
         const card = document.createElement('article'); card.className='resource-card';
         card.innerHTML = '<header><strong></strong><span class="pill"></span></header><dl><div><dt>内存</dt><dd class="memory"></dd></div><div><dt>磁盘</dt><dd class="disk"></dd></div><div><dt>CPU</dt><dd class="cpu"></dd></div></dl><canvas aria-label="内存趋势"></canvas><div class="meter"><span></span></div>';
         card.querySelector('strong').textContent = vm.Name;
-        const pill = card.querySelector('.pill'); pill.textContent = vm.State || '-'; pill.classList.add(vm.State === 'running' ? 'ok' : 'muted');
+        const pill = card.querySelector('.pill'); const stateLabels = {running:'运行中','shut off':'已关机',paused:'已挂起',crashed:'崩溃',active:'运行',inactive:'停止'}; pill.textContent = stateLabels[vm.State] || vm.State || '-'; pill.classList.add(vm.State === 'running' ? 'ok' : 'muted');
         card.querySelector('.memory').textContent = vm.Memory || '-';
         card.querySelector('.disk').textContent = vm.Disk || '-';
         card.querySelector('.cpu').textContent = vm.CPU || '-';
