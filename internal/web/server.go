@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"webvirtcloud-go/internal/audit"
+	"webvirtcloud-go/internal/auth"
 	"webvirtcloud-go/internal/command"
 	"webvirtcloud-go/internal/config"
 	"webvirtcloud-go/internal/console"
@@ -27,6 +28,7 @@ import (
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/secret"
 	"webvirtcloud-go/internal/store"
+	"webvirtcloud-go/internal/webhook"
 )
 
 //go:embed templates/*.html
@@ -42,6 +44,8 @@ type Server struct {
 	runner          *command.Runner
 	libvirt         *libvirt.Service
 	audit           *audit.Recorder
+	ldap            *auth.LDAPAuthenticator
+	hooks           *webhook.Client
 	tokens          *console.Tokens
 	proxy           *console.Proxy
 	log             *slog.Logger
@@ -106,6 +110,15 @@ func New(cfg config.Config, db *store.Store, cipher *secret.Cipher, runner *comm
 	if err != nil {
 		return nil, err
 	}
+	ldapAuth, err := auth.NewLDAPAuthenticator(auth.LDAPConfig{
+		Enabled: cfg.LDAPEnabled, URL: cfg.LDAPURL, BindDN: cfg.LDAPBindDN, BindPassword: cfg.LDAPBindPassword,
+		BaseDN: cfg.LDAPBaseDN, UserFilter: cfg.LDAPUserFilter, StartTLS: cfg.LDAPStartTLS, InsecureTLS: cfg.LDAPInsecureTLS,
+		Timeout: cfg.LDAPTimeout,
+	})
+	if err != nil {
+		return nil, err
+	}
+	hooks := webhook.New(cfg.WebhookURL, cfg.WebhookToken, cfg.WebhookTimeout, log)
 	trustedNets, err := parseTrustedNets(cfg.TrustedProxyCIDRs)
 	if err != nil {
 		return nil, err
@@ -117,6 +130,8 @@ func New(cfg config.Config, db *store.Store, cipher *secret.Cipher, runner *comm
 		runner:          runner,
 		libvirt:         libvirt.New(db, cipher, runner),
 		audit:           recorder,
+		ldap:            ldapAuth,
+		hooks:           hooks,
 		tokens:          tokens,
 		log:             log,
 		tmpl:            tmpl,

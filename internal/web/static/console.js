@@ -68,6 +68,10 @@ const connect = async () => {
     if (password) options.credentials = { password };
     rfb = new RFB(screen, wsURL, options);
     rfb.addEventListener('connect', () => setStatus('已连接', 'ok'));
+    rfb.addEventListener('clipboard', (event) => {
+      const text = event.detail?.text || '';
+      if (text && navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
+    });
     rfb.addEventListener('disconnect', (event) => {
       if (event.detail.clean) setStatus('已断开', 'muted');
       else setStatus('连接断开', 'bad');
@@ -86,6 +90,11 @@ const connect = async () => {
 };
 
 document.getElementById('send-ctrl-alt-del')?.addEventListener('click', () => rfb?.sendCtrlAltDel());
+document.getElementById('paste-local')?.addEventListener('click', async () => {
+  if (!rfb || !navigator.clipboard?.readText) return;
+  const text = await navigator.clipboard.readText();
+  if (text) rfb.clipboardPasteFrom(text);
+});
 document.getElementById('scale-toggle')?.addEventListener('click', () => {
   if (!rfb) return;
   rfb.scaleViewport = !rfb.scaleViewport;

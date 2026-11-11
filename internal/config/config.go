@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -131,6 +132,18 @@ type Config struct {
 	// all interfaces when the panel itself runs in a container. Leave empty for
 	// native deployments. Docker Compose sets this to host.docker.internal.
 	ConsoleLoopbackAddress string
+	LDAPEnabled            bool
+	LDAPURL                string
+	LDAPBindDN             string
+	LDAPBindPassword       string
+	LDAPBaseDN             string
+	LDAPUserFilter         string
+	LDAPStartTLS           bool
+	LDAPInsecureTLS        bool
+	LDAPTimeout            time.Duration
+	WebhookURL             string
+	WebhookToken           string
+	WebhookTimeout         time.Duration
 }
 
 func Load() (Config, error) {
@@ -163,6 +176,13 @@ func Load() (Config, error) {
 	cfg.TrustedProxyCIDRs = csvEnv("WVC_TRUSTED_PROXY_CIDRS", []string{"127.0.0.0/8", "::1/128"})
 	cfg.MetricsToken = os.Getenv("WVC_METRICS_TOKEN")
 	cfg.ConsoleLoopbackAddress = env("WVC_CONSOLE_LOOPBACK_ADDRESS", "")
+	cfg.LDAPURL = env("WVC_LDAP_URL", "")
+	cfg.LDAPBindDN = env("WVC_LDAP_BIND_DN", "")
+	cfg.LDAPBindPassword = os.Getenv("WVC_LDAP_BIND_PASSWORD")
+	cfg.LDAPBaseDN = env("WVC_LDAP_BASE_DN", "")
+	cfg.LDAPUserFilter = env("WVC_LDAP_USER_FILTER", "(uid=%s)")
+	cfg.WebhookURL = env("WVC_WEBHOOK_URL", "")
+	cfg.WebhookToken = os.Getenv("WVC_WEBHOOK_TOKEN")
 
 	if cfg.SessionTTL, err = durationEnv("WVC_SESSION_TTL", DefaultSessionTTL); err != nil {
 		return Config{}, err
@@ -236,7 +256,31 @@ func Load() (Config, error) {
 	if cfg.AllowInsecureConsole, err = boolEnv("WVC_ALLOW_INSECURE_CONSOLE", false); err != nil {
 		return Config{}, err
 	}
+	if cfg.LDAPEnabled, err = boolEnv("WVC_LDAP_ENABLED", false); err != nil {
+		return Config{}, err
+	}
+	if cfg.LDAPStartTLS, err = boolEnv("WVC_LDAP_STARTTLS", false); err != nil {
+		return Config{}, err
+	}
+	if cfg.LDAPInsecureTLS, err = boolEnv("WVC_LDAP_INSECURE_TLS", false); err != nil {
+		return Config{}, err
+	}
+	if cfg.LDAPTimeout, err = durationEnv("WVC_LDAP_TIMEOUT", 5*time.Second); err != nil {
+		return Config{}, err
+	}
+	if cfg.WebhookTimeout, err = durationEnv("WVC_WEBHOOK_TIMEOUT", 3*time.Second); err != nil {
+		return Config{}, err
+	}
 
+	if cfg.LDAPEnabled && (cfg.LDAPURL == "" || cfg.LDAPBaseDN == "" || !strings.Contains(cfg.LDAPUserFilter, "%s")) {
+		return Config{}, fmt.Errorf("WVC_LDAP_URL、WVC_LDAP_BASE_DN 和包含 %%s 的 WVC_LDAP_USER_FILTER 都是必需的")
+	}
+	if cfg.WebhookURL != "" {
+		parsed, parseErr := url.Parse(cfg.WebhookURL)
+		if parseErr != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
+			return Config{}, fmt.Errorf("WVC_WEBHOOK_URL 必须是 http 或 https 地址")
+		}
+	}
 	if strings.TrimSpace(cfg.DatabaseURL) == "" {
 		return Config{}, fmt.Errorf("WVC_DATABASE_URL is required")
 	}

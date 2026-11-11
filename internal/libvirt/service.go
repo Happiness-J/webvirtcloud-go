@@ -646,7 +646,7 @@ func (s *Service) HostResourceStats(ctx context.Context, hostID string) HostReso
 // count; stopped domains still appear in the surrounding VM inventory with
 // their persistent state and autostart policy.
 func (s *Service) DomainStats(ctx context.Context, hostID string) ([]DomainResourceStats, error) {
-	args := []string{"domstats", "--state", "--cpu-total", "--balloon", "--list-active"}
+	args := []string{"domstats", "--state", "--cpu-total", "--balloon", "--block", "--list-active"}
 	res, err := s.run(ctx, hostID, args, 20*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
@@ -676,6 +676,16 @@ func ParseDomainStats(output string) []DomainResourceStats {
 		}
 		if value, ok := values["cpu.time"]; ok {
 			current.CPUTimeNanos, _ = strconv.ParseUint(value, 10, 64)
+		}
+		for key, value := range values {
+			if strings.HasPrefix(key, "block.") && strings.HasSuffix(key, ".capacity") {
+				parsed, _ := strconv.ParseUint(value, 10, 64)
+				current.BlockCapacity += parsed
+			}
+			if strings.HasPrefix(key, "block.") && strings.HasSuffix(key, ".allocation") {
+				parsed, _ := strconv.ParseUint(value, 10, 64)
+				current.BlockAllocation += parsed
+			}
 		}
 		out = append(out, *current)
 		values = make(map[string]string)

@@ -217,3 +217,10 @@ The noVNC WebSocket connection is handled by the replica that accepted the brows
 Expose only the reverse-proxy listener or a restricted application port. Restrict PostgreSQL to the application network. For native deployment, PostgreSQL normally listens on `127.0.0.1:5432`; do not expose it publicly.
 
 The optional Ubuntu installer does not change firewall rules unless `WVC_UFW_ALLOW_CIDRS` is explicitly provided.
+
+
+## Directory login and operations webhooks
+
+Set `WVC_LDAP_ENABLED=true` with `WVC_LDAP_URL`, `WVC_LDAP_BASE_DN`, and `WVC_LDAP_USER_FILTER` to allow OpenLDAP or Active Directory passwords at the normal login form. The first successful directory login creates a local `viewer` account; an administrator can then assign operator or desktop access. Directory passwords are checked remotely and are not stored.
+
+`WVC_WEBHOOK_URL` receives JSON when a mutating job is accepted and when a user logs in. The payload contains the action, actor, host, VM, and job identifiers. It does not contain passwords, session tokens, VNC passwords, or host connection URIs. Use HTTPS and `WVC_WEBHOOK_TOKEN` outside a trusted network.

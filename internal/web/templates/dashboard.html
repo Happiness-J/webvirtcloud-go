@@ -9,6 +9,16 @@
   <div class="stat"><strong>{{.Data.Stats.Queued}}</strong><span>排队任务</span></div>
   <div class="stat"><strong>{{.Data.Stats.Running}}</strong><span>运行任务</span></div>
 </section>
+<section class="panel">
+  <div class="panel-head"><h2>实时资源</h2><span class="muted">刷新页面更新 CPU、内存和磁盘占用</span></div>
+  {{if .Data.Live}}{{range .Data.Live}}
+    <h3>{{.Host.Name}}</h3>
+    {{if .Warning}}<p class="flash warn">{{.Warning}}</p>{{end}}
+    {{if .Domains}}<table><thead><tr><th>虚拟机</th><th>状态</th><th>CPU 时间</th><th>内存</th><th>磁盘分配 / 容量</th></tr></thead><tbody>
+      {{range .Domains}}<tr><td><a href="/hosts/{{.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.State}}</td><td>{{.CPUTimeNanos}}</td><td>{{.BalloonCurrent}} / {{.BalloonMaximum}} KiB</td><td>{{.BlockAllocation}} / {{.BlockCapacity}}</td></tr>{{end}}
+    </tbody></table>{{else}}<p class="empty">没有正在运行的虚拟机。</p>{{end}}
+  {{end}}{{else}}<p class="empty">没有启用的计算主机。</p>{{end}}
+</section>
 <div class="grid two">
   <section class="panel">
     <div class="panel-head"><h2>计算主机</h2><a href="/hosts">全部</a></div>

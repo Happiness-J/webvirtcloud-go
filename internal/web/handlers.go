@@ -32,6 +32,13 @@ type dashboardData struct {
 	Jobs      []store.Job
 	Audit     []store.Audit
 	Stats     store.QueueStats
+	Live      []dashboardHostLive
+}
+
+type dashboardHostLive struct {
+	Host    store.Host
+	Domains []libvirt.DomainResourceStats
+	Warning string
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -67,13 +74,31 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	for _, group := range s.loadVMGroups(r.Context(), hosts) {
 		vmCount += len(group.Domains)
 	}
+	live := s.dashboardLive(r.Context(), hosts)
 	s.render(w, r, "dashboard", pageData{
 		Title: "概览", Nav: "dashboard",
 		Data: dashboardData{
 			Hosts: hosts, HostCount: len(hosts), VMCount: vmCount, UserCount: userCount,
-			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats,
+			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats, Live: live,
 		},
 	})
+}
+
+func (s *Server) dashboardLive(ctx context.Context, hosts []store.Host) []dashboardHostLive {
+	out := make([]dashboardHostLive, 0, len(hosts))
+	for _, host := range hosts {
+		if !host.Enabled {
+			continue
+		}
+		stats, err := s.libvirt.DomainStats(ctx, host.ID)
+		item := dashboardHostLive{Host: host, Domains: stats}
+		if err != nil {
+			s.log.Warn("load dashboard domain stats", "host", host.Name, "error", err)
+			item.Warning = "实时资源读取失败"
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func (s *Server) hostsPage(w http.ResponseWriter, r *http.Request) {
