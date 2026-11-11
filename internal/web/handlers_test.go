@@ -33,6 +33,8 @@ func TestVMActionsFollowPowerState(t *testing.T) {
 			name: "paused admin", role: "admin", state: "paused", autostart: "disable",
 			want: []string{"resume", "destroy", "autostart-on"},
 		},
+		{name: "desktop stopped", role: "desktop", state: "shut off", autostart: "disable", want: []string{"start"}},
+		{name: "desktop running", role: "desktop", state: "running", autostart: "enable", want: []string{"shutdown"}},
 		{name: "viewer", role: "viewer", state: "running", autostart: "enable", want: nil},
 	}
 	for _, tc := range tests {

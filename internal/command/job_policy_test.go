@@ -17,6 +17,8 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "host test", kind: "host-test", tool: "virsh", args: []string{"version"}, want: RoleOperator},
 		{name: "host health", kind: "host-test", tool: "virt-host-validate", args: []string{"--quiet", "qemu"}, want: RoleOperator},
 		{name: "vm action", kind: "vm-action", tool: "virsh", args: []string{"destroy", "vm"}, want: RoleOperator},
+		{name: "desktop start", kind: "vm-action", tool: "virsh", args: []string{"start", "vm"}, want: RoleDesktop},
+		{name: "desktop shutdown", kind: "vm-action", tool: "virsh", args: []string{"shutdown", "vm"}, want: RoleDesktop},
 		{name: "vm undefine", kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm"}, want: RoleAdmin},
 		{name: "vm snapshot", kind: "vm-action", tool: "virsh", args: []string{"snapshot-create-as", "vm", "snap"}, want: RoleOperator},
 		{name: "vm backup", kind: "vm-action", tool: "virsh", args: []string{"backup-create-as", "vm", "nightly"}, want: RoleOperator},
@@ -75,6 +77,8 @@ func TestRoleAllows(t *testing.T) {
 		{RoleOperator, RoleAdmin, false},
 		{RoleAdmin, RoleOperator, true},
 		{RoleOperator, RoleOperator, true},
+		{RoleDesktop, RoleDesktop, true},
+		{RoleDesktop, RoleOperator, false},
 		{"viewer", RoleOperator, false},
 		{RoleAdmin, "unknown", false},
 	}
