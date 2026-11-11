@@ -1226,6 +1226,10 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=default", "--osinfo", "generic", "--noautoconsole"}
 	if cdrom := strings.TrimSpace(r.Form.Get("cdrom")); cdrom != "" {
+		if !strings.HasPrefix(cdrom, "/var/lib/libvirt/images/") || strings.Contains(cdrom, "..") || !strings.HasSuffix(strings.ToLower(cdrom), ".iso") {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "ISO 必须是镜像目录中的 .iso 文件")
+			return
+		}
 		args = append(args, "--cdrom", cdrom)
 	}
 	sess, _ := sessionFrom(r.Context())
