@@ -173,6 +173,32 @@ func parseTemplates() (map[string]*template.Template, error) {
 			}
 			return string([]rune(s)[:12]) + "…"
 		},
+		"statusName": func(status string) string {
+			switch status {
+			case "queued":
+				return "排队"
+			case "running":
+				return "运行中"
+			case "succeeded":
+				return "成功"
+			case "failed":
+				return "失败"
+			case "cancelled":
+				return "已取消"
+			case "active":
+				return "运行"
+			case "inactive":
+				return "停止"
+			case "shut off":
+				return "已关机"
+			case "paused":
+				return "已挂起"
+			case "crashed":
+				return "崩溃"
+			default:
+				return status
+			}
+		},
 		"statusClass": func(status string) string {
 			switch status {
 			case "succeeded", "running", "active":
