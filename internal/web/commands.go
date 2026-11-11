@@ -173,6 +173,17 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, _ := sessionFrom(r.Context())
 	action := r.Form.Get("action")
+	if sess.User.Role == "desktop" {
+		if action != "start" && action != "shutdown" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "桌面用户只能启动或正常关闭已授权虚拟机")
+			return
+		}
+		allowed, accessErr := s.canUseConsole(r, host.ID, vmName)
+		if accessErr != nil || !allowed {
+			s.redirectError(w, r, "/vms", "当前账号没有该虚拟机的桌面授权")
+			return
+		}
+	}
 	args, destructive, err := actionArgs(action, vmName, strings.TrimSpace(r.Form.Get("snapshot")))
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())

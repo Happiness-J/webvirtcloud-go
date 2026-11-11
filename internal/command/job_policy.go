@@ -15,6 +15,7 @@ var signedScaledAmountPattern = regexp.MustCompile(`^[+-][1-9][0-9]{0,15}[KMGTPE
 const (
 	RoleAdmin    = "admin"
 	RoleOperator = "operator"
+	RoleDesktop  = "desktop"
 )
 
 // JobMinimumRole returns the least-privileged role allowed to execute a
@@ -43,10 +44,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 		if err := validateVMActionArgs(args); err != nil {
 			return "", err
 		}
-		if args[0] == "undefine" {
+		switch args[0] {
+		case "undefine":
 			return RoleAdmin, nil
+		case "start", "shutdown":
+			return RoleDesktop, nil
+		default:
+			return RoleOperator, nil
 		}
-		return RoleOperator, nil
 	case "storage-action":
 		if tool != "virsh" {
 			return "", fmt.Errorf("任务类型 storage-action 仅支持 virsh")
@@ -383,6 +388,8 @@ func RoleAllows(role, minimum string) bool {
 		return role == RoleAdmin
 	case RoleOperator:
 		return role == RoleAdmin || role == RoleOperator
+	case RoleDesktop:
+		return role == RoleAdmin || role == RoleOperator || role == RoleDesktop
 	default:
 		return false
 	}

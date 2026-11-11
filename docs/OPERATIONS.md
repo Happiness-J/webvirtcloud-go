@@ -2,7 +2,7 @@
 
 ## Desktop users
 
-The `desktop` role is intended for people who need a graphical console but must not administer the platform. An administrator grants access to specific VM names. A desktop user can open only those VNC consoles; power actions, storage changes, command execution, and user administration remain unavailable.
+The `desktop` role is intended for people who need a graphical console but must not administer the platform. An administrator grants access to specific VM names. A desktop user can open only those VNC consoles and use start or graceful shutdown for those assigned VMs. Reboot, forced power-off, storage changes, command execution, and user administration remain unavailable.
 
 Windows, Linux, and other graphical guests use the same console path. Install and run the QEMU Guest Agent in the guest when operators need OS, user, and filesystem information from the VM page.
 

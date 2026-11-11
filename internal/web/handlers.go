@@ -477,6 +477,16 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func vmActions(role, state, autostart string) []vmActionView {
+	if role == "desktop" {
+		switch strings.ToLower(strings.TrimSpace(state)) {
+		case "shut off", "crashed":
+			return []vmActionView{{Name: "start", Label: "启动", Primary: true}}
+		case "running":
+			return []vmActionView{{Name: "shutdown", Label: "正常关机"}}
+		default:
+			return nil
+		}
+	}
 	if role != "admin" && role != "operator" {
 		return nil
 	}

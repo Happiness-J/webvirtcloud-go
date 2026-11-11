@@ -329,7 +329,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /hosts/{id}/command/catalog", s.protect("admin", s.commandCatalogAPI))
 	mux.Handle("GET /vms", s.protect("viewer", s.allVMsPage))
 	mux.Handle("GET /hosts/{id}/vms/{vm}", s.protect("viewer", s.vmPage))
-	mux.Handle("POST /hosts/{id}/vms/{vm}/action", s.protect("operator", s.vmAction))
+	mux.Handle("POST /hosts/{id}/vms/{vm}/action", s.protect("desktop", s.vmAction))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/disk-resize", s.protect("operator", s.vmDiskResize))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/resource", s.protect("operator", s.vmResourceAction))
 	mux.Handle("POST /hosts/{id}/batch", s.protect("operator", s.vmBatchAction))
@@ -618,6 +618,9 @@ func (s *Server) protect(role string, next http.HandlerFunc) http.Handler {
 }
 
 func roleAllowed(actual, minimum string) bool {
+	if minimum == "desktop" {
+		return actual == "desktop" || actual == "operator" || actual == "admin"
+	}
 	rank := map[string]int{"viewer": 1, "operator": 2, "admin": 3}
 	return rank[actual] >= rank[minimum] && rank[actual] > 0
 }
