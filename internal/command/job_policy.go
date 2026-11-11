@@ -42,6 +42,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", err
 		}
 		return RoleOperator, nil
+	case "vm-clone":
+		if tool != "virt-clone" {
+			return "", fmt.Errorf("任务类型 vm-clone 仅支持 virt-clone")
+		}
+		if err := validateVMCloneArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	case "vm-action":
 		if len(args) == 0 {
 			return "", fmt.Errorf("任务缺少命令参数")
@@ -331,6 +339,22 @@ func validHypervisorType(value string) bool {
 	default:
 		return false
 	}
+}
+
+func validateVMCloneArgs(args []string) error {
+	if len(args) != 5 || args[0] != "--original" || args[2] != "--name" || args[4] != "--auto-clone" {
+		return fmt.Errorf("克隆参数不正确")
+	}
+	if err := validateActionOperand(args[1]); err != nil {
+		return fmt.Errorf("源虚拟机名称无效: %w", err)
+	}
+	if err := validateActionOperand(args[3]); err != nil {
+		return fmt.Errorf("克隆名称无效: %w", err)
+	}
+	if args[1] == args[3] {
+		return fmt.Errorf("克隆名称不能与源虚拟机相同")
+	}
+	return nil
 }
 
 func validateVMActionArgs(args []string) error {
