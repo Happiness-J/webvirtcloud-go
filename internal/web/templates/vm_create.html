@@ -1,0 +1,13 @@
+{{define "content"}}
+<div class="page-head"><div><h1>创建虚拟机</h1><p class="muted">{{.Data.Host.Name}} · 使用已有磁盘或 ISO 创建</p></div><a class="btn" href="/vms">返回</a></div>
+<section class="panel narrow"><form method="post" class="stack">
+<input type="hidden" name="_csrf" value="{{.CSRF}}">
+<label>名称<input name="name" required maxlength="64" placeholder="web-01"></label>
+<label>vCPU<input name="vcpus" value="2" required pattern="[1-9][0-9]*"></label>
+<label>内存<input name="memory" value="4" required pattern="[1-9][0-9]*"><span class="hint">单位 GB</span></label>
+<label>磁盘大小<input name="disk" value="40" required pattern="[1-9][0-9]*"><span class="hint">单位 GB，自动创建 qcow2</span></label>
+<label>网络<select name="network"><option value="default">default</option></select></label>
+<label>安装 ISO（可选）<input name="cdrom" placeholder="/var/lib/libvirt/images/installer.iso"></label>
+<button class="btn primary" data-confirm="确定创建虚拟机吗？">创建</button>
+</form><p class="hint">不填写 ISO 时创建可稍后安装的磁盘虚拟机。删除虚拟机只删除 libvirt 定义，不自动删除磁盘。</p></section>
+{{end}}

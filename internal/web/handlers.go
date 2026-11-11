@@ -1192,3 +1192,51 @@ func guestMemoryUsedKiB(item libvirt.DomainResourceStats) (uint64, bool) {
 	}
 	return 0, false
 }
+
+func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host}})
+}
+
+func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	name := strings.TrimSpace(r.Form.Get("name"))
+	if err := libvirt.ValidateName(name); err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "虚拟机名称无效")
+		return
+	}
+	vcpus := strings.TrimSpace(r.Form.Get("vcpus"))
+	memory := strings.TrimSpace(r.Form.Get("memory"))
+	disk := strings.TrimSpace(r.Form.Get("disk"))
+	for _, value := range []string{vcpus, memory, disk} {
+		if _, err := strconv.Atoi(value); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU、内存或磁盘参数无效")
+			return
+		}
+	}
+	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=default", "--osinfo", "generic", "--noautoconsole"}
+	if cdrom := strings.TrimSpace(r.Form.Get("cdrom")); cdrom != "" {
+		args = append(args, "--cdrom", cdrom)
+	}
+	sess, _ := sessionFrom(r.Context())
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "command", "创建虚拟机 "+name, "virt-install", args, "", 1800)
+	if err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
+		return
+	}
+	http.Redirect(w, r, "/jobs/"+jobID, http.StatusSeeOther)
+}
+
+func mustInt(value string) int { n, _ := strconv.Atoi(value); return n }
+
+func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "api_docs", pageData{Title: "OpenAPI", Nav: "api"})
+}
