@@ -398,9 +398,16 @@ func validateVMActionArgs(args []string) error {
 		if err := validateActionOperand(args[3]); err != nil {
 			return fmt.Errorf("检查点名称无效: %w", err)
 		}
-	case "attach-disk", "detach-disk":
-		if len(args) != 3 {
-			return fmt.Errorf("USB 设备操作参数数量不正确")
+	case "attach-disk":
+		if len(args) != 7 || args[3] != "sda" || args[4] != "--targetbus" || args[5] != "usb" || args[6] != "--live" {
+			return fmt.Errorf("USB 挂载参数不正确")
+		}
+		if err := ValidateDevicePathPublic(args[2]); err != nil {
+			return err
+		}
+	case "detach-disk":
+		if len(args) != 4 || args[3] != "--live" {
+			return fmt.Errorf("USB 卸载参数不正确")
 		}
 		if err := ValidateDevicePathPublic(args[2]); err != nil {
 			return err
