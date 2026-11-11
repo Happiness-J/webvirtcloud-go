@@ -1147,13 +1147,7 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 	out := make([]dashboardVMLive, 0, len(stats))
 	for _, item := range stats {
-		usage := 0
-		if item.BalloonMaximum > 0 {
-			usage = int(item.BalloonCurrent * 100 / item.BalloonMaximum)
-			if usage > 100 {
-				usage = 100
-			}
-		}
+		usage := memoryUsagePercent(item.BalloonCurrent, item.BalloonMaximum)
 		out = append(out, dashboardVMLive{
 			Name: item.Name, State: item.State, CPU: formatCPUTime(item.CPUTimeNanos),
 			Memory: formatKiB(item.BalloonCurrent) + " / " + formatKiB(item.BalloonMaximum),
@@ -1161,4 +1155,14 @@ func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 		})
 	}
 	return out
+}
+
+func memoryUsagePercent(current, maximum uint64) int {
+	if maximum == 0 || current == 0 {
+		return 0
+	}
+	if current >= maximum {
+		return 100
+	}
+	return int(current / (maximum / 100))
 }
