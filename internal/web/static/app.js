@@ -99,3 +99,59 @@ document.addEventListener('change', (event) => {
   };
   setTimeout(poll, 1200);
 })();
+
+(() => {
+  const board = document.getElementById('resource-board');
+  if (!board) return;
+  const history = new Map();
+  const draw = (card, values) => {
+    const canvas = card.querySelector('canvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(240, Math.floor(rect.width * devicePixelRatio));
+    canvas.height = Math.floor(72 * devicePixelRatio);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#d5e0ea';
+    ctx.beginPath(); ctx.moveTo(0, canvas.height - 1); ctx.lineTo(canvas.width, canvas.height - 1); ctx.stroke();
+    ctx.strokeStyle = '#2f80ed'; ctx.lineWidth = 2 * devicePixelRatio; ctx.beginPath();
+    values.forEach((value, index) => {
+      const x = values.length === 1 ? 0 : (index / (values.length - 1)) * canvas.width;
+      const y = canvas.height - (Math.max(0, Math.min(100, value)) / 100) * (canvas.height - 4);
+      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  };
+  const render = (payload) => {
+    const root = board.querySelector('.resource-groups') || board.appendChild(Object.assign(document.createElement('div'), {className:'resource-groups'}));
+    root.innerHTML = '';
+    (payload.hosts || []).forEach((host) => {
+      const section = document.createElement('section'); section.className='resource-group';
+      section.innerHTML = '<h3>' + host.Host.Name + '</h3>';
+      const grid = document.createElement('div'); grid.className='resource-grid';
+      (host.Domains || []).forEach((vm) => {
+        const key = host.Host.ID + ':' + vm.Name;
+        const values = (history.get(key) || []).concat(vm.Usage || 0).slice(-30);
+        history.set(key, values);
+        const card = document.createElement('article'); card.className='resource-card';
+        card.innerHTML = '<header><strong></strong><span class="pill"></span></header><dl><div><dt>内存</dt><dd class="memory"></dd></div><div><dt>磁盘</dt><dd class="disk"></dd></div><div><dt>CPU</dt><dd class="cpu"></dd></div></dl><canvas aria-label="内存趋势"></canvas><div class="meter"><span></span></div>';
+        card.querySelector('strong').textContent = vm.Name;
+        const pill = card.querySelector('.pill'); pill.textContent = vm.State || '-'; pill.classList.add(vm.State === 'running' ? 'ok' : 'muted');
+        card.querySelector('.memory').textContent = vm.Memory || '-';
+        card.querySelector('.disk').textContent = vm.Disk || '-';
+        card.querySelector('.cpu').textContent = vm.CPU || '-';
+        card.querySelector('.meter span').style.width = (vm.Usage || 0) + '%';
+        grid.appendChild(card); draw(card, values);
+      });
+      if (!host.Domains || host.Domains.length === 0) grid.innerHTML = '<p class="empty">没有正在运行的虚拟机。</p>';
+      section.appendChild(grid); root.appendChild(section);
+    });
+  };
+  const poll = async () => {
+    try {
+      const response = await fetch(board.dataset.resourceUrl, {credentials:'same-origin', headers:{'Accept':'application/json'}});
+      if (response.ok) render(await response.json());
+    } catch (_) {}
+  };
+  poll(); setInterval(poll, 15000);
+})();
