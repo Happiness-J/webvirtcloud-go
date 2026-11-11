@@ -715,6 +715,51 @@ func (s *Store) ListUsersPage(ctx context.Context, offset, limit int) ([]User, e
 	return users, rows.Err()
 }
 
+func (s *Store) UserCanAccessVM(ctx context.Context, userID, hostID, vmName string) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(
+		SELECT 1 FROM user_vm_access WHERE user_id=$1 AND host_id=$2 AND vm_name=$3
+	)`, userID, hostID, vmName).Scan(&exists)
+	return exists, err
+}
+
+func (s *Store) GrantVMAccess(ctx context.Context, userID, hostID, vmName string) error {
+	_, err := s.pool.Exec(ctx, `INSERT INTO user_vm_access (user_id, host_id, vm_name)
+		VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, userID, hostID, vmName)
+	return err
+}
+
+func (s *Store) RevokeVMAccess(ctx context.Context, userID, hostID, vmName string) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM user_vm_access
+		WHERE user_id=$1 AND host_id=$2 AND vm_name=$3`, userID, hostID, vmName)
+	return err
+}
+
+func (s *Store) ListVMAccess(ctx context.Context, userID string) ([]VMAccess, error) {
+	rows, err := s.pool.Query(ctx, `SELECT a.host_id, h.name, a.vm_name
+		FROM user_vm_access a JOIN hosts h ON h.id=a.host_id
+		WHERE a.user_id=$1 ORDER BY h.name, a.vm_name`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var access []VMAccess
+	for rows.Next() {
+		var item VMAccess
+		if err := rows.Scan(&item.HostID, &item.HostName, &item.VMName); err != nil {
+			return nil, err
+		}
+		access = append(access, item)
+	}
+	return access, rows.Err()
+}
+
+type VMAccess struct {
+	HostID   string
+	HostName string
+	VMName   string
+}
+
 func (s *Store) UpdateUserRole(ctx context.Context, id, role string) error {
 	if !validUserRole(role) {
 		return fmt.Errorf("invalid user role %q", role)
@@ -2115,7 +2160,7 @@ func IsUniqueViolation(err error) bool {
 func IsNotFound(err error) bool { return errors.Is(err, pgx.ErrNoRows) }
 
 func validUserRole(role string) bool {
-	return role == "admin" || role == "operator" || role == "viewer"
+	return role == "admin" || role == "operator" || role == "desktop" || role == "viewer"
 }
 
 func validJobKind(kind string) bool {

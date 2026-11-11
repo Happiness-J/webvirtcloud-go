@@ -66,6 +66,9 @@ case "$cmd" in
   dommemstat)
     printf 'actual 4294967296\nrss 2147483648\navailable 3221225472\nunused 1073741824\n'
     ;;
+  guestinfo)
+    printf 'os.name: Windows\nos.version: 11\nuser.active: 1\n'
+    ;;
   event)
     printf '2026-11-11 00:00:00.000+0000: event 'lifecycle' for domain %s: Started Booted\n' "${1:-vm}"
     ;;

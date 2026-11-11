@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-head">
   <div><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.Host.Name}} · 状态 <span class="pill {{statusClass .Data.Detail.Domain.State}}">{{.Data.Detail.Domain.State}}</span></p></div>
-  <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">返回列表</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator")) (consoleAvailable .Data.Detail.Domain.State)}}<a class="btn primary" href="/console/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">VNC 控制台</a>{{end}}</div>
+  <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">返回列表</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator") .Data.ConsoleAllowed) (consoleAvailable .Data.Detail.Domain.State)}}<a class="btn primary" href="/console/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">VNC 控制台</a>{{end}}</div>
 </div>
 {{range .Data.ConsoleWarnings}}<div class="flash error"><strong>控制台安全：</strong>{{.}}</div>{{end}}
 {{if .Data.Actions}}<section class="panel">
@@ -91,6 +91,8 @@
 </section>
 <section class="panel">
   <h2>运行诊断</h2>
+  <h3>Guest Agent</h3>
+  <pre class="output">{{if .Data.Detail.GuestAgent}}{{.Data.Detail.GuestAgent}}{{else}}guest agent 未响应。Windows 需安装 QEMU Guest Agent，Linux 需安装并启动 qemu-guest-agent。{{end}}</pre>
   <h3>近期事件</h3>
   <pre class="output">{{if .Data.Detail.Events}}{{.Data.Detail.Events}}{{else}}检查窗口内没有新事件。{{end}}</pre>
 </section>

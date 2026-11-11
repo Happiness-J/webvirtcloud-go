@@ -1033,6 +1033,9 @@ func TestJobSerializationMigrationBackfillsLegacyJobs(t *testing.T) {
 	if _, err := db.pool.Exec(ctx, `DELETE FROM schema_migrations WHERE version=9`); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.pool.Exec(ctx, `DELETE FROM schema_migrations WHERE version>=10`); err != nil {
+		t.Fatal(err)
+	}
 	insert := func(id, status string, readOnly bool, hostID any, createdAt string) {
 		t.Helper()
 		if _, err := db.pool.Exec(ctx, `INSERT INTO jobs(
