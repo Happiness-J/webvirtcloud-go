@@ -302,9 +302,9 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.Info = info
 	detail.Domain.State = info["State"]
 	detail.Domain.ID = info["Id"]
-	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr error
+	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr error
 	var wg sync.WaitGroup
-	wg.Add(6)
+	wg.Add(7)
 	go func() {
 		defer wg.Done()
 		detail.BlockDevs, blockErr = s.BlockDevices(ctx, hostID, name)
@@ -329,6 +329,10 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 		defer wg.Done()
 		detail.GuestAgent, guestErr = s.GuestAgentInfo(ctx, hostID, name)
 	}()
+	go func() {
+		defer wg.Done()
+		detail.PowerRequest, powerErr = s.PowerRequest(ctx, hostID, name)
+	}()
 	if includeXML {
 		wg.Add(1)
 		go func() {
@@ -340,7 +344,7 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
 	detail.Backups, backupErr = s.ListBackups(ctx, hostID, name)
-	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr)
+	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr)
 	return detail, nil
 }
 
@@ -379,7 +383,30 @@ func (s *Service) BlockDeviceCapacity(ctx context.Context, hostID, name, target 
 	return capacity, nil
 }
 
-func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr error) []string {
+func (s *Service) PowerRequest(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"domstate", "--reason", name}, 10*time.Second)
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	return parsePowerRequest(res.Stdout), nil
+}
+
+func parsePowerRequest(output string) string {
+	state := strings.ToLower(strings.TrimSpace(output))
+	switch {
+	case strings.Contains(state, "shutdown"):
+		return "guest 已收到 ACPI 关机请求，正在等待操作系统完成关机"
+	case strings.Contains(state, "reboot") || strings.Contains(state, "crashed"):
+		return ""
+	default:
+		return ""
+	}
+}
+
+func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr error) []string {
 	var warnings []string
 	if blockErr != nil {
 		warnings = append(warnings, "块设备信息读取失败")
@@ -407,6 +434,9 @@ func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErr
 	}
 	if guestErr != nil {
 		warnings = append(warnings, "guest agent 信息读取失败")
+	}
+	if powerErr != nil {
+		warnings = append(warnings, "电源请求状态读取失败")
 	}
 	return warnings
 }

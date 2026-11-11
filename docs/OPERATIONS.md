@@ -8,6 +8,8 @@ Windows, Linux, and other graphical guests use the same console path. Install an
 
 ## Backup, capacity, and network checks
 
+The VM page shows when libvirt reports a pending ACPI shutdown reason. A graceful shutdown only requests the guest to stop; it does not confirm that the operating system has finished. If the request remains pending, check the guest agent and ACPI support before using forced power-off.
+
 Operators can create, restore, and delete libvirt backups from a VM page. Restore and delete require the confirmation checkbox. A restore replaces the current VM disk state, so the VM should be shut down and at least one fallback backup retained.
 
 Each storage pool has a capacity check that records `pool-info` as a job. Virtual networks have two diagnostic actions: `net-info` for bridge and activation state, and `net-dhcp-leases` for current DHCP assignments.
