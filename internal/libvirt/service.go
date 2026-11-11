@@ -722,11 +722,17 @@ func ParseDomainStats(output string) []DomainResourceStats {
 		if state, ok := values["state.state"]; ok {
 			current.State = domainStateName(state)
 		}
-		if value, ok := values["balloon.current"]; ok {
-			current.BalloonCurrent, _ = strconv.ParseUint(value, 10, 64)
-		}
 		if value, ok := values["balloon.maximum"]; ok {
 			current.BalloonMaximum, _ = strconv.ParseUint(value, 10, 64)
+		}
+		if value, ok := values["balloon.usable"]; ok {
+			current.BalloonUsable, _ = strconv.ParseUint(value, 10, 64)
+		}
+		if value, ok := values["balloon.available"]; ok {
+			current.BalloonAvailable, _ = strconv.ParseUint(value, 10, 64)
+		}
+		if value, ok := values["balloon.current"]; ok {
+			current.BalloonCurrent, _ = strconv.ParseUint(value, 10, 64)
 		}
 		if value, ok := values["cpu.time"]; ok {
 			current.CPUTimeNanos, _ = strconv.ParseUint(value, 10, 64)

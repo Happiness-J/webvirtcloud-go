@@ -18,7 +18,7 @@
     <a {{if eq .Nav "hosts"}}class="active"{{end}} href="/hosts">主机</a>
     <a {{if eq .Nav "jobs"}}class="active"{{end}} href="/jobs">任务</a>
     {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a {{if eq .Nav "audit"}}class="active"{{end}} href="/audit">审计</a>{{end}}
-    {{if eq .User.Role "admin"}}<a {{if eq .Nav "users"}}class="active"{{end}} href="/users">用户</a>{{end}}
+    {{if eq .User.Role "admin"}}<a {{if eq .Nav "users"}}class="active"{{end}} href="/users">用户 / LDAP</a>{{end}}<a href="/api/v1/hosts">OpenAPI</a>
   </nav>
   <div class="account">
     <a href="/account/password" title="修改密码">{{.User.Username}}</a><span class="badge">{{roleName .User.Role}}</span>
