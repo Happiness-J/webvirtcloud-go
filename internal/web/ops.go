@@ -40,8 +40,8 @@ func (s *Server) hostOpsPage(w http.ResponseWriter, r *http.Request) {
 	warnings := append([]string(nil), hostStats.Warnings...)
 	page := pageData{Title: "运维工作台 · " + host.Name, Nav: "hosts", Data: map[string]any{
 		"Host": host, "Domains": domains, "ResourceRows": []opsVMView{},
-		"HostRows": readableStats(hostStats.NodeInfo), "CPUStats": readableStats(hostStats.CPUStats),
-		"MemoryStats": readableStats(hostStats.MemoryStats), "Warnings": warnings,
+		"HostRows": readableStats(hostStats.NodeInfo), "ResourceSummary": resourceSummary(hostStats.CPUStats, hostStats.MemoryStats),
+		"CPUStats": readableStats(hostStats.CPUStats), "MemoryStats": readableStats(hostStats.MemoryStats), "Warnings": warnings,
 	}}
 	if domainsErr != nil {
 		s.logRequestError(r, "load operations domains", domainsErr)
@@ -375,11 +375,36 @@ func (s *Server) vmResourceAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func readableStats(values map[string]string) []kvRow {
-	rows := sortedKV(values)
-	for i := range rows {
-		rows[i].Value = readableStatValue(rows[i].Key, rows[i].Value)
+	labels := map[string]string{"user:": "用户态 CPU", "system:": "内核态 CPU", "idle:": "空闲 CPU", "iowait:": "IO 等待", "total:": "总内存", "free:": "空闲内存", "buffers:": "缓冲区", "cached:": "缓存"}
+	rows := make([]kvRow, 0, len(values))
+	for key, value := range values {
+		normalized := strings.ToLower(strings.TrimSpace(key))
+		if strings.Contains(normalized, "cpu.time") || strings.Contains(normalized, "cpu.user") || strings.Contains(normalized, "cpu.system") {
+			continue
+		}
+		label, ok := labels[normalized]
+		if !ok {
+			label = strings.TrimSuffix(key, ":")
+		}
+		rows = append(rows, kvRow{Key: label, Value: readableStatValue(label, value)})
 	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].Key < rows[j].Key })
 	return rows
+}
+
+func resourceSummary(cpu, memory map[string]string) []kvRow {
+	idle := statPercent(cpu, "idle:")
+	usedCPU := 100 - idle
+	if usedCPU < 0 {
+		usedCPU = 0
+	}
+	total := statBytes(memory, "total:")
+	free := statBytes(memory, "free:") + statBytes(memory, "buffers:") + statBytes(memory, "cached:")
+	used := uint64(0)
+	if total > free {
+		used = total - free
+	}
+	return []kvRow{{Key: "CPU 使用率", Value: fmt.Sprintf("%.1f%%", usedCPU)}, {Key: "内存使用", Value: formatBytes(used) + " / " + formatBytes(total)}, {Key: "可用内存", Value: formatBytes(free)}}
 }
 
 func readableStatValue(key, value string) string {
@@ -407,4 +432,24 @@ func readableStatValue(key, value string) string {
 	default:
 		return value
 	}
+}
+
+func statPercent(values map[string]string, key string) float64 {
+	number, err := strconv.ParseFloat(strings.TrimSpace(values[key]), 64)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+
+func statBytes(values map[string]string, key string) uint64 {
+	fields := strings.Fields(values[key])
+	if len(fields) == 0 {
+		return 0
+	}
+	number, err := strconv.ParseFloat(fields[0], 64)
+	if err != nil {
+		return 0
+	}
+	return uint64(number * 1024)
 }

@@ -10,7 +10,7 @@
   <div class="stat"><strong>{{.Data.Stats.Running}}</strong><span>运行任务</span></div>
 </section>
 <section class="panel resource-board">
-  <div class="panel-head"><h2>实时资源</h2><span class="muted">CPU 显示累计运行时间，内存和磁盘使用十进制易读单位</span></div>
+  <div class="panel-head"><h2>实时资源</h2><span class="muted">显示占用率、已用容量和总容量；CPU 是累计时间，不是瞬时核利用率</span></div>
   {{if .Data.Live}}<div class="resource-groups">{{range .Data.Live}}
     <section class="resource-group">
       <h3>{{.Host.Name}}</h3>
