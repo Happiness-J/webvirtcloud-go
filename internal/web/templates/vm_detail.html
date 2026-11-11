@@ -77,6 +77,8 @@
     <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
     <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
   </div>
+</section>
+<section class="panel">
   <h2>备份</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="backup-create">

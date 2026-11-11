@@ -297,7 +297,9 @@ func (s *Server) hostVMsPage(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": s.loadVMGroups(r.Context(), []store.Host{host})}})
+	groups := s.loadVMGroups(r.Context(), []store.Host{host})
+	groups = s.filterDesktopGroups(r, groups)
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": groups}})
 }
 
 func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
@@ -306,7 +308,44 @@ func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": s.loadVMGroups(r.Context(), hosts)}})
+	groups := s.loadVMGroups(r.Context(), hosts)
+	groups = s.filterDesktopGroups(r, groups)
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups}})
+}
+
+func (s *Server) filterDesktopGroups(r *http.Request, groups []vmGroup) []vmGroup {
+	sess, ok := sessionFrom(r.Context())
+	if !ok || sess.User.Role != "desktop" {
+		return groups
+	}
+	access, err := s.db.ListVMAccess(r.Context(), sess.User.ID)
+	if err != nil {
+		s.logRequestError(r, "load desktop VM access", err)
+		return nil
+	}
+	allowed := make(map[string]map[string]bool)
+	for _, item := range access {
+		if allowed[item.HostID] == nil {
+			allowed[item.HostID] = map[string]bool{}
+		}
+		allowed[item.HostID][item.VMName] = true
+	}
+	filtered := make([]vmGroup, 0, len(groups))
+	for _, group := range groups {
+		names := allowed[group.Host.ID]
+		if len(names) == 0 {
+			continue
+		}
+		domains := make([]libvirt.Domain, 0, len(group.Domains))
+		for _, domain := range group.Domains {
+			if names[domain.Name] {
+				domains = append(domains, domain)
+			}
+		}
+		group.Domains = domains
+		filtered = append(filtered, group)
+	}
+	return filtered
 }
 
 type vmGroup struct {
@@ -418,6 +457,10 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(infoRows, func(i, j int) bool { return infoRows[i].Key < infoRows[j].Key })
 	actions := vmActions(sess.User.Role, detail.Domain.State, detail.Info["Autostart"])
 	consoleAllowed, accessErr := s.canUseConsole(r, host.ID, vmName)
+	if sess.User.Role == "desktop" && !consoleAllowed && accessErr == nil {
+		s.renderError(w, r, http.StatusForbidden, "无权查看虚拟机", "当前账号没有该虚拟机的桌面授权。")
+		return
+	}
 	if accessErr != nil {
 		s.serverError(w, r, accessErr)
 		return
