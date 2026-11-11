@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - VM pages now show a pending guest ACPI shutdown request reported by libvirt.
 - Authorized users can view a read-only VM screenshot before opening the VNC console.
 - VM pages show guest IP addresses from the QEMU Guest Agent, with libvirt DHCP leases as a fallback.
+- VM clone, live migration, and host USB attach/detach workflows.
+- Read-only `/api/v1` endpoints for hosts, VM inventory, and VM status.
 - Optional OpenLDAP and Active Directory login, with directory users provisioned as local viewers.
 - Optional operations webhook for accepted VM, storage, network, backup, and host jobs.
 - Dashboard live CPU, memory, and disk statistics for running VMs.

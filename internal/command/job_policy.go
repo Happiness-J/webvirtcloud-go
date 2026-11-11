@@ -359,6 +359,20 @@ func validateVMActionArgs(args []string) error {
 		if err := validateActionOperand(args[2]); err != nil {
 			return fmt.Errorf("恢复点名称无效: %w", err)
 		}
+	case "attach-disk", "detach-disk":
+		if len(args) != 3 {
+			return fmt.Errorf("USB 设备操作参数数量不正确")
+		}
+		if err := ValidateDevicePathPublic(args[2]); err != nil {
+			return err
+		}
+	case "migrate":
+		if len(args) != 4 || args[2] != "--live" {
+			return fmt.Errorf("迁移参数不正确")
+		}
+		if err := ValidateMigrationURIPublic(args[3]); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("任务类型 vm-action 不支持操作 %q", args[0])
 	}
@@ -398,4 +412,21 @@ func RoleAllows(role, minimum string) bool {
 func knownTool(tool string) bool {
 	_, ok := toolNames[tool]
 	return ok
+}
+
+func ValidateDevicePathPublic(value string) error {
+	if value == "" || strings.Contains(value, "..") || strings.ContainsAny(value, " \t\r\n") {
+		return fmt.Errorf("设备路径无效")
+	}
+	if !strings.HasPrefix(value, "/dev/") {
+		return fmt.Errorf("只允许挂载 /dev 下的主机设备")
+	}
+	return nil
+}
+
+func ValidateMigrationURIPublic(value string) error {
+	if value == "" || strings.ContainsAny(value, " \t\r\n") || !(strings.HasPrefix(value, "qemu+ssh://") || strings.HasPrefix(value, "qemu+tls://")) {
+		return fmt.Errorf("迁移目标必须使用 qemu+ssh 或 qemu+tls")
+	}
+	return nil
 }

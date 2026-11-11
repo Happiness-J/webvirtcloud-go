@@ -24,6 +24,27 @@
 </section>{{end}}
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
+  <h2>克隆、迁移和 USB</h2>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="clone">
+    <input name="snapshot" placeholder="新虚拟机名称" maxlength="128" required>
+    <button class="btn" data-confirm="克隆会复制虚拟机磁盘，可能耗时较长，继续吗？">克隆</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="migrate">
+    <input name="snapshot" placeholder="qemu+ssh://user@target/system" maxlength="256" required>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
+    <button class="btn danger">在线迁移</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <select name="action"><option value="usb-attach">挂载 USB</option><option value="usb-detach">卸载 USB</option></select>
+    <input name="snapshot" placeholder="/dev/disk/by-id/usb-..." maxlength="256" required>
+    <button class="btn" data-confirm="确定变更 USB 设备吗？">执行</button>
+  </form>
+  <p class="hint">克隆使用 virt-clone 并自动生成新磁盘。迁移只接受 qemu+ssh 或 qemu+tls，避免把虚拟机迁移到未加密目标。USB 只接受 /dev 下的主机设备路径。</p>
+</section>
+<section class="panel">
   <h2>磁盘容量</h2>
   {{if .Data.Detail.BlockList}}<table><thead><tr><th>类型</th><th>用途</th><th>目标</th><th>源</th></tr></thead><tbody>{{range .Data.Detail.BlockList}}<tr><td>{{.Type}}</td><td>{{.Device}}</td><td><code>{{.Target}}</code></td><td><code>{{.Source}}</code></td></tr>{{end}}</tbody></table>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/disk-resize" class="inline-form">
