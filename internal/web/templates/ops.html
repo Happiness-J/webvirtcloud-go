@@ -19,13 +19,13 @@
       <option value="suspend">挂起</option><option value="resume">恢复</option>
       <option value="autostart-on">启用自启动</option><option value="autostart-off">取消自启动</option>
     </select></label>
-    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认批量执行</label>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes">关机、重启或挂起时勾选确认</label>
     <button class="btn primary" data-confirm="将对已勾选的虚拟机批量提交任务。关机、重启和挂起会影响业务可用性，确定继续吗？">执行批量任务</button>
-    <span class="hint">单次最多 50 台；状态不匹配时整批操作会拒绝提交。</span>
+    <span class="hint">单次最多 50 台。启动和自启动可以直接提交；关机、重启、挂起必须勾选确认。状态不匹配时整批不会提交。</span>
   </form>
   {{end}}
   <div class="table-wrap"><table class="ops-table"><thead><tr><th><input type="checkbox" data-select-all="vm-batch" aria-label="全选虚拟机"></th><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th>vCPU</th><th>内存当前</th><th>内存上限</th><th>累计 CPU 时间</th></tr></thead><tbody>
-  {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{.State}}</span></td><td>{{if .Autostart}}{{.Autostart}}{{else}}-{{end}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
+  {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{statusName .State}}</span></td><td>{{if .Autostart}}{{.Autostart}}{{else}}-{{end}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
   </tbody></table></div>
   <p class="hint">资源数据来自 <code>virsh domstats</code>。内存单位为 libvirt balloon 当前值与上限；“累计 CPU 时间”是虚拟机自启动以来的累计消耗，不是瞬时利用率。</p>
   {{else}}<p class="empty">该主机没有可展示的虚拟机。</p>{{end}}

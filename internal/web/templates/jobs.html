@@ -5,7 +5,7 @@
 </section>
 <section class="panel">
 {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>发起人</th><th>主机</th><th>工具</th><th>状态</th><th>时间</th></tr></thead><tbody>
-{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td>{{.UserName}}</td><td>{{jobHostLabel .}}</td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{.Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}
+{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td>{{.UserName}}</td><td>{{jobHostLabel .}}</td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}
 </tbody></table>{{else}}<p class="empty">还没有任务。</p>{{end}}
 {{if gt .Data.Page 1}}<a class="btn small" href="/jobs?page={{sub .Data.Page 1}}">上一页</a>{{end}}{{if .Data.HasNext}}<a class="btn small" href="/jobs?page={{add .Data.Page 1}}">下一页</a>{{end}}
 </section>

@@ -17,7 +17,7 @@
       {{if .Warning}}<p class="flash warn">{{.Warning}}</p>{{end}}
       {{if .Domains}}<div class="resource-grid">{{range .Domains}}
         <article class="resource-card">
-          <header><strong>{{.Name}}</strong><span class="pill {{statusClass .State}}">{{.State}}</span></header>
+          <header><strong>{{.Name}}</strong><span class="pill {{statusClass .State}}">{{statusName .State}}</span></header>
           <dl>
             <div><dt>CPU</dt><dd>{{.CPU}}</dd></div>
             <div><dt>内存</dt><dd>{{.Memory}}</dd></div>
@@ -46,7 +46,7 @@
 <div class="grid two">
   <section class="panel">
     <div class="panel-head"><h2>最近任务</h2><a href="/jobs">全部</a></div>
-    {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>状态</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a><div class="tiny muted">{{.UserName}} · {{.Tool}}</div></td><td><span class="pill {{statusClass .Status}}">{{.Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有任务。</p>{{end}}
+    {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>状态</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a><div class="tiny muted">{{.UserName}} · {{.Tool}}</div></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有任务。</p>{{end}}
   </section>
   <section class="panel">
     <div class="panel-head"><h2>最近审计</h2>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a href="/audit">全部</a>{{end}}</div>
