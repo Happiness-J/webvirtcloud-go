@@ -13,8 +13,12 @@ import (
 	"unicode/utf8"
 
 	"webvirtcloud-go/internal/auth"
+	"webvirtcloud-go/internal/id"
 	"webvirtcloud-go/internal/store"
+	"webvirtcloud-go/internal/webhook"
 )
+
+var errLDAPUnavailable = errors.New("ldap unavailable")
 
 const (
 	legacySessionCookie   = "wvc_session"
@@ -196,6 +200,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	keys := loginKeys(ip, username)
 	allowed, err := s.reserveLoginAttempt(r, keys)
 	if err != nil {
+		s.log.Error("reserve login", "error", err)
 		s.serverError(w, r, err)
 		return
 	}
@@ -208,20 +213,25 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := s.db.GetUserByUsername(r.Context(), username)
-	if err != nil {
-		if !store.IsNotFound(err) {
-			s.serverError(w, r, err)
+	switch {
+	case err == nil:
+		verified := auth.VerifyPasswordContext(r.Context(), password, user.PasswordHash)
+		if user.Disabled || !verified {
+			s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorID: user.ID, ActorName: user.Username, RemoteIP: ip})
+			s.renderLoginFailure(w, r)
 			return
 		}
-		_ = auth.VerifyPasswordContext(r.Context(), password, s.dummy)
-		s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorName: username, RemoteIP: ip})
-		s.renderLoginFailure(w, r)
-		return
-	}
-	verified := auth.VerifyPasswordContext(r.Context(), password, user.PasswordHash)
-	if user.Disabled || !verified {
-		s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorID: user.ID, ActorName: user.Username, RemoteIP: ip})
-		s.renderLoginFailure(w, r)
+	case store.IsNotFound(err):
+		user, err = s.loginLDAP(r, username, password, ip)
+		if err != nil {
+			_ = auth.VerifyPasswordContext(r.Context(), password, s.dummy)
+			s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorName: username, RemoteIP: ip})
+			s.renderLoginFailure(w, r)
+			return
+		}
+	default:
+		s.log.Error("load login user", "error", err)
+		s.serverError(w, r, err)
 		return
 	}
 	token, err := auth.NewToken()
@@ -241,6 +251,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 			s.renderLoginFailure(w, r)
 			return
 		}
+		s.log.Error("create login session", "error", err)
 		s.serverError(w, r, err)
 		return
 	}
@@ -262,12 +273,47 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setLoginCSRFCookie(w, "", -1)
 	s.audit.Record(r.Context(), store.Audit{ActorID: user.ID, ActorName: user.Username, Action: "auth.login", RemoteIP: ip})
+	if s.hooks != nil {
+		s.hooks.Send(webhook.Event{Action: "auth.login", Actor: user.Username, Detail: map[string]any{"role": user.Role}})
+	}
 	target := safeNext(r.Form.Get("next"))
 	if target == "" {
 		target = "/"
 	}
 	// #nosec G710 -- target is produced by safeNext and restricted to local application paths.
 	http.Redirect(w, r, target, http.StatusSeeOther)
+}
+
+func (s *Server) loginLDAP(r *http.Request, username, password, ip string) (store.User, error) {
+	if s.ldap == nil {
+		return store.User{}, errLDAPUnavailable
+	}
+	identity, err := s.ldap.Authenticate(r.Context(), username, password)
+	if err != nil {
+		s.log.Warn("ldap login failed", "username", username, "ip", ip, "error", err)
+		return store.User{}, err
+	}
+	hash, err := auth.HashPasswordContext(r.Context(), mustRandomPassword())
+	if err != nil {
+		return store.User{}, err
+	}
+	user := store.User{ID: id.New("user"), Username: identity.Username, PasswordHash: hash, Role: "viewer"}
+	if err := s.db.CreateUser(r.Context(), user); err != nil {
+		if store.IsUniqueViolation(err) {
+			return s.db.GetUserByUsername(r.Context(), username)
+		}
+		return store.User{}, err
+	}
+	s.audit.Record(r.Context(), store.Audit{ActorID: user.ID, ActorName: user.Username, Action: "auth.ldap_provision", RemoteIP: ip, Detail: map[string]any{"dn": identity.DN}})
+	return user, nil
+}
+
+func mustRandomPassword() string {
+	token, err := auth.NewToken()
+	if err != nil {
+		return strings.Repeat("x", 32)
+	}
+	return token
 }
 
 func (s *Server) renderLoginFailure(w http.ResponseWriter, r *http.Request) {

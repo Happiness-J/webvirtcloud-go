@@ -18,6 +18,7 @@ import (
 	"webvirtcloud-go/internal/id"
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
+	"webvirtcloud-go/internal/webhook"
 )
 
 func (s *Server) enqueueCommand(r *http.Request, user store.User, hostID, kind, label, tool string, args []string, stdin string, timeoutSeconds int) (string, error) {
@@ -92,6 +93,13 @@ func (s *Server) enqueueCommand(r *http.Request, user store.User, hostID, kind, 
 			"label": auditLabel, "sensitive": sensitive, "sensitive_reason": sensitiveReason,
 		},
 	})
+	if s.hooks != nil && !readOnly {
+		vm := ""
+		if len(args) > 1 {
+			vm = args[1]
+		}
+		s.hooks.Send(webhook.Event{Action: "job.accepted", Actor: user.Username, HostID: hostID, VM: vm, JobID: jobID, Detail: map[string]any{"kind": kind, "tool": tool, "label": auditLabel}})
+	}
 	return jobID, nil
 }
 
