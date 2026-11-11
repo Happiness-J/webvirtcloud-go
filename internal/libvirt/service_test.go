@@ -160,11 +160,11 @@ func TestForEachIndexBoundsWorkers(t *testing.T) {
 }
 
 func TestDetailWarningsReportPartialFailures(t *testing.T) {
-	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), errors.New("backups"), nil, errors.New("memory"), nil, errors.New("guest"), errors.New("power"))
-	if len(warnings) != 7 {
-		t.Fatalf("warnings = %#v, want 7", warnings)
+	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), errors.New("backups"), nil, errors.New("memory"), nil, errors.New("guest"), errors.New("power"), errors.New("address"))
+	if len(warnings) != 8 {
+		t.Fatalf("warnings = %#v, want 8", warnings)
 	}
-	for _, fragment := range []string{"块设备信息", "XML", "快照", "备份", "guest 内存统计", "guest agent", "电源请求"} {
+	for _, fragment := range []string{"块设备信息", "XML", "快照", "备份", "guest 内存统计", "guest agent", "电源请求", "客户机 IP"} {
 		found := false
 		for _, warning := range warnings {
 			if strings.Contains(warning, fragment) {
@@ -176,7 +176,7 @@ func TestDetailWarningsReportPartialFailures(t *testing.T) {
 			t.Errorf("warnings do not mention %s: %#v", fragment, warnings)
 		}
 	}
-	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
+	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
 		t.Fatalf("unexpected warnings: %#v", warnings)
 	}
 }
@@ -322,5 +322,20 @@ func TestPNGSignature(t *testing.T) {
 	}
 	if pngSignature([]byte("GIF89a")) {
 		t.Fatal("non-PNG accepted")
+	}
+}
+
+func TestParseGuestAddresses(t *testing.T) {
+	output := ` Name       MAC address          Protocol     Address
+-------------------------------------------------------------------------------
+ eth0       52:54:00:11:22:33    ipv4         192.0.2.20/24
+ lo         00:00:00:00:00:00    ipv6         ::1/128
+`
+	got := ParseGuestAddresses(output, "guest agent")
+	if len(got) != 2 || got[0].Address != "192.0.2.20" || got[0].Prefix != "24" || got[0].Source != "guest agent" {
+		t.Fatalf("addresses = %#v", got)
+	}
+	if got := ParseGuestAddresses("Name  MAC  Protocol  Address\neth0  aa  ipv4  not-an-ip", "lease"); len(got) != 0 {
+		t.Fatalf("invalid address accepted: %#v", got)
 	}
 }

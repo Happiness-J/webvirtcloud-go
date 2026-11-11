@@ -8,6 +8,8 @@ Windows, Linux, and other graphical guests use the same console path. Install an
 
 ## Backup, capacity, and network checks
 
+The VM page lists guest IP addresses. It first asks the QEMU Guest Agent and falls back to libvirt DHCP leases when the agent is unavailable. This lets operators and desktop users reach SSH or RDP without opening the graphical console.
+
 Authorized operators and desktop users can request a read-only PNG screenshot of a running or paused VM before opening noVNC. Desktop users only receive screenshots for VMs explicitly assigned to them. The image is returned directly to the browser and is not stored by the panel.
 
 The VM page shows when libvirt reports a pending ACPI shutdown reason. A graceful shutdown only requests the guest to stop; it does not confirm that the operating system has finished. If the request remains pending, check the guest agent and ACPI support before using forced power-off.
