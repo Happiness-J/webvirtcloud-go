@@ -149,7 +149,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		if err := libvirt.ValidateName(snapshot); err != nil {
 			return nil, false, fmt.Errorf("克隆名称无效")
 		}
-		return []string{"virt-clone", "--original", vm, "--name", snapshot, "--auto-clone"}, false, nil
+		return []string{"--original", vm, "--name", snapshot, "--auto-clone"}, false, nil
 	case "migrate":
 		if err := command.ValidateMigrationURIPublic(snapshot); err != nil {
 			return nil, true, err
@@ -211,12 +211,28 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	args, destructive, err := actionArgs(action, vmName, strings.TrimSpace(r.Form.Get("snapshot")))
+	operand := strings.TrimSpace(r.Form.Get("snapshot"))
+	args, destructive, err := actionArgs(action, vmName, operand)
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
 		return
 	}
-	minimumRole, err := command.JobMinimumRole("vm-action", "virsh", args)
+	tool := "virsh"
+	kind := "vm-action"
+	if action == "clone" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "无法确认虚拟机状态")
+			return
+		}
+		if detail.Domain.State != "shut off" {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "请先关闭虚拟机再克隆，避免复制到不一致的磁盘")
+			return
+		}
+		tool = "virt-clone"
+		kind = "vm-clone"
+	}
+	minimumRole, err := command.JobMinimumRole(kind, tool, args)
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
 		return
@@ -230,7 +246,11 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	label := fmt.Sprintf("%s: %s", vmName, action)
-	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-action", label, "virsh", args, "", 300)
+	timeout := 300
+	if action == "clone" {
+		timeout = 3600
+	}
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, kind, label, tool, args, "", timeout)
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
 		return
