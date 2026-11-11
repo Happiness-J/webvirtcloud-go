@@ -1075,3 +1075,62 @@ func (s *Server) canUseConsole(r *http.Request, hostID, vmName string) (bool, er
 		return false, nil
 	}
 }
+
+func (s *Server) apiHosts(w http.ResponseWriter, r *http.Request) {
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	type item struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Enabled bool   `json:"enabled"`
+	}
+	out := make([]item, 0, len(hosts))
+	for _, host := range hosts {
+		out = append(out, item{ID: host.ID, Name: host.Name, Enabled: host.Enabled})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"hosts": out})
+}
+
+func (s *Server) apiHostVMs(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "host not found")
+		return
+	}
+	domains, err := s.libvirt.ListDomains(r.Context(), host.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusBadGateway, "libvirt unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"host_id": host.ID, "vms": domains})
+}
+
+func (s *Server) apiVM(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "host not found")
+		return
+	}
+	name := r.PathValue("vm")
+	allowed, accessErr := s.canUseConsole(r, host.ID, name)
+	if accessErr != nil || !allowed {
+		writeJSONError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	detail, err := s.libvirt.Detail(r.Context(), host.ID, name, false)
+	if err != nil {
+		writeJSONError(w, http.StatusBadGateway, "libvirt unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"host_id": host.ID, "name": name, "state": detail.Domain.State, "addresses": detail.Addresses, "info": detail.Info})
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}

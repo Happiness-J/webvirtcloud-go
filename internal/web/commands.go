@@ -145,6 +145,25 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		return []string{"autostart", "--disable", vm}, false, nil
 	case "undefine":
 		return []string{"undefine", vm}, true, nil
+	case "clone":
+		if err := libvirt.ValidateName(snapshot); err != nil {
+			return nil, false, fmt.Errorf("克隆名称无效")
+		}
+		return []string{"virt-clone", "--original", vm, "--name", snapshot, "--auto-clone"}, false, nil
+	case "migrate":
+		if err := command.ValidateMigrationURIPublic(snapshot); err != nil {
+			return nil, true, err
+		}
+		return []string{"migrate", vm, "--live", snapshot}, true, nil
+	case "usb-attach", "usb-detach":
+		if err := command.ValidateDevicePathPublic(snapshot); err != nil {
+			return nil, false, err
+		}
+		verb := "attach-disk"
+		if action == "usb-detach" {
+			verb = "detach-disk"
+		}
+		return []string{verb, vm, snapshot}, action == "usb-detach", nil
 	case "snapshot-create", "snapshot-revert", "snapshot-delete", "backup-create", "backup-restore", "backup-delete":
 		if err := libvirt.ValidateName(snapshot); err != nil {
 			return nil, false, fmt.Errorf("恢复点名称无效")

@@ -224,3 +224,12 @@ The optional Ubuntu installer does not change firewall rules unless `WVC_UFW_ALL
 Set `WVC_LDAP_ENABLED=true` with `WVC_LDAP_URL`, `WVC_LDAP_BASE_DN`, and `WVC_LDAP_USER_FILTER` to allow OpenLDAP or Active Directory passwords at the normal login form. The first successful directory login creates a local `viewer` account; an administrator can then assign operator or desktop access. Directory passwords are checked remotely and are not stored.
 
 `WVC_WEBHOOK_URL` receives JSON when a mutating job is accepted and when a user logs in. The payload contains the action, actor, host, VM, and job identifiers. It does not contain passwords, session tokens, VNC passwords, or host connection URIs. Use HTTPS and `WVC_WEBHOOK_TOKEN` outside a trusted network.
+
+
+## Clone, migration, USB, and API
+
+Operators can clone a shut-off VM with `virt-clone`, migrate a running VM to a `qemu+ssh` or `qemu+tls` destination, and attach or detach a host USB disk by its `/dev` path. These actions are asynchronous jobs and appear in the audit log.
+
+`GET /api/v1/hosts`, `GET /api/v1/hosts/{id}/vms`, and `GET /api/v1/hosts/{id}/vms/{vm}` provide read-only inventory for external automation. They use the same session authentication and VM authorization as the web UI and do not return host URIs, passwords, or VNC credentials.
+
+The same routes and libvirt operations are available in native and container deployments. A container cannot see a USB device or disk filesystem unless that host path is deliberately mounted into the container and permitted by its device policy.
