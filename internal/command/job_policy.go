@@ -384,12 +384,19 @@ func validateVMActionArgs(args []string) error {
 		if len(args) != 2 {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
 		}
-	case "snapshot-create-as", "snapshot-revert", "snapshot-delete", "backup-create-as", "backup-restore", "backup-delete":
+	case "snapshot-create-as", "snapshot-revert", "snapshot-delete", "checkpoint-delete":
 		if len(args) != 3 {
 			return fmt.Errorf("恢复点操作 %s 的参数数量不正确", args[0])
 		}
 		if err := validateActionOperand(args[2]); err != nil {
 			return fmt.Errorf("恢复点名称无效: %w", err)
+		}
+	case "checkpoint-create-as":
+		if len(args) != 4 || args[2] != "--name" {
+			return fmt.Errorf("增量检查点参数不正确")
+		}
+		if err := validateActionOperand(args[3]); err != nil {
+			return fmt.Errorf("检查点名称无效: %w", err)
 		}
 	case "attach-disk", "detach-disk":
 		if len(args) != 3 {
