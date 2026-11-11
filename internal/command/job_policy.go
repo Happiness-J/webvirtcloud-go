@@ -29,6 +29,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("任务类型 command 不支持工具 %q", tool)
 		}
 		return RoleAdmin, nil
+	case "vm-create":
+		if tool != "virt-install" {
+			return "", fmt.Errorf("创建虚拟机只允许 virt-install")
+		}
+		if err := validateVMCreateArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	case "host-test":
 		if err := validateHostTestArgs(tool, args); err != nil {
 			return "", err
@@ -427,6 +435,41 @@ func ValidateDevicePathPublic(value string) error {
 func ValidateMigrationURIPublic(value string) error {
 	if value == "" || strings.ContainsAny(value, " \t\r\n") || !(strings.HasPrefix(value, "qemu+ssh://") || strings.HasPrefix(value, "qemu+tls://")) {
 		return fmt.Errorf("迁移目标必须使用 qemu+ssh 或 qemu+tls")
+	}
+	return nil
+}
+
+func validateVMCreateArgs(args []string) error {
+	expected := []string{"--name", "--vcpus", "--memory", "--disk", "--network", "--osinfo", "--noautoconsole"}
+	if len(args) != len(expected)*2 && len(args) != len(expected)*2+2 {
+		return fmt.Errorf("创建虚拟机参数数量不正确")
+	}
+	for i, flag := range expected {
+		if args[i*2] != flag {
+			return fmt.Errorf("创建虚拟机参数不正确")
+		}
+	}
+	if err := validateActionOperand(args[1]); err != nil {
+		return fmt.Errorf("虚拟机名称无效")
+	}
+	vcpus, err := strconv.Atoi(args[3])
+	if err != nil || vcpus < 1 || vcpus > 128 {
+		return fmt.Errorf("vCPU 数量无效")
+	}
+	memory, err := strconv.Atoi(args[5])
+	if err != nil || memory < 256 || memory > 1048576 {
+		return fmt.Errorf("内存参数无效")
+	}
+	if !strings.HasPrefix(args[7], "size=") || !strings.HasSuffix(args[7], ",format=qcow2") {
+		return fmt.Errorf("磁盘参数无效")
+	}
+	if args[9] != "network=default" || args[11] != "generic" {
+		return fmt.Errorf("网络或系统参数无效")
+	}
+	if len(args) == len(expected)*2+2 {
+		if args[14] != "--cdrom" || !strings.HasPrefix(args[15], "/var/lib/libvirt/images/") || strings.Contains(args[15], "..") || !strings.HasSuffix(strings.ToLower(args[15]), ".iso") {
+			return fmt.Errorf("安装 ISO 路径无效")
+		}
 	}
 	return nil
 }

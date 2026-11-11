@@ -1233,7 +1233,7 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		args = append(args, "--cdrom", cdrom)
 	}
 	sess, _ := sessionFrom(r.Context())
-	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "command", "创建虚拟机 "+name, "virt-install", args, "", 1800)
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-create", "创建虚拟机 "+name, "virt-install", args, "", 1800)
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
