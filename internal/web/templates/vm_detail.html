@@ -5,6 +5,11 @@
 </div>
 {{range .Data.ConsoleWarnings}}<div class="flash error"><strong>控制台安全：</strong>{{.}}</div>{{end}}
 {{if .Data.Detail.PowerRequest}}<div class="flash warn"><strong>电源请求：</strong>{{.Data.Detail.PowerRequest}}。如果长时间没有关机，请检查 guest 内的 ACPI 响应，或由运维人员确认后强制断电。</div>{{end}}
+{{if .Data.ScreenshotAllowed}}<section class="panel">
+  <h2>桌面预览</h2>
+  <p class="hint">这是当前虚拟机画面的只读截图，不会保存到磁盘。打开 VNC 前可以用它确认系统是否已进入桌面、登录界面或报错界面。</p>
+  <img class="screenshot" src="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/screenshot" alt="{{.Data.VM}} 当前画面">
+</section>{{end}}
 {{if .Data.Actions}}<section class="panel">
   <h2>电源与生命周期</h2>
   <div class="action-row">

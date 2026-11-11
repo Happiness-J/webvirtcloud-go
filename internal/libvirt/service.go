@@ -1,9 +1,13 @@
 package libvirt
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/xml"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,6 +22,7 @@ import (
 )
 
 const maxConcurrentLibvirtReads = 16
+const maxScreenshotBytes = 8 << 20
 
 type Service struct {
 	store  *store.Store
@@ -779,6 +784,48 @@ func (s *Service) Console(ctx context.Context, hostID, name string) (Console, er
 		return Console{}, fmt.Errorf("VNC 端口尚未分配，请先启动虚拟机")
 	}
 	return Console{Type: "vnc", Address: address, Port: g.Port, Password: g.Passwd}, nil
+}
+
+func (s *Service) Screenshot(ctx context.Context, hostID, name string) ([]byte, error) {
+	if err := ValidateName(name); err != nil {
+		return nil, err
+	}
+	path, err := screenshotTempPath(name)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(path)
+	res, err := s.run(ctx, hostID, []string{"screenshot", name, path, "--file"}, 15*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("读取虚拟机截图失败: %w", err)
+	}
+	if !pngSignature(data) || len(data) > maxScreenshotBytes {
+		os.Remove(path)
+		return nil, fmt.Errorf("虚拟机截图无效")
+	}
+	return data, nil
+}
+
+func screenshotTempPath(name string) (string, error) {
+	sum := sha256.Sum256([]byte(name))
+	file, err := os.CreateTemp("", "wvc-screenshot-"+hex.EncodeToString(sum[:8])+"-*.png")
+	if err != nil {
+		return "", fmt.Errorf("创建截图临时文件失败: %w", err)
+	}
+	path := file.Name()
+	if err := file.Close(); err != nil {
+		os.Remove(path)
+		return "", err
+	}
+	return path, nil
+}
+
+func pngSignature(data []byte) bool {
+	return len(data) >= 8 && bytes.Equal(data[:8], []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'})
 }
 
 func ValidateName(name string) error {

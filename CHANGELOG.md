@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Desktop users now see only their assigned VMs and can open those consoles directly.
 - Desktop users can start or gracefully shut down only their assigned VMs.
 - VM pages now show a pending guest ACPI shutdown request reported by libvirt.
+- Authorized users can view a read-only VM screenshot before opening the VNC console.
 - QEMU Guest Agent status on the VM diagnostics page.
 - Storage-pool capacity checks and virtual-network diagnostics, including DHCP lease inspection.
 - Direct restore and delete controls for existing VM snapshots.

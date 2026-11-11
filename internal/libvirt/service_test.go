@@ -314,3 +314,13 @@ func TestParsePowerRequest(t *testing.T) {
 		t.Fatalf("normal state = %q", got)
 	}
 }
+
+func TestPNGSignature(t *testing.T) {
+	valid := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 'x'}
+	if !pngSignature(valid) {
+		t.Fatal("valid PNG signature rejected")
+	}
+	if pngSignature([]byte("GIF89a")) {
+		t.Fatal("non-PNG accepted")
+	}
+}
