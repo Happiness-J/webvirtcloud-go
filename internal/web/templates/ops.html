@@ -6,7 +6,7 @@
 {{if .Data.Warnings}}<div class="flash warn">{{range .Data.Warnings}}<div>{{.}}</div>{{end}}</div>{{end}}
 <div class="grid two ops-summary">
   <section class="panel"><h2>节点信息</h2><dl class="kv">{{range .Data.HostRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
-  <section class="panel"><h2>节点实时资源</h2><dl class="kv">{{range .Data.CPUStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}{{range .Data.MemoryStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
+  <section class="panel"><h2>节点实时资源</h2><dl class="kv">{{range .Data.ResourceSummary}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl><details><summary>查看原始分类统计</summary><dl class="kv">{{range .Data.CPUStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}{{range .Data.MemoryStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></details></section>
 </div>
 <section class="panel">
   <div class="panel-head"><h2>虚拟机资源与批量操作</h2><a href="/hosts/{{.Data.Host.ID}}/vms">打开详情页</a></div>

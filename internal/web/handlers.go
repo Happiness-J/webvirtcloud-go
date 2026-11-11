@@ -1148,10 +1148,11 @@ func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 	out := make([]dashboardVMLive, 0, len(stats))
 	for _, item := range stats {
 		usage := memoryUsagePercent(item.BalloonCurrent, item.BalloonMaximum)
+		diskUsage := memoryUsagePercent(item.BlockAllocation, item.BlockCapacity)
 		out = append(out, dashboardVMLive{
-			Name: item.Name, State: item.State, CPU: formatCPUTime(item.CPUTimeNanos),
-			Memory: formatKiB(item.BalloonCurrent) + " / " + formatKiB(item.BalloonMaximum),
-			Disk:   formatBytes(item.BlockAllocation) + " / " + formatBytes(item.BlockCapacity), Usage: usage,
+			Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos),
+			Memory: fmt.Sprintf("%d%% · %s / %s", usage, formatKiB(item.BalloonCurrent), formatKiB(item.BalloonMaximum)),
+			Disk:   fmt.Sprintf("%d%% · %s / %s", diskUsage, formatBytes(item.BlockAllocation), formatBytes(item.BlockCapacity)), Usage: usage,
 		})
 	}
 	return out
