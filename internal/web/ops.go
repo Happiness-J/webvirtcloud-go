@@ -96,23 +96,29 @@ func buildOpsVMRows(domains []libvirt.Domain, stats []libvirt.DomainResourceStat
 	return rows
 }
 
+func formatBytes(value uint64) string {
+	if value == 0 {
+		return "-"
+	}
+	const unit = 1024.0
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
+	size := float64(value)
+	index := 0
+	for size >= unit && index < len(units)-1 {
+		size /= unit
+		index++
+	}
+	if index == 0 {
+		return fmt.Sprintf("%d %s", value, units[index])
+	}
+	return fmt.Sprintf("%.1f %s", size, units[index])
+}
+
 func formatKiB(value uint64) string {
 	if value == 0 {
 		return "-"
 	}
-	const (
-		kibPerMiB = uint64(1 << 10)
-		kibPerGiB = uint64(1 << 20)
-		kibPerTiB = uint64(1 << 30)
-	)
-	switch {
-	case value >= kibPerTiB:
-		return fmt.Sprintf("%.1f TiB", float64(value)/float64(kibPerTiB))
-	case value >= kibPerGiB:
-		return fmt.Sprintf("%.1f GiB", float64(value)/float64(kibPerGiB))
-	default:
-		return fmt.Sprintf("%.1f MiB", float64(value)/float64(kibPerMiB))
-	}
+	return formatBytes(value * 1024)
 }
 
 func formatCPUTime(nanos uint64) string {

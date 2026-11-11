@@ -37,8 +37,17 @@ type dashboardData struct {
 
 type dashboardHostLive struct {
 	Host    store.Host
-	Domains []libvirt.DomainResourceStats
+	Domains []dashboardVMLive
 	Warning string
+}
+
+type dashboardVMLive struct {
+	Name   string
+	State  string
+	CPU    string
+	Memory string
+	Disk   string
+	Usage  int
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +100,7 @@ func (s *Server) dashboardLive(ctx context.Context, hosts []store.Host) []dashbo
 			continue
 		}
 		stats, err := s.libvirt.DomainStats(ctx, host.ID)
-		item := dashboardHostLive{Host: host, Domains: stats}
+		item := dashboardHostLive{Host: host, Domains: dashboardVMViews(stats)}
 		if err != nil {
 			s.log.Warn("load dashboard domain stats", "host", host.Name, "error", err)
 			item.Warning = "实时资源读取失败"
@@ -1133,4 +1142,27 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
+	out := make([]dashboardVMLive, 0, len(stats))
+	for _, item := range stats {
+		usage := memoryUsagePercent(item.BalloonCurrent, item.BalloonMaximum)
+		out = append(out, dashboardVMLive{
+			Name: item.Name, State: item.State, CPU: formatCPUTime(item.CPUTimeNanos),
+			Memory: formatKiB(item.BalloonCurrent) + " / " + formatKiB(item.BalloonMaximum),
+			Disk:   formatBytes(item.BlockAllocation) + " / " + formatBytes(item.BlockCapacity), Usage: usage,
+		})
+	}
+	return out
+}
+
+func memoryUsagePercent(current, maximum uint64) int {
+	if maximum == 0 || current == 0 {
+		return 0
+	}
+	if current >= maximum {
+		return 100
+	}
+	return int(float64(current) * 100 / float64(maximum))
 }
