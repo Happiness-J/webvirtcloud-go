@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -210,6 +211,26 @@ func (s *Service) Interfaces(ctx context.Context, hostID, name string) (string, 
 	return res.Output(), err
 }
 
+func (s *Service) GuestAddresses(ctx context.Context, hostID, name string) ([]GuestAddress, error) {
+	if err := ValidateName(name); err != nil {
+		return nil, err
+	}
+	agentRes, agentErr := s.run(ctx, hostID, []string{"domifaddr", name, "--source", "agent"}, 10*time.Second)
+	agentAddresses := ParseGuestAddresses(agentRes.Stdout, "guest agent")
+	if agentErr == nil && len(agentAddresses) > 0 {
+		return agentAddresses, nil
+	}
+	leaseRes, leaseErr := s.run(ctx, hostID, []string{"domifaddr", name, "--source", "lease"}, 10*time.Second)
+	leaseAddresses := ParseGuestAddresses(leaseRes.Stdout, "DHCP 租约")
+	if leaseErr == nil && len(leaseAddresses) > 0 {
+		return leaseAddresses, nil
+	}
+	if agentErr != nil && leaseErr != nil {
+		return nil, fmt.Errorf("%w: %s", agentErr, strings.TrimSpace(agentRes.Output()+" "+leaseRes.Output()))
+	}
+	return nil, nil
+}
+
 func (s *Service) BlockErrors(ctx context.Context, hostID, name string) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err
@@ -306,9 +327,9 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.Info = info
 	detail.Domain.State = info["State"]
 	detail.Domain.ID = info["Id"]
-	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr error
+	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr, addressErr error
 	var wg sync.WaitGroup
-	wg.Add(7)
+	wg.Add(8)
 	go func() {
 		defer wg.Done()
 		detail.BlockDevs, blockErr = s.BlockDevices(ctx, hostID, name)
@@ -316,6 +337,10 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	go func() {
 		defer wg.Done()
 		detail.Ifaces, ifaceErr = s.Interfaces(ctx, hostID, name)
+	}()
+	go func() {
+		defer wg.Done()
+		detail.Addresses, addressErr = s.GuestAddresses(ctx, hostID, name)
 	}()
 	go func() {
 		defer wg.Done()
@@ -348,8 +373,24 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
 	detail.Backups, backupErr = s.ListBackups(ctx, hostID, name)
-	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr)
+	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr, addressErr)
 	return detail, nil
+}
+
+func ParseGuestAddresses(output, source string) []GuestAddress {
+	rows := ParseTable(output)
+	out := make([]GuestAddress, 0, len(rows))
+	for _, row := range rows {
+		if len(row) < 4 {
+			continue
+		}
+		address, prefix, ok := strings.Cut(row[3], "/")
+		if !ok || net.ParseIP(address) == nil {
+			continue
+		}
+		out = append(out, GuestAddress{Interface: row[0], Protocol: row[2], Address: address, Prefix: prefix, Source: source})
+	}
+	return out
 }
 
 func ParseBlockDevices(output string) []BlockDevice {
@@ -410,7 +451,7 @@ func parsePowerRequest(output string) string {
 	}
 }
 
-func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr error) []string {
+func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr, addressErr error) []string {
 	var warnings []string
 	if blockErr != nil {
 		warnings = append(warnings, "块设备信息读取失败")
@@ -441,6 +482,9 @@ func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErr
 	}
 	if powerErr != nil {
 		warnings = append(warnings, "电源请求状态读取失败")
+	}
+	if addressErr != nil {
+		warnings = append(warnings, "客户机 IP 地址读取失败")
 	}
 	return warnings
 }

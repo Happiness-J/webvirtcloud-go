@@ -107,7 +107,10 @@
 {{end}}
 <div class="grid two">
   <section class="panel"><h2>摘要</h2><dl class="kv">{{range .Data.InfoRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
-  <section class="panel"><h2>块设备</h2><pre class="output">{{.Data.Detail.BlockDevs}}</pre><h2>网络接口</h2><pre class="output">{{.Data.Detail.Ifaces}}</pre></section>
+  <section class="panel"><h2>客户机 IP</h2>
+    {{if .Data.Detail.Addresses}}<table><thead><tr><th>接口</th><th>协议</th><th>地址</th><th>来源</th></tr></thead><tbody>{{range .Data.Detail.Addresses}}<tr><td>{{.Interface}}</td><td>{{.Protocol}}</td><td><code>{{.Address}}/{{.Prefix}}</code></td><td>{{.Source}}</td></tr>{{end}}</tbody></table>
+    {{else}}<p class="empty">尚未获得客户机 IP。Windows 和 Linux 安装并启动 QEMU Guest Agent 后可直接读取；没有 agent 时会尝试 libvirt DHCP 租约。</p>{{end}}
+    <h2>块设备</h2><pre class="output">{{.Data.Detail.BlockDevs}}</pre><h2>网络接口</h2><pre class="output">{{.Data.Detail.Ifaces}}</pre></section>
 </div>
 {{if eq .User.Role "admin"}}
 {{if .Data.Detail.XML}}<section class="panel"><div class="panel-head"><h2>虚拟机 XML</h2><a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a></div><details><summary>展开 XML</summary><pre class="output xml">{{.Data.Detail.XML}}</pre></details></section>{{end}}

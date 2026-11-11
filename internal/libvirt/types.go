@@ -64,12 +64,21 @@ type Backup struct {
 	State     string
 }
 
+type GuestAddress struct {
+	Interface string
+	Protocol  string
+	Address   string
+	Prefix    string
+	Source    string
+}
+
 type DomainDetail struct {
 	Domain      Domain
 	Info        map[string]string
 	BlockDevs   string
 	BlockList   []BlockDevice
 	Ifaces      string
+	Addresses   []GuestAddress
 	Snapshots   []Snapshot
 	XML         string
 	BlockErrors string
