@@ -608,8 +608,18 @@ func sessionFrom(ctx context.Context) (store.Session, bool) {
 
 func (s *Server) protect(role string, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/") && s.authorizeAPIToken(r) {
+			roleUser := store.User{ID: "api-token", Username: "api-token", Role: "viewer"}
+			ctx := context.WithValue(r.Context(), sessionKey{}, store.Session{User: roleUser})
+			next(w, r.WithContext(ctx))
+			return
+		}
 		sess, ok := sessionFrom(r.Context())
 		if !ok {
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				writeJSONError(w, http.StatusUnauthorized, "authentication required")
+				return
+			}
 			s.redirectLogin(w, r)
 			return
 		}
@@ -812,4 +822,16 @@ func (s *Server) readinessDependencies(ctx context.Context) error {
 		return errors.New("enabled local/libvirt host requires virsh")
 	}
 	return nil
+}
+
+func (s *Server) authorizeAPIToken(r *http.Request) bool {
+	if s.cfg.MetricsToken == "" {
+		return false
+	}
+	provided := strings.TrimSpace(r.Header.Get("Authorization"))
+	const prefix = "Bearer "
+	if !strings.HasPrefix(provided, prefix) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(auth.TokenHash(strings.TrimPrefix(provided, prefix))), []byte(auth.TokenHash(s.cfg.MetricsToken))) == 1
 }

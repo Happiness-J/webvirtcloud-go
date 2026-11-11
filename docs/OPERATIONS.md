@@ -233,3 +233,8 @@ Operators can clone a shut-off VM with `virt-clone`, migrate a running VM to a `
 `GET /api/v1/hosts`, `GET /api/v1/hosts/{id}/vms`, and `GET /api/v1/hosts/{id}/vms/{vm}` provide read-only inventory for external automation. They use the same session authentication and VM authorization as the web UI and do not return host URIs, passwords, or VNC credentials.
 
 The same routes and libvirt operations are available in native and container deployments. A container cannot see a USB device or disk filesystem unless that host path is deliberately mounted into the container and permitted by its device policy.
+
+
+The storage page reports the disk container type visible to libvirt. Formats such as ext4, xfs, NTFS, and ZFS live inside guest partitions, so they are not guessed from the storage-pool file alone. ISO images are identified as ISO 9660 installation media.
+
+External automation can call the read-only `/api/v1` endpoints with `Authorization: Bearer <WVC_METRICS_TOKEN>`. The token has viewer scope and never returns host connection URIs or console passwords. Browser sessions continue to work unchanged.

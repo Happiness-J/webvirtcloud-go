@@ -18,6 +18,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Authorized users can view a read-only VM screenshot before opening the VNC console.
 - VM pages show guest IP addresses from the QEMU Guest Agent, with libvirt DHCP leases as a fallback.
 - VM clone, live migration, and host USB attach/detach workflows.
+- Storage volumes now show readable sizes and recognized disk container or ISO filesystem types.
+- Read-only `/api/v1` endpoints accept the existing bearer token for external automation.
 - Read-only `/api/v1` endpoints for hosts, VM inventory, and VM status.
 - Optional OpenLDAP and Active Directory login, with directory users provisioned as local viewers.
 - Optional operations webhook for accepted VM, storage, network, backup, and host jobs.
