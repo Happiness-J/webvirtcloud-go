@@ -1164,5 +1164,5 @@ func memoryUsagePercent(current, maximum uint64) int {
 	if current >= maximum {
 		return 100
 	}
-	return int(current / (maximum / 100))
+	return int(float64(current) * 100 / float64(maximum))
 }
