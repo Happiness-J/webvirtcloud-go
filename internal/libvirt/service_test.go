@@ -160,11 +160,11 @@ func TestForEachIndexBoundsWorkers(t *testing.T) {
 }
 
 func TestDetailWarningsReportPartialFailures(t *testing.T) {
-	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"))
-	if len(warnings) != 3 {
+	warnings := detailWarnings(errors.New("block"), nil, errors.New("xml"), errors.New("snapshots"), nil, errors.New("memory"), nil)
+	if len(warnings) != 4 {
 		t.Fatalf("warnings = %#v, want 3", warnings)
 	}
-	for _, fragment := range []string{"块设备", "XML", "快照"} {
+	for _, fragment := range []string{"块设备信息", "XML", "快照", "guest 内存统计"} {
 		found := false
 		for _, warning := range warnings {
 			if strings.Contains(warning, fragment) {
@@ -176,7 +176,7 @@ func TestDetailWarningsReportPartialFailures(t *testing.T) {
 			t.Errorf("warnings do not mention %s: %#v", fragment, warnings)
 		}
 	}
-	if warnings := detailWarnings(nil, nil, nil, nil); len(warnings) != 0 {
+	if warnings := detailWarnings(nil, nil, nil, nil, nil, nil, nil); len(warnings) != 0 {
 		t.Fatalf("unexpected warnings: %#v", warnings)
 	}
 }

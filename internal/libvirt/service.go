@@ -206,6 +206,30 @@ func (s *Service) Interfaces(ctx context.Context, hostID, name string) (string, 
 	return res.Output(), err
 }
 
+func (s *Service) BlockErrors(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"domblkerror", name}, 10*time.Second)
+	return res.Output(), err
+}
+
+func (s *Service) MemoryStats(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"dommemstat", name}, 10*time.Second)
+	return res.Output(), err
+}
+
+func (s *Service) RecentEvents(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"event", name, "--timestamp", "--timeout", "1"}, 5*time.Second)
+	return res.Output(), err
+}
+
 func (s *Service) ListSnapshots(ctx context.Context, hostID, name string) ([]Snapshot, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, err
@@ -244,9 +268,9 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	detail.Info = info
 	detail.Domain.State = info["State"]
 	detail.Domain.ID = info["Id"]
-	var blockErr, ifaceErr, xmlErr, snapshotErr error
+	var blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memoryErr, eventErr error
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(5)
 	go func() {
 		defer wg.Done()
 		detail.BlockDevs, blockErr = s.BlockDevices(ctx, hostID, name)
@@ -254,6 +278,18 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	go func() {
 		defer wg.Done()
 		detail.Ifaces, ifaceErr = s.Interfaces(ctx, hostID, name)
+	}()
+	go func() {
+		defer wg.Done()
+		detail.BlockErrors, blockErrorErr = s.BlockErrors(ctx, hostID, name)
+	}()
+	go func() {
+		defer wg.Done()
+		detail.MemoryStats, memoryErr = s.MemoryStats(ctx, hostID, name)
+	}()
+	go func() {
+		defer wg.Done()
+		detail.Events, eventErr = s.RecentEvents(ctx, hostID, name)
 	}()
 	if includeXML {
 		wg.Add(1)
@@ -265,7 +301,7 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	wg.Wait()
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
-	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr)
+	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memoryErr, eventErr)
 	return detail, nil
 }
 
@@ -304,7 +340,7 @@ func (s *Service) BlockDeviceCapacity(ctx context.Context, hostID, name, target 
 	return capacity, nil
 }
 
-func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr error) []string {
+func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, blockErrorErr, memoryErr, eventErr error) []string {
 	var warnings []string
 	if blockErr != nil {
 		warnings = append(warnings, "块设备信息读取失败")
@@ -317,6 +353,15 @@ func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr error) []string {
 	}
 	if snapshotErr != nil {
 		warnings = append(warnings, "快照信息读取失败")
+	}
+	if blockErrorErr != nil {
+		warnings = append(warnings, "块设备错误状态读取失败")
+	}
+	if memoryErr != nil {
+		warnings = append(warnings, "guest 内存统计读取失败")
+	}
+	if eventErr != nil {
+		warnings = append(warnings, "近期事件读取失败")
 	}
 	return warnings
 }

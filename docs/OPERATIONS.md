@@ -1,5 +1,17 @@
 # Operations
 
+## Host and VM diagnostics
+
+Operators can queue `virt-host-validate --quiet qemu` from a host page. The result is stored as a normal job, including any failed KVM, cgroup, device, or security-driver checks.
+
+A VM detail page also shows three bounded diagnostic views:
+
+- `domblkerror`: current block-device errors that may explain stalled I/O.
+- `dommemstat`: guest memory statistics when the guest agent responds.
+- `event --timestamp --timeout 1`: lifecycle or device events observed during a one-second sampling window.
+
+Existing snapshots can be restored or deleted directly from their rows. Both actions require the explicit confirmation checkbox because they can discard VM state or recovery points.
+
 ## Health checks
 
 - `/healthz`: process is serving HTTP.

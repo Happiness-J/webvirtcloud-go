@@ -10,6 +10,7 @@ WebVirtCloud Go is designed for small infrastructure teams that need a practical
 - local libvirt and remote `qemu+ssh` hosts
 - VM lifecycle, snapshots, storage pools, volumes, and virtual networks
 - per-host operations workbench with node/VM resource visibility, bounded bulk lifecycle actions, autostart policy, and vCPU/memory tuning
+- host virtualization health checks and VM diagnostics for disk errors, guest memory, recent events, and snapshot recovery
 - asynchronous tasks with quotas, cancellation, heartbeat, and stale-job recovery
 - Argon2id passwords, server-side sessions, CSRF, RBAC, and login throttling
 - purpose-bound AES-256-GCM encryption for host URIs and sensitive task fields

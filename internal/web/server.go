@@ -316,6 +316,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /hosts/{id}/edit", s.protect("admin", s.hostUpdate))
 	mux.Handle("POST /hosts/{id}/delete", s.protect("admin", s.hostDelete))
 	mux.Handle("POST /hosts/{id}/test", s.protect("operator", s.hostTest))
+	mux.Handle("POST /hosts/{id}/health", s.protect("operator", s.hostHealth))
 	mux.Handle("GET /hosts/{id}/vms", s.protect("viewer", s.hostVMsPage))
 	mux.Handle("GET /hosts/{id}/storage", s.protect("viewer", s.storagePage))
 	mux.Handle("POST /hosts/{id}/storage/action", s.protect("operator", s.storageAction))

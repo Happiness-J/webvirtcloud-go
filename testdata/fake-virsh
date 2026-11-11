@@ -60,6 +60,15 @@ case "$cmd" in
   domblkinfo)
     printf 'Capacity:       42949672960\nAllocation:     10737418240\nPhysical:       10737418240\n'
     ;;
+  domblkerror)
+    printf 'No errors found\n'
+    ;;
+  dommemstat)
+    printf 'actual 4294967296\nrss 2147483648\navailable 3221225472\nunused 1073741824\n'
+    ;;
+  event)
+    printf '2026-11-11 00:00:00.000+0000: event 'lifecycle' for domain %s: Started Booted\n' "${1:-vm}"
+    ;;
   domiflist)
     printf ' Interface   Type      Source     Model    MAC\n--------------------------------------------------------------\n vnet0       network   default    virtio   52:54:00:00:00:01\n'
     ;;

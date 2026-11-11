@@ -66,7 +66,19 @@
     <label class="confirm"><input type="checkbox" name="confirm" value="yes">恢复/删除需确认</label>
     <button class="btn" data-confirm="确定执行快照操作吗？">执行</button>
   </form>
-  {{if .Data.Detail.Snapshots}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th></tr></thead><tbody>{{range .Data.Detail.Snapshots}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有快照。</p>{{end}}
+  {{if .Data.Detail.Snapshots}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Snapshots}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-revert"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">恢复</button></form>
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
+  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有快照。</p>{{end}}
+</section>
+<section class="panel">
+  <h2>运行诊断</h2>
+  <div class="grid two">
+    <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
+    <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
+  </div>
+  <h3>近期事件</h3>
+  <pre class="output">{{if .Data.Detail.Events}}{{.Data.Detail.Events}}{{else}}检查窗口内没有新事件。{{end}}</pre>
 </section>
 {{end}}
 <div class="grid two">
