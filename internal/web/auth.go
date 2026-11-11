@@ -12,13 +12,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/jackc/pgx/v5"
-
 	"webvirtcloud-go/internal/auth"
 	"webvirtcloud-go/internal/id"
 	"webvirtcloud-go/internal/store"
 	"webvirtcloud-go/internal/webhook"
 )
+
+var errLDAPUnavailable = errors.New("ldap unavailable")
 
 const (
 	legacySessionCookie   = "wvc_session"
@@ -212,11 +212,15 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := s.db.GetUserByUsername(r.Context(), username)
-	if err != nil && !store.IsNotFound(err) {
-		s.serverError(w, r, err)
-		return
-	}
-	if store.IsNotFound(err) {
+	switch {
+	case err == nil:
+		verified := auth.VerifyPasswordContext(r.Context(), password, user.PasswordHash)
+		if user.Disabled || !verified {
+			s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorID: user.ID, ActorName: user.Username, RemoteIP: ip})
+			s.renderLoginFailure(w, r)
+			return
+		}
+	case store.IsNotFound(err):
 		user, err = s.loginLDAP(r, username, password, ip)
 		if err != nil {
 			_ = auth.VerifyPasswordContext(r.Context(), password, s.dummy)
@@ -224,13 +228,9 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 			s.renderLoginFailure(w, r)
 			return
 		}
-	} else {
-		verified := auth.VerifyPasswordContext(r.Context(), password, user.PasswordHash)
-		if user.Disabled || !verified {
-			s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorID: user.ID, ActorName: user.Username, RemoteIP: ip})
-			s.renderLoginFailure(w, r)
-			return
-		}
+	default:
+		s.serverError(w, r, err)
+		return
 	}
 	token, err := auth.NewToken()
 	if err != nil {
@@ -283,7 +283,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) loginLDAP(r *http.Request, username, password, ip string) (store.User, error) {
 	if s.ldap == nil {
-		return store.User{}, pgx.ErrNoRows
+		return store.User{}, errLDAPUnavailable
 	}
 	identity, err := s.ldap.Authenticate(r.Context(), username, password)
 	if err != nil {
