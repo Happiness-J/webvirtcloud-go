@@ -42,7 +42,7 @@
     <input name="snapshot" placeholder="/dev/disk/by-id/usb-..." maxlength="256" required>
     <button class="btn" data-confirm="确定变更 USB 设备吗？">执行</button>
   </form>
-  <p class="hint">克隆要求虚拟机已关机，使用 virt-clone 自动生成新磁盘、UUID 和 MAC。迁移只接受 qemu+ssh 或 qemu+tls，避免把虚拟机迁移到未加密目标。USB 只接受 /dev 下的主机设备路径。</p>
+  <p class="hint">克隆要求虚拟机已关机，使用 virt-clone 自动生成新磁盘、UUID 和 MAC。迁移只接受 qemu+ssh 或 qemu+tls，避免把虚拟机迁移到未加密目标。USB 只接受 /dev 下的主机块设备，并挂到客户机的 sda。客户机里如果已经有 sda，请先卸载后再挂新设备。</p>
 </section>
 <section class="panel">
   <h2>磁盘容量</h2>

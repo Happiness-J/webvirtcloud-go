@@ -159,11 +159,10 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		if err := command.ValidateDevicePathPublic(snapshot); err != nil {
 			return nil, false, err
 		}
-		verb := "attach-disk"
 		if action == "usb-detach" {
-			verb = "detach-disk"
+			return []string{"detach-disk", vm, snapshot, "--live"}, true, nil
 		}
-		return []string{verb, vm, snapshot}, action == "usb-detach", nil
+		return []string{"attach-disk", vm, snapshot, "sda", "--targetbus", "usb", "--live"}, false, nil
 	case "snapshot-create", "snapshot-revert", "snapshot-delete", "backup-create", "backup-restore", "backup-delete":
 		if err := libvirt.ValidateName(snapshot); err != nil {
 			return nil, false, fmt.Errorf("恢复点名称无效")

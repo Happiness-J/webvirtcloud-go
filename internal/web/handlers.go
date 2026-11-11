@@ -1156,12 +1156,11 @@ func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 			usage = memoryUsagePercent(usedKiB, item.BalloonMaximum)
 			memory = fmt.Sprintf("%d%% · 已用 %s / 总计 %s", usage, formatKiB(usedKiB), formatKiB(item.BalloonMaximum))
 		}
-		disk := "磁盘容量不可用"
+		disk := "磁盘占用不可用"
 		if item.BlockCapacity > 0 && item.BlockAllocation <= item.BlockCapacity {
-			diskUsage := memoryUsagePercent(item.BlockAllocation, item.BlockCapacity)
-			disk = fmt.Sprintf("%d%% · 已分配 %s / 容量 %s", diskUsage, formatBytes(item.BlockAllocation), formatBytes(item.BlockCapacity))
+			disk = fmt.Sprintf("已写入 %s / 虚拟容量 %s", formatBytes(item.BlockAllocation), formatBytes(item.BlockCapacity))
 		}
-		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage})
+		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "自启动累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage})
 	}
 	return out
 }
