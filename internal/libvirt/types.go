@@ -117,6 +117,8 @@ type DomainResourceStats struct {
 	BalloonMaximum   uint64
 	BalloonAvailable uint64
 	BalloonUsable    uint64
+	BalloonUnused    uint64
+	BalloonRSS       uint64
 	CPUTimeNanos     uint64
 	BlockCapacity    uint64
 	BlockAllocation  uint64
