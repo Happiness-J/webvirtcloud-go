@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Host virtualization health checks using `virt-host-validate`, plus VM diagnostics for block-device errors, guest memory statistics, and recent libvirt events.
 - VM backup creation, restore, and deletion with explicit confirmation.
 - Desktop-user role with per-VM VNC console authorization for Windows and other graphical guests.
+- Desktop users now see only their assigned VMs and can open those consoles directly.
 - QEMU Guest Agent status on the VM diagnostics page.
 - Storage-pool capacity checks and virtual-network diagnostics, including DHCP lease inspection.
 - Direct restore and delete controls for existing VM snapshots.
