@@ -329,6 +329,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /hosts/{id}/command/catalog", s.protect("admin", s.commandCatalogAPI))
 	mux.Handle("GET /vms", s.protect("viewer", s.allVMsPage))
 	mux.Handle("GET /hosts/{id}/vms/{vm}", s.protect("viewer", s.vmPage))
+	mux.Handle("GET /hosts/{id}/vms/{vm}/screenshot", s.protect("viewer", s.vmScreenshot))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/action", s.protect("desktop", s.vmAction))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/disk-resize", s.protect("operator", s.vmDiskResize))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/resource", s.protect("operator", s.vmResourceAction))

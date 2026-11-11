@@ -189,3 +189,5 @@ details summary { cursor: pointer; color: var(--brand); }
   .command-editor { max-height: none; padding: 16px; }
   .parameter-row { grid-template-columns: 1fr; gap: 5px; }
 }
+
+.screenshot { display: block; width: min(100%, 960px); height: auto; border: 1px solid var(--line); border-radius: 10px; background: #101923; }

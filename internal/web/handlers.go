@@ -468,6 +468,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
 		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions,
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
+		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
@@ -1003,6 +1004,39 @@ func auditDetailText(detail map[string]any) string {
 
 func validRole(role string) bool {
 	return role == "admin" || role == "operator" || role == "desktop" || role == "viewer"
+}
+
+func (s *Server) vmScreenshot(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	vmName := r.PathValue("vm")
+	if err := libvirt.ValidateName(vmName); err != nil {
+		http.Error(w, "虚拟机名称无效", http.StatusBadRequest)
+		return
+	}
+	allowed, accessErr := s.canUseConsole(r, host.ID, vmName)
+	if accessErr != nil {
+		s.serverError(w, r, accessErr)
+		return
+	}
+	if !allowed {
+		http.Error(w, "当前账号没有该虚拟机的桌面授权", http.StatusForbidden)
+		return
+	}
+	data, err := s.libvirt.Screenshot(r.Context(), host.ID, vmName)
+	if err != nil {
+		s.logRequestError(r, "capture VM screenshot", err)
+		http.Error(w, "无法获取虚拟机截图", http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 func (s *Server) canUseConsole(r *http.Request, hostID, vmName string) (bool, error) {
