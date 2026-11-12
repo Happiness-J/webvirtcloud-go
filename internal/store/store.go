@@ -119,6 +119,14 @@ const (
 	jobQueueLock  int64 = 0x5756434A4F425155
 )
 
+// SystemUserIDPrefix reserves database-backed principal IDs used by bearer-token
+// API automation. These accounts cannot sign in and are hidden from user
+// management, but their IDs satisfy the jobs.user_id foreign key and make job
+// ownership/auditing deterministic across replicas and restarts.
+const SystemUserIDPrefix = "system:"
+
+func IsSystemUserID(id string) bool { return strings.HasPrefix(id, SystemUserIDPrefix) }
+
 const (
 	defaultMaxActiveJobsPerUser = 20
 	defaultMaxActiveJobs        = 200
@@ -621,7 +629,7 @@ func (s *Store) Migrate(ctx context.Context) error {
 
 func (s *Store) CountUsers(ctx context.Context) (int, error) {
 	var n int
-	err := s.pool.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&n)
+	err := s.pool.QueryRow(ctx, `SELECT count(*) FROM users WHERE id NOT LIKE 'system:%'`).Scan(&n)
 	return n, err
 }
 
@@ -640,6 +648,23 @@ func (s *Store) CreateUser(ctx context.Context, u User) error {
 	return err
 }
 
+// EnsureSystemUser creates or refreshes a disabled principal for a configured
+// bearer token. The account has no usable login path, is excluded from user
+// management, and only provides a durable user_id for jobs and audit records.
+func (s *Store) EnsureSystemUser(ctx context.Context, u User) error {
+	if !IsSystemUserID(u.ID) {
+		return fmt.Errorf("system user ID must use the %q prefix", SystemUserIDPrefix)
+	}
+	if !validUserRole(u.Role) {
+		return fmt.Errorf("invalid user role %q", u.Role)
+	}
+	_, err := s.pool.Exec(ctx, `INSERT INTO users(id, username, password_hash, role, disabled)
+		VALUES($1,$2,$3,$4,TRUE)
+		ON CONFLICT (id) DO UPDATE SET username=EXCLUDED.username, password_hash=EXCLUDED.password_hash,
+			role=EXCLUDED.role, disabled=TRUE, updated_at=now()`, u.ID, u.Username, u.PasswordHash, u.Role)
+	return err
+}
+
 // EnsureInitialAdmin creates the first administrator exactly once even when
 // multiple replicas start at the same time. The second replica returns false
 // and must not print or persist its locally generated password.
@@ -654,7 +679,7 @@ func (s *Store) EnsureInitialAdmin(ctx context.Context, u User) (bool, error) {
 		return false, err
 	}
 	var count int
-	if err := tx.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&count); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM users WHERE id NOT LIKE 'system:%'`).Scan(&count); err != nil {
 		return false, err
 	}
 	if count > 0 {
@@ -699,7 +724,7 @@ func (s *Store) ListUsersPage(ctx context.Context, offset, limit int) ([]User, e
 		offset = 0
 	}
 	rows, err := s.pool.Query(ctx, `SELECT id, username, '' AS password_hash, role, disabled, created_at, updated_at
-		FROM users ORDER BY username LIMIT $1 OFFSET $2`, limit, offset)
+		FROM users WHERE id NOT LIKE 'system:%' ORDER BY username LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -2165,7 +2190,8 @@ func validUserRole(role string) bool {
 
 func validJobKind(kind string) bool {
 	switch kind {
-	case "command", "vm-action", "host-test", "storage-action", "network-action", "disk-action", "vm-resource":
+	case "command", "vm-create", "vm-clone", "vm-action", "host-test", "filesystem-inspect",
+		"storage-action", "network-action", "disk-action", "vm-resource":
 		return true
 	default:
 		return false

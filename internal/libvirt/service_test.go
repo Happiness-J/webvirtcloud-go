@@ -124,6 +124,23 @@ func TestParseKiBValue(t *testing.T) {
 	}
 }
 
+func TestDomainFromInfoPopulatesResourceFields(t *testing.T) {
+	domain := domainFromInfo("web-01", map[string]string{
+		"Id":          "7",
+		"State":       "running",
+		"Autostart":   "enable",
+		"CPU(s)":      "4",
+		"Max memory":  "8388608 KiB",
+		"Used memory": "2097152 KiB",
+	})
+	if domain.Name != "web-01" || domain.ID != "7" || domain.State != "running" || domain.Autostart != "enable" {
+		t.Fatalf("unexpected identity fields: %#v", domain)
+	}
+	if domain.VCPUs != 4 || domain.MaxMemoryKiB != 8388608 || domain.UsedMemoryKiB != 2097152 {
+		t.Fatalf("unexpected resource fields: %#v", domain)
+	}
+}
+
 func TestValidateName(t *testing.T) {
 	for _, name := range []string{"--connect", ".", "..", " vm", "vm/one"} {
 		if err := ValidateName(name); err == nil {

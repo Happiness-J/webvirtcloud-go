@@ -120,6 +120,12 @@ type Config struct {
 	AuditRetention         time.Duration
 	AuditVerifyTimeout     time.Duration
 	MetricsToken           string
+	// APIToken authorizes read and routine virtual-machine lifecycle API
+	// requests as an operator. APIAdminToken additionally authorizes
+	// destructive delete operations. Keeping these separate from
+	// MetricsToken prevents a monitoring scraper from mutating infrastructure.
+	APIToken      string
+	APIAdminToken string
 	// AllowInsecureVNC is intentionally opt-in. VNC itself has no transport
 	// encryption, so qemu+tcp/qemu+tls consoles are rejected by default.
 	AllowInsecureVNC bool
@@ -175,6 +181,8 @@ func Load() (Config, error) {
 	cfg.LogFormat = strings.ToLower(env("WVC_LOG_FORMAT", "text"))
 	cfg.TrustedProxyCIDRs = csvEnv("WVC_TRUSTED_PROXY_CIDRS", []string{"127.0.0.0/8", "::1/128"})
 	cfg.MetricsToken = os.Getenv("WVC_METRICS_TOKEN")
+	cfg.APIToken = os.Getenv("WVC_API_TOKEN")
+	cfg.APIAdminToken = os.Getenv("WVC_API_ADMIN_TOKEN")
 	cfg.ConsoleLoopbackAddress = env("WVC_CONSOLE_LOOPBACK_ADDRESS", "")
 	cfg.LDAPURL = env("WVC_LDAP_URL", "")
 	cfg.LDAPBindDN = env("WVC_LDAP_BIND_DN", "")
@@ -376,14 +384,41 @@ func Load() (Config, error) {
 	if cfg.LogFormat != "text" && cfg.LogFormat != "json" {
 		return Config{}, fmt.Errorf("WVC_LOG_FORMAT must be text or json")
 	}
-	if cfg.MetricsToken != "" {
-		if len(cfg.MetricsToken) < 32 || len(cfg.MetricsToken) > 512 || strings.IndexFunc(cfg.MetricsToken, func(r rune) bool {
-			return unicode.IsSpace(r) || unicode.IsControl(r) || r > unicode.MaxASCII
-		}) >= 0 {
-			return Config{}, fmt.Errorf("WVC_METRICS_TOKEN must be 32-512 printable bytes when set")
+	tokenValues := []struct {
+		name  string
+		value string
+	}{
+		{"WVC_METRICS_TOKEN", cfg.MetricsToken},
+		{"WVC_API_TOKEN", cfg.APIToken},
+		{"WVC_API_ADMIN_TOKEN", cfg.APIAdminToken},
+	}
+	seenTokens := make(map[string]string, len(tokenValues))
+	for _, item := range tokenValues {
+		name, token := item.name, item.value
+		if err := validateBearerToken(name, token); err != nil {
+			return Config{}, err
 		}
+		if token == "" {
+			continue
+		}
+		if previous, exists := seenTokens[token]; exists {
+			return Config{}, fmt.Errorf("%s must not reuse the token configured in %s", name, previous)
+		}
+		seenTokens[token] = name
 	}
 	return cfg, nil
+}
+
+func validateBearerToken(name, value string) error {
+	if value == "" {
+		return nil
+	}
+	if len(value) < 32 || len(value) > 512 || strings.IndexFunc(value, func(r rune) bool {
+		return unicode.IsSpace(r) || unicode.IsControl(r) || r > unicode.MaxASCII
+	}) >= 0 {
+		return fmt.Errorf("%s must be 32-512 printable ASCII bytes when set", name)
+	}
+	return nil
 }
 
 func validateListenAddress(value string) error {

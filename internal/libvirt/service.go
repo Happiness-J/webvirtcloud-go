@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -144,16 +145,21 @@ func (s *Service) ListDomains(ctx context.Context, hostID string) ([]Domain, err
 		name := validNames[i]
 		info, infoErr := s.DomainInfo(ctx, hostID, name)
 		if infoErr == nil {
-			domains[i].ID = info["Id"]
-			domains[i].State = info["State"]
-			domains[i].Autostart = info["Autostart"]
-			domains[i].VCPUs, _ = strconv.Atoi(info["CPU(s)"])
-			domains[i].MaxMemoryKiB = parseKiBValue(info["Max memory"])
-			domains[i].UsedMemoryKiB = parseKiBValue(info["Used memory"])
+			domains[i] = domainFromInfo(name, info)
 		}
 	})
 	return domains, nil
 }
+
+func domainFromInfo(name string, info map[string]string) Domain {
+	domain := Domain{Name: name, ID: info["Id"], State: info["State"], Autostart: info["Autostart"]}
+	domain.VCPUs, _ = strconv.Atoi(info["CPU(s)"])
+	domain.MaxMemoryKiB = parseKiBValue(info["Max memory"])
+	domain.UsedMemoryKiB = parseKiBValue(info["Used memory"])
+	return domain
+}
+
+var ErrDomainNotFound = errors.New("virtual machine not found")
 
 func (s *Service) DomainInfo(ctx context.Context, hostID, name string) (map[string]string, error) {
 	if err := ValidateName(name); err != nil {
@@ -161,7 +167,11 @@ func (s *Service) DomainInfo(ctx context.Context, hostID, name string) (map[stri
 	}
 	res, err := s.run(ctx, hostID, []string{"dominfo", name}, 10*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+		output := strings.TrimSpace(res.Output())
+		if strings.Contains(output, "failed to get domain") {
+			return nil, fmt.Errorf("%w: %s", ErrDomainNotFound, output)
+		}
+		return nil, fmt.Errorf("%w: %s", err, output)
 	}
 	return ParseKeyValue(res.Stdout), nil
 }
@@ -317,8 +327,7 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 		return detail, infoErr
 	}
 	detail.Info = info
-	detail.Domain.State = info["State"]
-	detail.Domain.ID = info["Id"]
+	detail.Domain = domainFromInfo(name, info)
 	var blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr, addressErr error
 	var wg sync.WaitGroup
 	wg.Add(8)

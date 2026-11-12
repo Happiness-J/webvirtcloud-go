@@ -17,7 +17,7 @@ var configEnvKeys = []string{
 	"WVC_LOGIN_IP_MAX_FAILURES",
 	"WVC_LOGIN_GLOBAL_MAX_FAILURES", "WVC_ARGON2_CONCURRENCY", "WVC_JOB_RETENTION",
 	"WVC_AUDIT_RETENTION", "WVC_ALLOW_INSECURE_VNC", "WVC_LOG_LEVEL", "WVC_LOG_FORMAT",
-	"WVC_ALLOW_INSECURE_CONSOLE", "WVC_METRICS_TOKEN", "WVC_CONSOLE_LOOPBACK_ADDRESS", "WVC_AUDIT_VERIFY_TIMEOUT",
+	"WVC_ALLOW_INSECURE_CONSOLE", "WVC_METRICS_TOKEN", "WVC_API_TOKEN", "WVC_API_ADMIN_TOKEN", "WVC_CONSOLE_LOOPBACK_ADDRESS", "WVC_AUDIT_VERIFY_TIMEOUT",
 	"WVC_LOCAL_IMAGE_DIR",
 }
 
@@ -41,7 +41,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.MaxSessionsPerUser != DefaultMaxSessionsPerUser {
 		t.Fatalf("MaxSessionsPerUser = %d, want %d", cfg.MaxSessionsPerUser, DefaultMaxSessionsPerUser)
 	}
-	if cfg.MetricsToken != "" || cfg.AllowInsecureVNC || cfg.AllowInsecureConsole {
+	if cfg.MetricsToken != "" || cfg.APIToken != "" || cfg.APIAdminToken != "" || cfg.AllowInsecureVNC || cfg.AllowInsecureConsole {
 		t.Fatal("secure-by-default options are not secure")
 	}
 	if cfg.ImageDir != "/var/lib/libvirt/images" {
@@ -66,6 +66,28 @@ func TestLoadRequiresDatabaseURL(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsWeakAPIToken(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("WVC_DATABASE_URL", "postgres://wvc:test-only@127.0.0.1:5432/wvc?sslmode=disable")
+	t.Setenv("WVC_API_TOKEN", "too-short")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "WVC_API_TOKEN") {
+		t.Fatalf("Load() error = %v, want weak WVC_API_TOKEN rejection", err)
+	}
+}
+
+func TestLoadRejectsReusedAPIToken(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("WVC_DATABASE_URL", "postgres://wvc:test-only@127.0.0.1:5432/wvc?sslmode=disable")
+	shared := strings.Repeat("x", 32)
+	t.Setenv("WVC_METRICS_TOKEN", shared)
+	t.Setenv("WVC_API_ADMIN_TOKEN", shared)
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "must not reuse") {
+		t.Fatalf("Load() error = %v, want reused token rejection", err)
+	}
+}
+
 func TestLoadValidOverrides(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("WVC_DATABASE_URL", "postgres://wvc:test-only@127.0.0.1:5432/wvc?sslmode=disable")
@@ -81,6 +103,8 @@ func TestLoadValidOverrides(t *testing.T) {
 	t.Setenv("WVC_TRUST_PROXY", "true")
 	t.Setenv("WVC_TRUSTED_PROXY_CIDRS", "10.0.0.0/8, 2001:db8::1")
 	t.Setenv("WVC_METRICS_TOKEN", strings.Repeat("x", 32))
+	t.Setenv("WVC_API_TOKEN", strings.Repeat("y", 32))
+	t.Setenv("WVC_API_ADMIN_TOKEN", strings.Repeat("z", 32))
 	t.Setenv("WVC_CONSOLE_LOOPBACK_ADDRESS", "host.docker.internal")
 	t.Setenv("WVC_AUDIT_VERIFY_TIMEOUT", "45m")
 	t.Setenv("WVC_ALLOW_INSECURE_CONSOLE", "true")
@@ -107,6 +131,9 @@ func TestLoadValidOverrides(t *testing.T) {
 	}
 	if !cfg.AllowInsecureConsole {
 		t.Fatal("WVC_ALLOW_INSECURE_CONSOLE override was not applied")
+	}
+	if cfg.APIToken != strings.Repeat("y", 32) || cfg.APIAdminToken != strings.Repeat("z", 32) {
+		t.Fatal("API token overrides were not applied")
 	}
 	if cfg.ImageDir != "/srv/libvirt/images" {
 		t.Fatalf("ImageDir override = %q", cfg.ImageDir)

@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Versioned OpenAPI 0.4.0 contract with operator-scoped VM creation/lifecycle endpoints, admin-scoped VM deletion, structured errors, and asynchronous job polling.
+- Separate read-only, operator, and admin API bearer tokens with startup validation that prevents cross-scope token reuse.
+- Dedicated VM deletion danger zone with exact-name confirmation, and direct VM management entry points from the dashboard.
+- VM creation from the API or web UI can create a blank-disk VM without an active network or installation ISO.
 - Per-host operations workbench with host CPU/memory measurements, per-domain balloon/vCPU statistics, state-aware bulk lifecycle controls, autostart policy changes, and persisted/online vCPU and memory tuning.
 - Host virtualization health checks using `virt-host-validate`, plus VM diagnostics for block-device errors, guest memory statistics, and recent libvirt events.
 - VM backup creation, restore, and deletion with explicit confirmation.
@@ -49,6 +53,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Updated Go dependencies to current compatible patch/minor releases.
 - The native Ubuntu installer is now repository-relative and no longer contains machine-specific paths.
 - VM lifecycle actions now follow the current power state, and console links are only shown for running consoles.
+- VM deletion is separated from ordinary power actions and removes libvirt metadata/NVRAM while retaining disks unless storage removal is explicitly requested.
+- USB attachment now selects the next free guest disk target, and detach validates target names instead of treating them as host device paths.
 - The command center limits its initial rendered list and correctly discovers current virsh and qemu-img help formats.
 - Audit details, stopped-VM console errors, job timestamps, favicon handling, and dashboard tool-list density were corrected.
 - noVNC now refuses insecure HTTP contexts with a clear message instead of reporting a false connected state.

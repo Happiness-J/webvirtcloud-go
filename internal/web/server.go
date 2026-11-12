@@ -71,6 +71,12 @@ type commandDiscoveryEntry struct {
 
 const sessionTouchWorkers = 8
 
+const (
+	apiAdminUserID    = store.SystemUserIDPrefix + "api-admin"
+	apiOperatorUserID = store.SystemUserIDPrefix + "api-operator"
+	apiMetricsUserID  = store.SystemUserIDPrefix + "api-metrics"
+)
+
 type pageData struct {
 	Title     string
 	Nav       string
@@ -141,6 +147,9 @@ func New(cfg config.Config, db *store.Store, cipher *secret.Cipher, runner *comm
 		consoleBackends: make(map[*console.Backend]struct{}),
 		touchSlots:      make(chan struct{}, sessionTouchWorkers),
 		catalogCache:    make(map[string]*commandDiscoveryEntry),
+	}
+	if err := s.ensureAPIPrincipals(context.Background()); err != nil {
+		return nil, err
 	}
 	s.proxy = console.NewProxy(tokens, cfg.TrustProxy, s.isTrustedProxy)
 	s.http = &http.Server{
@@ -341,6 +350,12 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.HandleFunc("GET /metrics", s.metrics)
+	mux.HandleFunc("GET /api/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/openapi.yaml", http.StatusPermanentRedirect)
+	})
+	mux.HandleFunc("GET /api/docs", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/v1", http.StatusSeeOther)
+	})
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/favicon.svg", http.StatusPermanentRedirect)
 	})
@@ -383,8 +398,13 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /api/v1/hosts", s.protect("viewer", s.apiHosts))
 	mux.Handle("GET /hosts/{id}/vms/new", s.protect("operator", s.vmCreatePage))
 	mux.Handle("POST /hosts/{id}/vms/new", s.protect("operator", s.vmCreate))
+	mux.Handle("POST /api/v1/hosts/{id}/vms", s.protect("operator", s.apiVMCreate))
 	mux.Handle("GET /api/v1/hosts/{id}/vms", s.protect("viewer", s.apiHostVMs))
 	mux.Handle("GET /api/v1/hosts/{id}/vms/{vm}", s.protect("viewer", s.apiVM))
+	mux.Handle("GET /api/v1/hosts/{id}/vms/{vm}/snapshots", s.protect("viewer", s.apiVMSnapshots))
+	mux.Handle("POST /api/v1/hosts/{id}/vms/{vm}/actions", s.protect("operator", s.apiVMAction))
+	mux.Handle("DELETE /api/v1/hosts/{id}/vms/{vm}", s.protect("admin", s.apiVMDelete))
+	mux.Handle("GET /api/v1/jobs/{id}", s.protect("viewer", s.jobAPI))
 	mux.Handle("GET /api/v1/resources", s.protect("viewer", s.apiResources))
 	mux.Handle("GET /audit", s.protect("operator", s.auditPage))
 	mux.Handle("GET /users", s.protect("admin", s.usersPage))
@@ -638,16 +658,24 @@ func sessionFrom(ctx context.Context) (store.Session, bool) {
 
 func (s *Server) protect(role string, next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/") && s.authorizeAPIToken(r) {
-			roleUser := store.User{ID: "api-token", Username: "api-token", Role: "viewer"}
-			ctx := context.WithValue(r.Context(), sessionKey{}, store.Session{User: roleUser})
+		if isAPIV1Path(r.URL.Path) && bearerTokenPresent(r) {
+			user, ok := s.apiTokenIdentity(r)
+			if !ok {
+				writeAPIError(w, r, http.StatusUnauthorized, "invalid_api_token", "Bearer token is invalid")
+				return
+			}
+			if !roleAllowed(user.Role, role) {
+				writeAPIError(w, r, http.StatusForbidden, "insufficient_scope", "Bearer token does not grant the required scope")
+				return
+			}
+			ctx := context.WithValue(r.Context(), sessionKey{}, store.Session{User: user})
 			next(w, r.WithContext(ctx))
 			return
 		}
 		sess, ok := sessionFrom(r.Context())
 		if !ok {
-			if strings.HasPrefix(r.URL.Path, "/api/") {
-				writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			if isAPIV1Path(r.URL.Path) {
+				writeAPIError(w, r, http.StatusUnauthorized, "authentication_required", "Authentication is required")
 				return
 			}
 			s.redirectLogin(w, r)
@@ -656,18 +684,34 @@ func (s *Server) protect(role string, next http.HandlerFunc) http.Handler {
 		if !roleAllowed(sess.User.Role, role) {
 			s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username,
 				Action: "authz.denied", RemoteIP: s.clientIP(r), Detail: map[string]any{"method": r.Method, "path": r.URL.Path, "required": role}})
+			if isAPIV1Path(r.URL.Path) {
+				writeAPIError(w, r, http.StatusForbidden, "insufficient_scope", "The current account does not grant the required scope")
+				return
+			}
 			s.renderError(w, r, http.StatusForbidden, "权限不足", "当前账号没有执行此操作的权限。")
 			return
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024)
 			if err := r.ParseForm(); err != nil {
+				if isAPIV1Path(r.URL.Path) {
+					writeAPIError(w, r, http.StatusBadRequest, "invalid_request", "Could not parse the request")
+					return
+				}
 				s.renderError(w, r, http.StatusBadRequest, "请求无效", "无法解析提交的数据。")
 				return
 			}
-			if subtle.ConstantTimeCompare([]byte(r.Form.Get("_csrf")), []byte(sess.CSRFToken)) != 1 {
+			csrfToken := r.Form.Get("_csrf")
+			if csrfToken == "" {
+				csrfToken = r.Header.Get("X-CSRF-Token")
+			}
+			if subtle.ConstantTimeCompare([]byte(csrfToken), []byte(sess.CSRFToken)) != 1 {
 				s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username,
 					Action: "authz.csrf_failed", RemoteIP: s.clientIP(r), Detail: map[string]any{"method": r.Method, "path": r.URL.Path}})
+				if isAPIV1Path(r.URL.Path) {
+					writeAPIError(w, r, http.StatusForbidden, "csrf_failed", "CSRF token is missing or invalid")
+					return
+				}
 				s.renderError(w, r, http.StatusForbidden, "CSRF 校验失败", "页面已过期，请刷新后重试。")
 				return
 			}
@@ -854,14 +898,77 @@ func (s *Server) readinessDependencies(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) authorizeAPIToken(r *http.Request) bool {
-	if s.cfg.MetricsToken == "" {
-		return false
+func isAPIV1Path(path string) bool {
+	return path == "/api/v1" || strings.HasPrefix(path, "/api/v1/")
+}
+
+func bearerTokenPresent(r *http.Request) bool {
+	return strings.HasPrefix(strings.TrimSpace(r.Header.Get("Authorization")), "Bearer ")
+}
+
+func (s *Server) ensureAPIPrincipals(ctx context.Context) error {
+	principals := []struct {
+		token string
+		user  store.User
+	}{
+		{s.cfg.APIAdminToken, store.User{ID: apiAdminUserID, Username: apiAdminUserID, Role: "admin", Disabled: true}},
+		{s.cfg.APIToken, store.User{ID: apiOperatorUserID, Username: apiOperatorUserID, Role: "operator", Disabled: true}},
+		{s.cfg.MetricsToken, store.User{ID: apiMetricsUserID, Username: apiMetricsUserID, Role: "viewer", Disabled: true}},
 	}
+	configured := false
+	for _, principal := range principals {
+		if principal.token != "" {
+			configured = true
+			break
+		}
+	}
+	if !configured {
+		return nil
+	}
+	passwordHash, err := auth.HashPassword(mustRandomPassword())
+	if err != nil {
+		return fmt.Errorf("create API principal credential: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	for _, principal := range principals {
+		if principal.token == "" {
+			continue
+		}
+		principal.user.PasswordHash = passwordHash
+		if err := s.db.EnsureSystemUser(ctx, principal.user); err != nil {
+			return fmt.Errorf("ensure API principal %s: %w", principal.user.Username, err)
+		}
+	}
+	return nil
+}
+
+// apiTokenIdentity maps a configured bearer token to a least-privilege API
+// identity. The metrics token remains read-only, the operator token can create
+// and run lifecycle jobs, and the admin token is the only token that can call
+// destructive API routes. Tokens are compared by hash in constant time.
+func (s *Server) apiTokenIdentity(r *http.Request) (store.User, bool) {
 	provided := strings.TrimSpace(r.Header.Get("Authorization"))
 	const prefix = "Bearer "
 	if !strings.HasPrefix(provided, prefix) {
-		return false
+		return store.User{}, false
 	}
-	return subtle.ConstantTimeCompare([]byte(auth.TokenHash(strings.TrimPrefix(provided, prefix))), []byte(auth.TokenHash(s.cfg.MetricsToken))) == 1
+	providedHash := []byte(auth.TokenHash(strings.TrimPrefix(provided, prefix)))
+	candidates := []struct {
+		token string
+		user  store.User
+	}{
+		{s.cfg.APIAdminToken, store.User{ID: apiAdminUserID, Username: apiAdminUserID, Role: "admin"}},
+		{s.cfg.APIToken, store.User{ID: apiOperatorUserID, Username: apiOperatorUserID, Role: "operator"}},
+		{s.cfg.MetricsToken, store.User{ID: apiMetricsUserID, Username: apiMetricsUserID, Role: "viewer"}},
+	}
+	for _, candidate := range candidates {
+		if candidate.token == "" {
+			continue
+		}
+		if subtle.ConstantTimeCompare(providedHash, []byte(auth.TokenHash(candidate.token))) == 1 {
+			return candidate.user, true
+		}
+	}
+	return store.User{}, false
 }

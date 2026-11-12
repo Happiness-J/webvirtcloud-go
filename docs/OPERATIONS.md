@@ -230,11 +230,11 @@ Set `WVC_LDAP_ENABLED=true` with `WVC_LDAP_URL`, `WVC_LDAP_BASE_DN`, and `WVC_LD
 
 Operators can clone a shut-off VM with `virt-clone`, migrate a running VM to a `qemu+ssh` or `qemu+tls` destination, and attach or detach a host USB disk by its `/dev` path. These actions are asynchronous jobs and appear in the audit log.
 
-`GET /api/v1/hosts`, `GET /api/v1/hosts/{id}/vms`, and `GET /api/v1/hosts/{id}/vms/{vm}` provide read-only inventory for external automation. They use the same session authentication and VM authorization as the web UI and do not return host URIs, passwords, or VNC credentials.
+`GET /api/v1/hosts`, `GET /api/v1/hosts/{id}/vms`, and `GET /api/v1/hosts/{id}/vms/{vm}` provide inventory for external automation. They use session authentication or a Bearer token and do not return host URIs, passwords, or VNC credentials.
 
 The same routes and libvirt operations are available in native and container deployments. A container cannot see a USB device or disk filesystem unless that host path is deliberately mounted into the container and permitted by its device policy.
 
 
 The storage page reports the disk container type visible to libvirt. Formats such as ext4, xfs, NTFS, and ZFS live inside guest partitions, so they are not guessed from the storage-pool file alone. ISO images are identified as ISO 9660 installation media.
 
-External automation can call the read-only `/api/v1` endpoints with `Authorization: Bearer <WVC_METRICS_TOKEN>`. The token has viewer scope and never returns host connection URIs or console passwords. Browser sessions continue to work unchanged.
+External automation can call `/api/v1` with `Authorization: Bearer <token>`. `WVC_METRICS_TOKEN` is a read-only token. `WVC_API_TOKEN` adds VM creation and lifecycle jobs. `WVC_API_ADMIN_TOKEN` additionally allows deleting stopped VM definitions. Mutating calls return HTTP 202 with a job ID; poll `GET /api/v1/jobs/{jobID}` until the job reaches a terminal state. The OpenAPI document is available at `/static/openapi.yaml` (and `/api/openapi.yaml` redirects there).

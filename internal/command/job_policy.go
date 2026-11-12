@@ -388,9 +388,24 @@ func validateVMActionArgs(args []string) error {
 		return fmt.Errorf("虚拟机名称无效: %w", err)
 	}
 	switch args[0] {
-	case "start", "shutdown", "reboot", "destroy", "suspend", "resume", "undefine":
+	case "start", "shutdown", "reboot", "destroy", "suspend", "resume":
 		if len(args) != 2 {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
+		}
+	case "undefine":
+		if len(args) < 2 {
+			return fmt.Errorf("虚拟机删除参数数量不正确")
+		}
+		allowed := map[string]bool{
+			"--snapshots-metadata": true, "--checkpoints-metadata": true,
+			"--nvram": true, "--remove-all-storage": true,
+		}
+		seen := make(map[string]bool, len(args)-2)
+		for _, flag := range args[2:] {
+			if !allowed[flag] || seen[flag] {
+				return fmt.Errorf("虚拟机删除参数不正确")
+			}
+			seen[flag] = true
 		}
 	case "snapshot-create-as", "snapshot-revert", "snapshot-delete", "checkpoint-delete":
 		if len(args) != 3 {
@@ -407,17 +422,20 @@ func validateVMActionArgs(args []string) error {
 			return fmt.Errorf("检查点名称无效: %w", err)
 		}
 	case "attach-disk":
-		if len(args) != 7 || args[3] != "sda" || args[4] != "--targetbus" || args[5] != "usb" || args[6] != "--live" {
+		if len(args) != 7 || args[4] != "--targetbus" || args[5] != "usb" || args[6] != "--live" {
 			return fmt.Errorf("USB 挂载参数不正确")
 		}
 		if err := ValidateDevicePathPublic(args[2]); err != nil {
+			return err
+		}
+		if err := ValidateDiskTargetPublic(args[3]); err != nil {
 			return err
 		}
 	case "detach-disk":
 		if len(args) != 4 || args[3] != "--live" {
 			return fmt.Errorf("USB 卸载参数不正确")
 		}
-		if err := ValidateDevicePathPublic(args[2]); err != nil {
+		if err := ValidateDiskTargetPublic(args[2]); err != nil {
 			return err
 		}
 	case "migrate":
@@ -478,6 +496,32 @@ func ValidateDevicePathPublic(value string) error {
 	return nil
 }
 
+// ValidateDiskTargetPublic accepts a guest-visible disk target such as sda,
+// vdb or xvdc. It deliberately rejects paths and option-like values because
+// virsh detach-disk treats its third argument as a target, not a host path.
+func ValidateDiskTargetPublic(value string) error {
+	if len(value) < 3 || len(value) > 16 || strings.TrimSpace(value) != value {
+		return fmt.Errorf("磁盘目标无效")
+	}
+	lower := strings.ToLower(value)
+	prefixLength := 0
+	for _, prefix := range []string{"xvd", "sd", "vd", "hd"} {
+		if strings.HasPrefix(lower, prefix) {
+			prefixLength = len(prefix)
+			break
+		}
+	}
+	if prefixLength == 0 || prefixLength == len(lower) {
+		return fmt.Errorf("磁盘目标无效")
+	}
+	for _, letter := range lower[prefixLength:] {
+		if letter < 'a' || letter > 'z' {
+			return fmt.Errorf("磁盘目标无效")
+		}
+	}
+	return nil
+}
+
 func ValidateMigrationURIPublic(value string) error {
 	if value == "" || strings.ContainsAny(value, " \t\r\n") || !(strings.HasPrefix(value, "qemu+ssh://") || strings.HasPrefix(value, "qemu+tls://")) {
 		return fmt.Errorf("迁移目标必须使用 qemu+ssh 或 qemu+tls")
@@ -486,14 +530,10 @@ func ValidateMigrationURIPublic(value string) error {
 }
 
 func validateVMCreateArgs(args []string) error {
-	expected := []string{"--name", "--vcpus", "--memory", "--disk", "--network", "--osinfo", "--noautoconsole"}
-	if len(args) != len(expected)*2 && len(args) != len(expected)*2+2 {
-		return fmt.Errorf("创建虚拟机参数数量不正确")
-	}
-	for i, flag := range expected {
-		if args[i*2] != flag {
-			return fmt.Errorf("创建虚拟机参数不正确")
-		}
+	if len(args) < 14 || args[0] != "--name" || args[2] != "--vcpus" || args[4] != "--memory" ||
+		args[6] != "--disk" || args[8] != "--osinfo" || args[10] != "--graphics" ||
+		args[11] != "vnc,listen=127.0.0.1" || args[12] != "--noautoconsole" {
+		return fmt.Errorf("创建虚拟机参数不正确")
 	}
 	if err := validateActionOperand(args[1]); err != nil {
 		return fmt.Errorf("虚拟机名称无效")
@@ -506,16 +546,36 @@ func validateVMCreateArgs(args []string) error {
 	if err != nil || memory < 256 || memory > 1048576 {
 		return fmt.Errorf("内存参数无效")
 	}
-	if !strings.HasPrefix(args[7], "size=") || !strings.HasSuffix(args[7], ",format=qcow2") {
+	diskSize, diskFormat, ok := strings.Cut(strings.TrimPrefix(args[7], "size="), ",format=")
+	diskGB, diskErr := strconv.Atoi(diskSize)
+	if !strings.HasPrefix(args[7], "size=") || !ok || diskFormat != "qcow2" || diskErr != nil || diskGB < 1 || diskGB > 10000 {
 		return fmt.Errorf("磁盘参数无效")
 	}
-	network, ok := strings.CutPrefix(args[9], "network=")
-	if !ok || network == "" || strings.ContainsAny(network, " \t\r\n") || args[11] != "generic" {
-		return fmt.Errorf("网络或系统参数无效")
+	osVariant := args[9]
+	if len(osVariant) == 0 || len(osVariant) > 128 || strings.IndexFunc(osVariant, func(r rune) bool {
+		return !(r == '.' || r == '_' || r == '-' || r >= '0' && r <= '9' || r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z')
+	}) >= 0 {
+		return fmt.Errorf("系统参数无效")
 	}
-	if len(args) == len(expected)*2+2 {
-		if args[14] != "--cdrom" || !strings.HasPrefix(args[15], "/") || strings.Contains(args[15], "..") || !strings.HasSuffix(strings.ToLower(args[15]), ".iso") {
+	index := 13
+	switch args[index] {
+	case "--cdrom":
+		if len(args) <= index+1 || !strings.HasPrefix(args[index+1], "/") || strings.Contains(args[index+1], "..") || !strings.HasSuffix(strings.ToLower(args[index+1]), ".iso") {
 			return fmt.Errorf("安装 ISO 路径无效")
+		}
+		index += 2
+	case "--import":
+		index++
+	default:
+		return fmt.Errorf("创建方式无效")
+	}
+	if index < len(args) {
+		if len(args) != index+2 || args[index] != "--network" {
+			return fmt.Errorf("网络参数无效")
+		}
+		network, ok := strings.CutPrefix(args[index+1], "network=")
+		if !ok || validateActionOperand(network) != nil {
+			return fmt.Errorf("网络参数无效")
 		}
 	}
 	return nil

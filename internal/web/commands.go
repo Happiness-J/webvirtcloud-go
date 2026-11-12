@@ -136,7 +136,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 	case "destroy":
 		return []string{"destroy", vm}, true, nil
 	case "suspend":
-		return []string{"suspend", vm}, false, nil
+		return []string{"suspend", vm}, true, nil
 	case "resume":
 		return []string{"resume", vm}, false, nil
 	case "autostart-on":
@@ -155,14 +155,11 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 			return nil, true, err
 		}
 		return []string{"migrate", vm, "--live", snapshot}, true, nil
-	case "usb-attach", "usb-detach":
-		if err := command.ValidateDevicePathPublic(snapshot); err != nil {
+	case "usb-detach":
+		if err := command.ValidateDiskTargetPublic(snapshot); err != nil {
 			return nil, false, err
 		}
-		if action == "usb-detach" {
-			return []string{"detach-disk", vm, snapshot, "--live"}, true, nil
-		}
-		return []string{"attach-disk", vm, snapshot, "sda", "--targetbus", "usb", "--live"}, false, nil
+		return []string{"detach-disk", vm, snapshot, "--live"}, true, nil
 	case "snapshot-create", "snapshot-revert", "snapshot-delete", "backup-create", "backup-restore", "backup-delete":
 		if err := libvirt.ValidateName(snapshot); err != nil {
 			return nil, false, fmt.Errorf("恢复点名称无效")
@@ -184,6 +181,20 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 	default:
 		return nil, false, fmt.Errorf("未知操作")
 	}
+}
+
+func nextDiskTarget(devices []libvirt.BlockDevice) (string, error) {
+	used := make(map[string]bool, len(devices))
+	for _, device := range devices {
+		used[strings.ToLower(device.Target)] = true
+	}
+	for letter := byte('a'); letter <= byte('z'); letter++ {
+		target := "sd" + string(letter)
+		if !used[target] {
+			return target, nil
+		}
+	}
+	return "", fmt.Errorf("客户机没有可用的 sd 盘符，请先在客户机内释放一个磁盘目标")
 }
 
 func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
@@ -211,25 +222,51 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
-	args, destructive, err := actionArgs(action, vmName, operand)
-	if err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
-		return
+	var args []string
+	var destructive bool
+	if action == "usb-attach" {
+		if err := command.ValidateDevicePathPublic(operand); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
+			return
+		}
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "无法读取虚拟机磁盘设备")
+			return
+		}
+		target, targetErr := nextDiskTarget(detail.BlockList)
+		if targetErr != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), targetErr.Error())
+			return
+		}
+		args = []string{"attach-disk", vmName, operand, target, "--targetbus", "usb", "--live"}
+	} else {
+		args, destructive, err = actionArgs(action, vmName, operand)
+		if err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
+			return
+		}
 	}
 	tool := "virsh"
 	kind := "vm-action"
-	if action == "clone" {
+	if action == "clone" || action == "migrate" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "无法确认虚拟机状态")
 			return
 		}
-		if detail.Domain.State != "shut off" {
+		if action == "clone" && detail.Domain.State != "shut off" {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "请先关闭虚拟机再克隆，避免复制到不一致的磁盘")
 			return
 		}
-		tool = "virt-clone"
-		kind = "vm-clone"
+		if action == "migrate" && detail.Domain.State != "running" && detail.Domain.State != "paused" {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "在线迁移只适用于运行中或已挂起的虚拟机")
+			return
+		}
+		if action == "clone" {
+			tool = "virt-clone"
+			kind = "vm-clone"
+		}
 	}
 	minimumRole, err := command.JobMinimumRole(kind, tool, args)
 	if err != nil {
@@ -244,9 +281,13 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "该操作需要显式确认")
 		return
 	}
+	if action == "undefine" && r.Form.Get("confirm_name") != vmName {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "删除虚拟机时必须输入完整虚拟机名称")
+		return
+	}
 	label := fmt.Sprintf("%s: %s", vmName, action)
 	timeout := 300
-	if action == "clone" {
+	if action == "clone" || action == "migrate" {
 		timeout = 3600
 	}
 	jobID, err := s.enqueueCommand(r, sess.User, host.ID, kind, label, tool, args, "", timeout)
@@ -619,15 +660,27 @@ func (s *Server) jobAPI(w http.ResponseWriter, r *http.Request) {
 	job, err := s.db.GetJob(r.Context(), r.PathValue("id"))
 	if err != nil {
 		if store.IsNotFound(err) {
-			writeJSONError(w, http.StatusNotFound, "job not found")
+			if isAPIV1Path(r.URL.Path) {
+				writeAPIError(w, r, http.StatusNotFound, "job_not_found", "Job not found")
+			} else {
+				writeJSONError(w, http.StatusNotFound, "job not found")
+			}
 		} else {
 			s.log.Error("load job API", "job_id", r.PathValue("id"), "error", err)
-			writeJSONError(w, http.StatusInternalServerError, "internal server error")
+			if isAPIV1Path(r.URL.Path) {
+				writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the job")
+			} else {
+				writeJSONError(w, http.StatusInternalServerError, "internal server error")
+			}
 		}
 		return
 	}
 	if !s.canAccessJob(sess.User, job) {
-		writeJSONError(w, http.StatusForbidden, "forbidden")
+		if isAPIV1Path(r.URL.Path) {
+			writeAPIError(w, r, http.StatusForbidden, "forbidden", "The current API identity cannot access this job")
+		} else {
+			writeJSONError(w, http.StatusForbidden, "forbidden")
+		}
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

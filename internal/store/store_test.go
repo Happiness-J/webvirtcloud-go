@@ -1528,6 +1528,21 @@ func TestEnqueueJobRejectsUnknownKind(t *testing.T) {
 	}
 }
 
+func TestValidJobKindIncludesEveryQueuedOperation(t *testing.T) {
+	kinds := []string{
+		"command", "vm-create", "vm-clone", "vm-action", "host-test", "filesystem-inspect",
+		"storage-action", "network-action", "disk-action", "vm-resource",
+	}
+	for _, kind := range kinds {
+		if !validJobKind(kind) {
+			t.Errorf("validJobKind(%q) = false", kind)
+		}
+	}
+	if validJobKind("unknown") {
+		t.Fatal("unknown job kind was accepted")
+	}
+}
+
 func TestAuditChainRejectsLegacyDowngrade(t *testing.T) {
 	db := newTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

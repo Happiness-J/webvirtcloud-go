@@ -1,28 +1,73 @@
 {{define "content"}}
-<div class="page-head"><div><h1>OpenAPI</h1><p class="muted">外部系统只读对接。浏览器登录后可直接打开链接；脚本使用 Bearer 令牌。</p></div></div>
+<div class="page-head">
+  <div><h1>OpenAPI</h1><p class="muted">面向自动化平台、监控系统和运维脚本的版本化 HTTP API。写操作返回任务 ID，可轮询结果。</p></div>
+  <div class="actions"><a class="btn" href="/static/openapi.yaml" target="_blank" rel="noopener">下载 OpenAPI YAML</a><a class="btn primary" href="/api/v1/hosts" target="_blank" rel="noopener">在线读取主机</a></div>
+</div>
+{{if .Flash}}<div class="flash {{.FlashType}}">{{.Flash}}</div>{{end}}
 <section class="panel">
-  <h2>怎么对接</h2>
-  <ol class="steps">
-    <li>在服务环境变量 <code>WVC_METRICS_TOKEN</code> 中配置一枚随机令牌。令牌只给查看权限，不能开关机、创建或删除。</li>
-    <li>请求头使用 <code>Authorization: Bearer &lt;令牌&gt;</code>。不要把令牌放到 URL 或前端页面里。</li>
-    <li>先拉主机列表，再用返回的 <code>host_id</code> 拉虚拟机。所有响应都是 JSON，不含数据库密码、主机 URI、VNC 密码。</li>
-  </ol>
-  <pre class="output">curl -sS -H "Authorization: Bearer $WVC_METRICS_TOKEN" \
-  "$WVC_BASE_URL/api/v1/hosts"</pre>
-  <p class="hint"><code>WVC_BASE_URL</code> 用实际访问地址，例如 <code>http://127.0.0.1:8080</code> 或 Nginx 反代后的域名。</p>
+  <h2>访问令牌与权限边界</h2>
+  <div class="api-auth-grid">
+    <article class="api-auth-card"><span class="api-scope read">只读</span> {{if .Data.ReadConfigured}}<span class="pill ok">已配置</span>{{else}}<span class="pill muted">未启用</span>{{end}}<h3><code>WVC_METRICS_TOKEN</code></h3><p>用于 Prometheus 和只读 API。不能创建、开关机或删除虚拟机。</p></article>
+    <article class="api-auth-card"><span class="api-scope operate">运维</span> {{if .Data.OperatorConfigured}}<span class="pill ok">已配置</span>{{else}}<span class="pill muted">未启用</span>{{end}}<h3><code>WVC_API_TOKEN</code></h3><p>可读取资源、创建虚拟机和执行生命周期操作；不能删除虚拟机。</p></article>
+    <article class="api-auth-card"><span class="api-scope admin">管理员</span> {{if .Data.AdminConfigured}}<span class="pill ok">已配置</span>{{else}}<span class="pill muted">未启用</span>{{end}}<h3><code>WVC_API_ADMIN_TOKEN</code></h3><p>拥有运维令牌全部权限，并可删除已关机虚拟机定义。仅授予受控自动化系统。</p></article>
+  </div>
+  <p class="hint">令牌至少 32 个可打印 ASCII 字符，只通过 <code>Authorization: Bearer &lt;令牌&gt;</code> 请求头发送。不要把令牌放入 URL、截图、工单或前端代码。</p>
+  <div class="grid two compact"><div><h3>基础地址</h3><pre class="output">export WVC_BASE_URL="http://127.0.0.1:8080"
+export WVC_API_TOKEN="至少32字符的运维令牌"</pre></div><div><h3>通用错误结构</h3><pre class="output">{
+  "error": "人类可读说明",
+  "code": "machine_readable_code",
+  "request_id": "req_..."
+}</pre></div></div>
 </section>
 <section class="panel">
-  <h2>接口</h2>
-  <table><thead><tr><th>方法</th><th>路径</th><th>用途</th><th>示例</th></tr></thead><tbody>
-    <tr><td>GET</td><td><a href="/api/v1/hosts"><code>/api/v1/hosts</code></a></td><td>主机 ID、名称、是否启用</td><td><code>{"hosts":[{"id":"...","name":"kvm-01","enabled":true}]}</code></td></tr>
-    <tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms</code></td><td>该主机全部虚拟机</td><td>把上一接口的 id 填进路径</td></tr>
-    <tr><td>GET</td><td><code>/api/v1/hosts/{hostID}/vms/{vm}</code></td><td>单台状态、客户机 IP、摘要</td><td>名称含空格时做 URL 编码</td></tr>
-    <tr><td>GET</td><td><a href="/api/v1/resources"><code>/api/v1/resources</code></a></td><td>看板同款 CPU、内存、磁盘占用</td><td>可给监控系统每 15 秒拉取</td></tr>
-  </tbody></table>
-  <p class="hint">未登录返回 401，令牌错误返回 401，没有该虚拟机权限返回 403，libvirt 连不上返回 502。创建、删除、电源操作走网页任务，不开放给这个只读令牌。</p>
+  <h2>接口清单</h2>
+  <div class="table-wrap"><table><thead><tr><th>方法</th><th>路径</th><th>令牌</th><th>用途</th><th>结果</th></tr></thead><tbody>
+    <tr><td><span class="api-method get">GET</span></td><td><a href="/api/v1/hosts" target="_blank" rel="noopener"><code>/api/v1/hosts</code></a></td><td><span class="api-scope read">只读</span></td><td>列出主机 ID、名称和启用状态</td><td>200 JSON</td></tr>
+    <tr><td><span class="api-method get">GET</span></td><td><code>/api/v1/hosts/{hostID}/vms</code></td><td><span class="api-scope read">只读</span></td><td>列出主机上的虚拟机摘要</td><td>200 JSON</td></tr>
+    <tr><td><span class="api-method get">GET</span></td><td><code>/api/v1/hosts/{hostID}/vms/{vm}</code></td><td><span class="api-scope read">只读</span></td><td>读取单台虚拟机状态、内存和客户机地址</td><td>200 JSON</td></tr>
+    <tr><td><span class="api-method post">POST</span></td><td><code>/api/v1/hosts/{hostID}/vms</code></td><td><span class="api-scope operate">运维</span></td><td>创建虚拟机</td><td>202 + job_id</td></tr>
+    <tr><td><span class="api-method post">POST</span></td><td><code>/api/v1/hosts/{hostID}/vms/{vm}/actions</code></td><td><span class="api-scope operate">运维</span></td><td>启动、正常关机、重启、强制断电、挂起/恢复、自启动</td><td>202 + job_id</td></tr>
+    <tr><td><span class="api-method delete">DELETE</span></td><td><code>/api/v1/hosts/{hostID}/vms/{vm}</code></td><td><span class="api-scope admin">管理员</span></td><td>删除已关机虚拟机定义，可选删除磁盘</td><td>202 + job_id</td></tr>
+    <tr><td><span class="api-method get">GET</span></td><td><code>/api/v1/jobs/{jobID}</code></td><td><span class="api-scope operate">同一令牌</span></td><td>轮询创建该任务时使用的同一运维/管理员令牌</td><td>200 JSON</td></tr>
+    <tr><td><span class="api-method get">GET</span></td><td><a href="/api/v1/resources" target="_blank" rel="noopener"><code>/api/v1/resources</code></a></td><td><span class="api-scope read">只读</span></td><td>读取看板同款主机和虚拟机资源信息</td><td>200 JSON</td></tr>
+  </tbody></table></div>
 </section>
-<section class="panel"><h2>机器可读文档</h2>
-<p><a class="btn" href="/static/openapi.yaml">下载 OpenAPI YAML</a></p>
-<p class="hint">外部系统可以把这份文档导入 Postman、Insomnia 或代码生成器。它只描述只读接口，不包含创建、删除或电源操作。</p>
+<section class="panel">
+  <h2>可直接复制的调用示例</h2>
+  <div class="api-examples">
+    <div class="api-example"><div class="api-example-head"><h3>创建虚拟机</h3><button type="button" class="btn small" data-copy data-copy-target="api-create-example">复制</button></div>
+      <pre class="output" id="api-create-example">curl -sS -X POST \
+  -H "Authorization: Bearer $WVC_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  "$WVC_BASE_URL/api/v1/hosts/$HOST_ID/vms" \
+  -d '{"name":"web-01","vcpus":2,"memory_gb":4,"disk_gb":40,"network":"default","os_variant":"generic"}'</pre></div>
+    <div class="api-example"><div class="api-example-head"><h3>启动虚拟机</h3><button type="button" class="btn small" data-copy data-copy-target="api-start-example">复制</button></div>
+      <pre class="output" id="api-start-example">curl -sS -X POST \
+  -H "Authorization: Bearer $WVC_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  "$WVC_BASE_URL/api/v1/hosts/$HOST_ID/vms/web-01/actions" \
+  -d '{"action":"start"}'</pre></div>
+    <div class="api-example"><div class="api-example-head"><h3>删除虚拟机定义</h3><button type="button" class="btn small" data-copy data-copy-target="api-delete-example">复制</button></div>
+      <pre class="output" id="api-delete-example">curl -sS -X DELETE \
+  -H "Authorization: Bearer $WVC_API_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  "$WVC_BASE_URL/api/v1/hosts/$HOST_ID/vms/web-01" \
+  -d '{"confirm":true,"confirm_name":"web-01","delete_storage":false}'</pre></div>
+    <div class="api-example"><div class="api-example-head"><h3>轮询任务</h3><button type="button" class="btn small" data-copy data-copy-target="api-job-example">复制</button></div>
+      <pre class="output" id="api-job-example">curl -sS \
+  -H "Authorization: Bearer $WVC_API_TOKEN" \
+  "$WVC_BASE_URL/api/v1/jobs/$JOB_ID"</pre></div>
+  </div>
+</section>
+<section class="panel">
+  <h2>契约与运维约定</h2>
+  <ul class="steps">
+    <li>所有写操作都是异步任务。HTTP <code>202 Accepted</code> 只表示任务已安全入队，不代表虚拟机操作已经完成。</li>
+    <li>轮询 <code>GET /api/v1/jobs/{jobID}</code>：<code>queued</code>、<code>running</code>、<code>succeeded</code>、<code>failed</code>、<code>cancelled</code>。</li>
+    <li>重启、强制断电、挂起和删除需要显式确认；删除还要求 <code>confirm_name</code> 与虚拟机名完全一致。</li>
+    <li>删除默认只移除 libvirt 定义、快照/检查点元数据和 NVRAM，保留磁盘。只有显式设置 <code>delete_storage=true</code> 才会删除关联卷。</li>
+    <li>所有响应带请求 ID；错误不会返回数据库密码、宿主机 URI、SSH 凭据或 VNC 密码。</li>
+  </ul>
+  <p class="hint">机器可读文档：<a href="/static/openapi.yaml" target="_blank" rel="noopener">OpenAPI 3.0.3 YAML</a>。可导入 Postman、Insomnia、Apifox、Swagger Codegen 或内部 API 网关。</p>
 </section>
 {{end}}

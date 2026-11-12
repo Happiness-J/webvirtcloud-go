@@ -507,12 +507,23 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions,
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
+		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
 		page.FlashType = "warn"
 	}
 	s.render(w, r, "vm_detail", page)
+}
+
+func removableDiskTargets(devices []libvirt.BlockDevice) []libvirt.BlockDevice {
+	out := make([]libvirt.BlockDevice, 0)
+	for _, device := range devices {
+		if device.Device == "disk" && strings.HasPrefix(strings.ToLower(device.Target), "sd") {
+			out = append(out, device)
+		}
+	}
+	return out
 }
 
 func vmActions(role, state, autostart string) []vmActionView {
@@ -540,7 +551,7 @@ func vmActions(role, state, autostart string) []vmActionView {
 			vmActionView{Name: "shutdown", Label: "正常关机"},
 			vmActionView{Name: "reboot", Label: "重启", Destructive: true, Confirm: "确定重启虚拟机吗？"},
 			vmActionView{Name: "destroy", Label: "强制断电", Destructive: true, Confirm: "强制断电可能导致数据损坏，确定继续吗？"},
-			vmActionView{Name: "suspend", Label: "挂起"},
+			vmActionView{Name: "suspend", Label: "挂起", Destructive: true, Confirm: "挂起会暂停虚拟机运行，确定继续吗？"},
 		)
 	case "paused":
 		actions = append(actions,
@@ -552,9 +563,6 @@ func vmActions(role, state, autostart string) []vmActionView {
 		actions = append(actions, vmActionView{Name: "autostart-off", Label: "取消开机自启", Destructive: true, Confirm: "确定取消开机自启吗？"})
 	} else {
 		actions = append(actions, vmActionView{Name: "autostart-on", Label: "设为开机自启"})
-	}
-	if role == "admin" && (state == "shut off" || state == "crashed") {
-		actions = append(actions, vmActionView{Name: "undefine", Label: "删除定义", Destructive: true, AdminOnly: true, Confirm: "将删除 libvirt 中的虚拟机定义，磁盘文件不会自动删除。确定继续吗？"})
 	}
 	return actions
 }
@@ -711,6 +719,10 @@ func (s *Server) userCreate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) userRole(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
 	targetID := r.PathValue("id")
+	if store.IsSystemUserID(targetID) {
+		s.redirectError(w, r, "/users", "系统 API 账号由服务配置管理，不能在页面修改")
+		return
+	}
 	if targetID == sess.User.ID {
 		s.redirectError(w, r, "/users", "不能修改自己的角色")
 		return
@@ -740,6 +752,10 @@ func (s *Server) userRole(w http.ResponseWriter, r *http.Request) {
 func (s *Server) userDisabled(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
 	targetID := r.PathValue("id")
+	if store.IsSystemUserID(targetID) {
+		s.redirectError(w, r, "/users", "系统 API 账号由服务配置管理，不能在页面修改")
+		return
+	}
 	if targetID == sess.User.ID {
 		s.redirectError(w, r, "/users", "不能禁用当前账号")
 		return
@@ -763,6 +779,10 @@ func (s *Server) userDisabled(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userAccessPage(w http.ResponseWriter, r *http.Request) {
+	if store.IsSystemUserID(r.PathValue("id")) {
+		s.redirectError(w, r, "/users", "系统 API 账号不支持桌面授权")
+		return
+	}
 	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.userLookupError(w, r, err)
@@ -784,6 +804,10 @@ func (s *Server) userAccessPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userAccessUpdate(w http.ResponseWriter, r *http.Request) {
+	if store.IsSystemUserID(r.PathValue("id")) {
+		s.redirectError(w, r, "/users", "系统 API 账号不支持桌面授权")
+		return
+	}
 	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.userLookupError(w, r, err)
@@ -823,6 +847,10 @@ func (s *Server) userAccessUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userPassword(w http.ResponseWriter, r *http.Request) {
+	if store.IsSystemUserID(r.PathValue("id")) {
+		s.redirectError(w, r, "/users", "系统 API 账号不设置登录密码")
+		return
+	}
 	target, err := s.db.GetUserByID(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.userLookupError(w, r, err)
@@ -1089,10 +1117,23 @@ func (s *Server) canUseConsole(r *http.Request, hostID, vmName string) (bool, er
 	}
 }
 
+func (s *Server) canReadVM(r *http.Request, hostID, vmName string) (bool, error) {
+	sess, _ := sessionFrom(r.Context())
+	switch sess.User.Role {
+	case "admin", "operator", "viewer":
+		return true, nil
+	case "desktop":
+		return s.db.UserCanAccessVM(r.Context(), sess.User.ID, hostID, vmName)
+	default:
+		return false, nil
+	}
+}
+
 func (s *Server) apiHosts(w http.ResponseWriter, r *http.Request) {
 	hosts, err := s.db.ListHosts(r.Context())
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "internal server error")
+		s.logRequestError(r, "list API hosts", err)
+		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not list hosts")
 		return
 	}
 	type item struct {
@@ -1110,35 +1151,116 @@ func (s *Server) apiHosts(w http.ResponseWriter, r *http.Request) {
 func (s *Server) apiHostVMs(w http.ResponseWriter, r *http.Request) {
 	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeJSONError(w, http.StatusNotFound, "host not found")
+		if store.IsNotFound(err) {
+			writeAPIError(w, r, http.StatusNotFound, "host_not_found", "Host not found")
+		} else {
+			s.logRequestError(r, "load API host for VM list", err)
+			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the host")
+		}
 		return
 	}
 	domains, err := s.libvirt.ListDomains(r.Context(), host.ID)
 	if err != nil {
-		writeJSONError(w, http.StatusBadGateway, "libvirt unavailable")
+		s.logRequestError(r, "list API host virtual machines", err)
+		writeAPIError(w, r, http.StatusBadGateway, "libvirt_unavailable", "Could not query libvirt on the selected host")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"host_id": host.ID, "vms": domains})
+	vms := make([]apiVMSummary, 0, len(domains))
+	for _, domain := range domains {
+		vms = append(vms, apiVMSummaryFromDomain(domain))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"host_id": host.ID, "host_name": host.Name, "vms": vms})
 }
 
 func (s *Server) apiVM(w http.ResponseWriter, r *http.Request) {
 	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeJSONError(w, http.StatusNotFound, "host not found")
+		if store.IsNotFound(err) {
+			writeAPIError(w, r, http.StatusNotFound, "host_not_found", "Host not found")
+		} else {
+			s.logRequestError(r, "load API host for VM", err)
+			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the host")
+		}
 		return
 	}
 	name := r.PathValue("vm")
-	allowed, accessErr := s.canUseConsole(r, host.ID, name)
+	if err := libvirt.ValidateName(name); err != nil {
+		writeAPIError(w, r, http.StatusBadRequest, "invalid_vm_name", "Virtual machine name is invalid")
+		return
+	}
+	allowed, accessErr := s.canReadVM(r, host.ID, name)
 	if accessErr != nil || !allowed {
-		writeJSONError(w, http.StatusForbidden, "forbidden")
+		if accessErr != nil {
+			s.logRequestError(r, "check API VM access", accessErr)
+		}
+		writeAPIError(w, r, http.StatusForbidden, "forbidden", "The current API identity cannot access this virtual machine")
 		return
 	}
 	detail, err := s.libvirt.Detail(r.Context(), host.ID, name, false)
 	if err != nil {
-		writeJSONError(w, http.StatusBadGateway, "libvirt unavailable")
+		if errors.Is(err, libvirt.ErrDomainNotFound) {
+			writeAPIError(w, r, http.StatusNotFound, "vm_not_found", "Virtual machine not found")
+			return
+		}
+		s.logRequestError(r, "read API virtual machine", err)
+		writeAPIError(w, r, http.StatusBadGateway, "libvirt_unavailable", "Could not read the virtual machine from libvirt")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"host_id": host.ID, "name": name, "state": detail.Domain.State, "addresses": detail.Addresses, "info": detail.Info})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"host_id": host.ID, "host_name": host.Name,
+		"vm": apiVMSummaryFromDomain(detail.Domain), "addresses": apiGuestAddresses(detail.Addresses), "info": detail.Info,
+	})
+}
+
+func (s *Server) apiVMSnapshots(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if store.IsNotFound(err) {
+			writeAPIError(w, r, http.StatusNotFound, "host_not_found", "Host not found")
+		} else {
+			s.logRequestError(r, "load API host for snapshots", err)
+			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the host")
+		}
+		return
+	}
+	name := r.PathValue("vm")
+	if err := libvirt.ValidateName(name); err != nil {
+		writeAPIError(w, r, http.StatusBadRequest, "invalid_vm_name", "Virtual machine name is invalid")
+		return
+	}
+	allowed, accessErr := s.canReadVM(r, host.ID, name)
+	if accessErr != nil || !allowed {
+		if accessErr != nil {
+			s.logRequestError(r, "check API snapshot access", accessErr)
+		}
+		writeAPIError(w, r, http.StatusForbidden, "forbidden", "The current API identity cannot access this virtual machine")
+		return
+	}
+	if _, err := s.libvirt.DomainInfo(r.Context(), host.ID, name); err != nil {
+		if errors.Is(err, libvirt.ErrDomainNotFound) {
+			writeAPIError(w, r, http.StatusNotFound, "vm_not_found", "Virtual machine not found")
+			return
+		}
+		s.logRequestError(r, "read API VM before snapshots", err)
+		writeAPIError(w, r, http.StatusBadGateway, "libvirt_unavailable", "Could not read the virtual machine state")
+		return
+	}
+	snapshots, err := s.libvirt.ListSnapshots(r.Context(), host.ID, name)
+	if err != nil {
+		s.logRequestError(r, "list API VM snapshots", err)
+		writeAPIError(w, r, http.StatusBadGateway, "libvirt_unavailable", "Could not list virtual machine snapshots")
+		return
+	}
+	type item struct {
+		Name      string `json:"name"`
+		CreatedAt string `json:"created_at,omitempty"`
+		State     string `json:"state,omitempty"`
+	}
+	out := make([]item, 0, len(snapshots))
+	for _, snapshot := range snapshots {
+		out = append(out, item{Name: snapshot.Name, CreatedAt: snapshot.CreatedAt, State: snapshot.State})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"host_id": host.ID, "vm": name, "snapshots": out})
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -1180,7 +1302,8 @@ func memoryUsagePercent(current, maximum uint64) int {
 func (s *Server) apiResources(w http.ResponseWriter, r *http.Request) {
 	hosts, err := s.db.ListHosts(r.Context())
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "internal server error")
+		s.logRequestError(r, "list API resource hosts", err)
+		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not list resource data")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"generated_at": time.Now().UTC().Format(time.RFC3339), "hosts": s.dashboardLive(r.Context(), hosts)})
@@ -1222,51 +1345,25 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimSpace(r.Form.Get("name"))
-	if err := libvirt.ValidateName(name); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "虚拟机名称无效")
-		return
-	}
 	vcpus := strings.TrimSpace(r.Form.Get("vcpus"))
 	memory := strings.TrimSpace(r.Form.Get("memory"))
 	disk := strings.TrimSpace(r.Form.Get("disk"))
 	vcpuCount, cpuErr := strconv.Atoi(vcpus)
 	memoryCount, memoryErr := strconv.Atoi(memory)
 	diskCount, diskErr := strconv.Atoi(disk)
-	if cpuErr != nil || vcpuCount < 1 || vcpuCount > 128 || memoryErr != nil || memoryCount < 1 || memoryCount > 1024 || diskErr != nil || diskCount < 1 || diskCount > 10000 {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU 为 1-128，内存为 1-1024 GB，磁盘为 1-10000 GB")
+	if cpuErr != nil || memoryErr != nil || diskErr != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU、内存和磁盘容量必须是整数")
 		return
 	}
 	network := strings.TrimSpace(r.Form.Get("network"))
-	if err := libvirt.ValidateName(network); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "虚拟网络名称无效")
+	cdrom := strings.TrimSpace(r.Form.Get("cdrom"))
+	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic")
+	if err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
-	}
-	networks, netErr := s.libvirt.ListNetworks(r.Context(), host.ID)
-	if netErr != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "无法读取主机虚拟网络")
-		return
-	}
-	allowedNetwork := false
-	for _, item := range networks {
-		if item.Name == network && item.State == "active" {
-			allowedNetwork = true
-			break
-		}
-	}
-	if !allowedNetwork {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "只能选择当前主机上已启动的虚拟网络")
-		return
-	}
-	args := []string{"--name", name, "--vcpus", vcpus, "--memory", strconv.Itoa(mustInt(memory) * 1024), "--disk", "size=" + disk + ",format=qcow2", "--network", "network=" + network, "--osinfo", "generic", "--noautoconsole"}
-	if cdrom := strings.TrimSpace(r.Form.Get("cdrom")); cdrom != "" {
-		if !validInstallISO(s.cfg.ImageDir, cdrom) {
-			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "ISO 必须是镜像目录中的 .iso 文件")
-			return
-		}
-		args = append(args, "--cdrom", cdrom)
 	}
 	sess, _ := sessionFrom(r.Context())
-	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-create", "创建虚拟机 "+name, "virt-install", args, "", 1800)
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-create", "创建虚拟机 "+name, "virt-install", args, "", boundedOperationTimeout(s.cfg.MaxTimeout, 1800))
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
@@ -1275,10 +1372,12 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/jobs/"+jobID, http.StatusSeeOther)
 }
 
-func mustInt(value string) int { n, _ := strconv.Atoi(value); return n }
-
 func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, "api_docs", pageData{Title: "OpenAPI", Nav: "api"})
+	s.render(w, r, "api_docs", pageData{Title: "OpenAPI", Nav: "api", Data: map[string]any{
+		"ReadConfigured":     s.cfg.MetricsToken != "" || s.cfg.APIToken != "" || s.cfg.APIAdminToken != "",
+		"OperatorConfigured": s.cfg.APIToken != "" || s.cfg.APIAdminToken != "",
+		"AdminConfigured":    s.cfg.APIAdminToken != "",
+	}})
 }
 
 func listInstallISOs(dir string) []string {
