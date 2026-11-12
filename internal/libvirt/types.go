@@ -120,6 +120,7 @@ type DomainResourceStats struct {
 	BalloonUnused    uint64
 	BalloonRSS       uint64
 	CPUTimeNanos     uint64
+	VCPUs            int
 	BlockCapacity    uint64
 	BlockAllocation  uint64
 	BlockPhysical    uint64

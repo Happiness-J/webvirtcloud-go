@@ -10,7 +10,7 @@
   <div class="stat"><strong>{{.Data.Stats.Running}}</strong><span>运行任务</span></div>
 </section>
 <section class="panel resource-board" id="resource-board" data-resource-url="/api/v1/resources">
-  <div class="panel-head"><h2>实时资源</h2><span class="muted">内存条只表示客户机代理报告的已用内存。磁盘显示 qcow2 已写入量和虚拟容量，不是分区里的剩余空间。CPU 是自本次开机累计时间，不是瞬时占用。</span></div>
+  <div class="panel-head"><h2>实时资源</h2><span class="muted">内存条表示客户机报告的已用内存。磁盘显示虚拟容量和宿主机上的实际文件大小。CPU 在刷新后显示采样区间占用，并保留本次开机累计时间。</span></div>
   {{if .Data.Live}}<div class="resource-groups">{{range .Data.Live}}
     <section class="resource-group">
       <h3>{{.Host.Name}}</h3>
