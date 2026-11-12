@@ -261,16 +261,23 @@ func (s *Service) GuestAgentInfo(ctx context.Context, hostID, name string) (stri
 	if err := ValidateName(name); err != nil {
 		return "", err
 	}
-	res, err := s.run(ctx, hostID, []string{"guestinfo", name}, 10*time.Second)
-	return res.Output(), err
+	res, err := s.runWithAccess(ctx, hostID, []string{"guestinfo", name}, 10*time.Second, false)
+	if err != nil {
+		return res.Output(), fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	return res.Output(), nil
 }
 
 func (s *Service) RecentEvents(ctx context.Context, hostID, name string) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err
 	}
-	res, err := s.run(ctx, hostID, []string{"event", name, "--timestamp", "--timeout", "1"}, 5*time.Second)
-	return res.Output(), err
+	res, err := s.runWithAccess(ctx, hostID, []string{"event", name, "--all", "--timestamp", "--timeout", "1"}, 5*time.Second, false)
+	output := res.Output()
+	if err != nil && strings.Contains(strings.ToLower(output), "events received: 0") {
+		return output, nil
+	}
+	return output, err
 }
 
 func (s *Service) ListBackups(ctx context.Context, hostID, name string) ([]Backup, error) {
@@ -452,6 +459,11 @@ func parsePowerRequest(output string) string {
 	}
 }
 
+func guestAgentUnavailable(err error) bool {
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "guest agent is not connected") || strings.Contains(message, "客户机代理未连接") || strings.Contains(message, "guest agent is not responding")
+}
+
 func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr, addressErr error) []string {
 	var warnings []string
 	if blockErr != nil {
@@ -478,7 +490,7 @@ func detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErr
 	if eventErr != nil {
 		warnings = append(warnings, "近期事件读取失败")
 	}
-	if guestErr != nil {
+	if guestErr != nil && !guestAgentUnavailable(guestErr) {
 		warnings = append(warnings, "guest agent 信息读取失败")
 	}
 	if powerErr != nil {
@@ -934,7 +946,7 @@ func (s *Service) Screenshot(ctx context.Context, hostID, name string) ([]byte, 
 	if err := file.Close(); err != nil {
 		return nil, err
 	}
-	res, err := s.run(ctx, hostID, []string{"screenshot", name, filepath.Join(dir, "screen.png"), "--file"}, 15*time.Second)
+	res, err := s.runWithAccess(ctx, hostID, []string{"screenshot", name, filepath.Join(dir, "screen.png")}, 15*time.Second, false)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
 	}

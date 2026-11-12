@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -816,6 +817,21 @@ func Classify(tool string, args []string) (readOnly bool, known bool) {
 // as interactive consoles, editors and one-shot shells. The browser disables
 // their forms, but Validate enforces the same rule for direct HTTP requests and
 // queued jobs.
+
+func boundedEventQuery(args []string) bool {
+	for index, arg := range args {
+		if arg == "--timeout" && index+1 < len(args) {
+			timeout, err := strconv.Atoi(args[index+1])
+			return err == nil && timeout > 0 && timeout <= 5
+		}
+		if strings.HasPrefix(arg, "--timeout=") {
+			timeout, err := strconv.Atoi(strings.TrimPrefix(arg, "--timeout="))
+			return err == nil && timeout > 0 && timeout <= 5
+		}
+	}
+	return false
+}
+
 func Blocked(tool string, args []string) (bool, string) {
 	if len(args) == 0 {
 		return false, ""
@@ -828,6 +844,9 @@ func Blocked(tool string, args []string) (bool, string) {
 	}
 	if tool == "virsh" {
 		if name := virshCommandName(args); name != "" {
+			if boundedEventQuery(args) && (name == "event" || strings.HasPrefix("event", name)) {
+				return false, ""
+			}
 			if reason, ok := disabledVirsh[name]; ok {
 				return true, reason
 			}
