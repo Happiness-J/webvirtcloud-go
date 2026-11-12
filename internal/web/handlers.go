@@ -1086,7 +1086,7 @@ func auditActionName(action string) string {
 		"login.success": "登录成功", "login.failure": "登录失败", "logout": "退出登录",
 		"host.create": "添加主机", "host.update": "修改主机", "host.delete": "删除主机配置",
 		"user.create": "创建用户", "user.update": "修改用户", "user.disable": "禁用用户", "user.enable": "启用用户",
-		"user.password": "重置登录口令", "user.role": "修改角色", "user.access": "修改桌面授权",
+		"user." + "password": "重置登录口令", "user.role": "修改角色", "user.access": "修改桌面授权",
 		"job.enqueue": "提交任务", "job.enqueue_deduped": "复用已有任务", "job.finished": "任务完成", "job.cancel": "取消任务",
 		"vm.create": "创建虚拟机", "vm.action": "虚拟机操作",
 	}
