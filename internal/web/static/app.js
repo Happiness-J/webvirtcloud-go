@@ -50,6 +50,16 @@ document.addEventListener('click', async (event) => {
   }
 });
 
+document.addEventListener('submit', (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || form.id !== 'vm-batch-form') return;
+  const selected = document.querySelectorAll('input[type="checkbox"][data-select-group="vm-batch"]:checked');
+  if (selected.length === 0) {
+    event.preventDefault();
+    window.alert('请先选择至少一台虚拟机。');
+  }
+});
+
 document.addEventListener('change', (event) => {
   const master = event.target.closest('input[type="checkbox"][data-select-all]');
   if (!master) return;
