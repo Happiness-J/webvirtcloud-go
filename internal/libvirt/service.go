@@ -1130,8 +1130,8 @@ func formatMemoryStats(output string) string {
 			lines = append(lines, label+": "+strings.Join(fields[1:], " "))
 		case key == "swap_in" || key == "swap_out" || key == "major_fault" || key == "minor_fault":
 			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
-		case key == "last_update" && number > 1_000_000_000 && number <= 9_999_999_999:
-			lines = append(lines, label+": "+time.Unix(int64(number), 0).Local().Format("2006-01-02 15:04:05"))
+		case key == "last_update":
+			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
 		default:
 			lines = append(lines, label+": "+humanBytes(number*1024))
 		}
