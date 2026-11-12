@@ -119,6 +119,10 @@ func TestResourceSummary(t *testing.T) {
 	if got[0].Value != "25.0%" || got[1].Value != "4.0 GB / 8.0 GB" {
 		t.Fatalf("resource summary = %#v", got)
 	}
+	partial := resourceSummary(nil, map[string]string{"total": "8388608 KiB"})
+	if partial[1].Value != "不可用" || partial[2].Value != "不可用" {
+		t.Fatalf("partial memory summary = %#v", partial)
+	}
 	missing := resourceSummary(nil, nil)
 	if missing[0].Value != "不可用" || missing[1].Value != "不可用" || missing[2].Value != "不可用" {
 		t.Fatalf("missing summary = %#v", missing)
