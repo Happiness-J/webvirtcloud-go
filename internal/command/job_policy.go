@@ -451,6 +451,12 @@ func validateVMActionArgs(args []string) error {
 	return nil
 }
 
+// ValidateActionOperandPublic checks names supplied by operators for VMs,
+// snapshots and checkpoints before they become command arguments.
+func ValidateActionOperandPublic(value string) error {
+	return validateActionOperand(value)
+}
+
 func validateActionOperand(value string) error {
 	if value == "" || !utf8.ValidString(value) || utf8.RuneCountInString(value) > 256 {
 		return fmt.Errorf("长度无效")

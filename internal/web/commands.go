@@ -161,7 +161,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		}
 		return []string{"detach-disk", vm, snapshot, "--live"}, true, nil
 	case "snapshot-create", "snapshot-revert", "snapshot-delete", "backup-create", "backup-restore", "backup-delete":
-		if err := libvirt.ValidateName(snapshot); err != nil {
+		if err := command.ValidateActionOperandPublic(snapshot); err != nil {
 			return nil, false, fmt.Errorf("恢复点名称无效")
 		}
 		switch action {
