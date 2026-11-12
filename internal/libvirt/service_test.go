@@ -92,6 +92,12 @@ func TestParseDomainStats(t *testing.T) {
   balloon.maximum=4194304
   vcpu.current=4
   vcpu.maximum=8
+  block.count=2
+  block.0.capacity=21474836480
+  block.0.rd.bytes=1048576
+  block.0.wr.bytes=2097152
+  block.1.rd.bytes=1024
+  block.1.wr.bytes=2048
 
 Domain: 'db-staging'
   state.state=5
@@ -105,7 +111,8 @@ Domain: 'db-staging'
 	}
 	if stats[0].Name != "web-prod" || stats[0].State != "running" ||
 		stats[0].BalloonCurrent != 2097152 || stats[0].BalloonMaximum != 4194304 ||
-		stats[0].CPUTimeNanos != 180000000000 {
+		stats[0].CPUTimeNanos != 180000000000 || stats[0].BlockCapacity != 21474836480 ||
+		stats[0].BlockReadBytes != 1049600 || stats[0].BlockWriteBytes != 2099200 {
 		t.Fatalf("unexpected running stats: %#v", stats[0])
 	}
 	if stats[1].Name != "db-staging" || stats[1].State != "shut off" {

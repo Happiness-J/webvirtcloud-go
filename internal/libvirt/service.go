@@ -772,6 +772,14 @@ func ParseDomainStats(output string) []DomainResourceStats {
 				parsed, _ := strconv.ParseUint(value, 10, 64)
 				current.BlockPhysical += parsed
 			}
+			if strings.HasPrefix(key, "block.") && strings.HasSuffix(key, ".rd.bytes") {
+				parsed, _ := strconv.ParseUint(value, 10, 64)
+				current.BlockReadBytes += parsed
+			}
+			if strings.HasPrefix(key, "block.") && strings.HasSuffix(key, ".wr.bytes") {
+				parsed, _ := strconv.ParseUint(value, 10, 64)
+				current.BlockWriteBytes += parsed
+			}
 		}
 		out = append(out, *current)
 		values = make(map[string]string)

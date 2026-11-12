@@ -144,6 +144,15 @@ document.addEventListener('change', (event) => {
   if (!board) return;
   const history = new Map();
   const cpuSamples = new Map();
+  const diskSamples = new Map();
+  const rateText = (bytes, elapsedMs) => {
+    if (!Number.isFinite(bytes) || bytes < 0 || elapsedMs <= 0) return '';
+    const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    let value = bytes / (elapsedMs / 1000);
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
+    return (index === 0 ? value.toFixed(0) : value.toFixed(1)) + ' ' + units[index];
+  };
   const draw = (card, values) => {
     const canvas = card.querySelector('canvas');
     if (!canvas) return;
@@ -178,6 +187,8 @@ document.addEventListener('change', (event) => {
         const now = Date.now();
         const previous = cpuSamples.get(key);
         cpuSamples.set(key, {time: now, cpu: vm.CPUTimeNanos || 0});
+        const previousDisk = diskSamples.get(key);
+        diskSamples.set(key, {time: now, read: vm.BlockReadBytes || 0, write: vm.BlockWriteBytes || 0});
         let cpuText = vm.CPU || '-';
         if (previous && vm.CPUTimeNanos > previous.cpu && now > previous.time) {
           const elapsed = (now - previous.time) * 1000000;
@@ -190,7 +201,14 @@ document.addEventListener('change', (event) => {
         card.querySelector('strong').textContent = vm.Name;
         const pill = card.querySelector('.pill'); const stateLabels = {running:'运行中','shut off':'已关机',paused:'已挂起',crashed:'崩溃',active:'运行',inactive:'停止'}; pill.textContent = stateLabels[vm.State] || vm.State || '-'; pill.classList.add(vm.State === 'running' ? 'ok' : 'muted');
         card.querySelector('.memory').textContent = vm.Memory || '-';
-        card.querySelector('.disk').textContent = vm.Disk || '-';
+        let diskText = vm.Disk || '-';
+        if (previousDisk && now > previousDisk.time && vm.BlockReadBytes >= previousDisk.read && vm.BlockWriteBytes >= previousDisk.write) {
+          const elapsed = now - previousDisk.time;
+          const read = rateText(vm.BlockReadBytes - previousDisk.read, elapsed);
+          const write = rateText(vm.BlockWriteBytes - previousDisk.write, elapsed);
+          if (read && write) diskText += ' · 读 ' + read + ' / 写 ' + write;
+        }
+        card.querySelector('.disk').textContent = diskText;
         card.querySelector('.cpu').textContent = cpuText;
         card.querySelector('.meter span').style.width = (vm.Usage || 0) + '%';
         grid.appendChild(card); draw(card, values);
