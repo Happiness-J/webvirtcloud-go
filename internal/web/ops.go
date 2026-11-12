@@ -73,14 +73,14 @@ func buildOpsVMRows(domains []libvirt.Domain, stats []libvirt.DomainResourceStat
 		if domain.VCPUs > 0 {
 			row.VCPU = strconv.Itoa(domain.VCPUs)
 		}
-		row.MemoryCurrent = formatKiB(domain.UsedMemoryKiB)
+		row.MemoryCurrent = "未报告实际占用"
 		row.MemoryMaximum = formatKiB(domain.MaxMemoryKiB)
 		if item, ok := byName[domain.Name]; ok {
 			if item.State != "" && item.State != "unknown" {
 				row.State = item.State
 			}
-			if item.BalloonCurrent > 0 {
-				row.MemoryCurrent = formatKiB(item.BalloonCurrent)
+			if usedKiB, ok := guestMemoryUsedKiB(item); ok {
+				row.MemoryCurrent = formatKiB(usedKiB)
 			}
 			if item.BalloonMaximum > 0 {
 				row.MemoryMaximum = formatKiB(item.BalloonMaximum)
