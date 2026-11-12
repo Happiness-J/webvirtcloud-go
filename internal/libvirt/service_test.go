@@ -363,3 +363,15 @@ func TestParseGuestAddresses(t *testing.T) {
 		t.Fatalf("invalid address accepted: %#v", got)
 	}
 }
+
+func TestReadableCapacity(t *testing.T) {
+	if got := readableCapacity("10737418240 bytes"); got != "10.0 GB" {
+		t.Fatalf("readableCapacity(bytes) = %q", got)
+	}
+	if got := readableCapacity("10240 KiB"); got != "10.0 MB" {
+		t.Fatalf("readableCapacity(KiB) = %q", got)
+	}
+	if got := readableCapacity("unknown"); got != "unknown" {
+		t.Fatalf("readableCapacity(unknown) = %q", got)
+	}
+}
