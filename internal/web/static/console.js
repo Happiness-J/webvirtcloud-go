@@ -70,7 +70,13 @@ const connect = async () => {
     rfb.addEventListener('connect', () => setStatus('已连接', 'ok'));
     rfb.addEventListener('clipboard', (event) => {
       const text = event.detail?.text || '';
-      if (text && navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
+      const box = document.getElementById('console-clipboard');
+      if (box && text) {
+        box.value = text;
+        box.focus();
+        box.select();
+      }
+      if (text && window.isSecureContext && navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
     });
     rfb.addEventListener('disconnect', (event) => {
       if (event.detail.clean) setStatus('已断开', 'muted');
@@ -115,3 +121,20 @@ document.getElementById('scale-toggle')?.addEventListener('click', () => {
 window.addEventListener('beforeunload', () => rfb?.disconnect());
 if (!window.isSecureContext && !allowInsecureConsole) blockInsecureContext();
 else connect();
+
+document.getElementById('copy-console-text')?.addEventListener('click', async () => {
+  const box = document.getElementById('console-clipboard');
+  const text = box?.value || '';
+  if (!text) {
+    setStatus('虚拟机还没有复制文本', 'warn');
+    return;
+  }
+  box.focus();
+  box.select();
+  let copied = false;
+  if (window.isSecureContext && navigator.clipboard?.writeText) {
+    try { await navigator.clipboard.writeText(text); copied = true; } catch (_) {}
+  }
+  if (!copied) copied = document.execCommand('copy');
+  setStatus(copied ? '虚拟机文本已复制' : '文本已选中，请按 Ctrl+C 或 Command+C', copied ? 'ok' : 'warn');
+});
