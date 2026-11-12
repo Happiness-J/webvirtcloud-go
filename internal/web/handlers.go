@@ -1351,12 +1351,18 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 		s.logRequestError(r, "list networks for VM create", netErr)
 	}
 	active := make([]string, 0)
+	inactive := make([]string, 0)
 	for _, network := range networks {
-		if network.State == "active" && network.Name != "" {
+		if network.Name == "" {
+			continue
+		}
+		if network.State == "active" {
 			active = append(active, network.Name)
+		} else {
+			inactive = append(inactive, network.Name)
 		}
 	}
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir)}})
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir)}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {

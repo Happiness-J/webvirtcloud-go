@@ -7,7 +7,7 @@
 <label>内存<input name="memory" value="4" required pattern="[1-9][0-9]*"><span class="hint">单位 GB</span></label>
 <label>磁盘大小<input name="disk" value="40" required pattern="[1-9][0-9]*"><span class="hint">单位 GB，自动创建 qcow2</span></label>
 <label>网络（可选）<select name="network"><option value="">不连接网络，稍后在详情页配置</option>{{range .Data.Networks}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>
-{{if .Data.NetworkError}}<p class="hint bad-text">读取虚拟网络失败。仍可创建无网络虚拟机，稍后检查主机连接并补充网络。</p>{{else if not .Data.Networks}}<p class="hint">这台主机没有已启动的虚拟网络；可以先创建无网络虚拟机。</p>{{end}}
+{{if .Data.NetworkError}}<p class="hint bad-text">读取虚拟网络失败。仍可创建无网络虚拟机，稍后检查主机连接并补充网络。</p>{{else if .Data.InactiveNetworks}}<p class="hint">已发现未启动网络：{{range $index, $name := .Data.InactiveNetworks}}{{if $index}}、{{end}}<code>{{$name}}</code>{{end}}。请先到虚拟网络页面启动，或先创建无网络虚拟机。</p>{{else if not .Data.Networks}}<p class="hint">这台主机没有已启动的虚拟网络；可以先创建无网络虚拟机。</p>{{end}}
 <label>安装 ISO（可选）<select name="cdrom"><option value="">创建空白磁盘，不启动安装器</option>{{range .Data.ISOs}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>
 <p class="hint">只列出镜像目录中的 .iso。选择 ISO 时以光盘引导；不选择 ISO 时创建一台可启动空磁盘的虚拟机，可稍后挂载安装介质。</p>
 <button class="btn primary" data-confirm="确定创建虚拟机吗？创建任务会进入后台执行。">创建虚拟机</button>
