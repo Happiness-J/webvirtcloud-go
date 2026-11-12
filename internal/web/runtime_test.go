@@ -334,3 +334,9 @@ func TestFlagNameUsesOperatorLanguage(t *testing.T) {
 		}
 	}
 }
+
+func TestPoolStateName(t *testing.T) {
+	if poolStateName("running") != "运行" || poolStateName("inactive") != "停止" || poolStateName("") != "-" {
+		t.Fatal("unexpected pool state labels")
+	}
+}

@@ -194,8 +194,6 @@ func parseTemplates() (map[string]*template.Template, error) {
 				return "失败"
 			case "cancelled":
 				return "已取消"
-			case "active":
-				return "运行"
 			case "inactive":
 				return "停止"
 			case "shut off":
@@ -208,7 +206,8 @@ func parseTemplates() (map[string]*template.Template, error) {
 				return status
 			}
 		},
-		"flagName": flagName,
+		"flagName":      flagName,
+		"poolStateName": poolStateName,
 		"statusClass": func(status string) string {
 			switch status {
 			case "succeeded", "running", "active":
@@ -985,5 +984,18 @@ func flagName(value string) string {
 		return "-"
 	default:
 		return value
+	}
+}
+
+func poolStateName(state string) string {
+	switch strings.ToLower(strings.TrimSpace(state)) {
+	case "running", "active":
+		return "运行"
+	case "inactive", "shut off":
+		return "停止"
+	case "":
+		return "-"
+	default:
+		return state
 	}
 }
