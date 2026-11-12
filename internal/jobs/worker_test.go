@@ -49,6 +49,63 @@ func TestAuthorizeQueuedJob(t *testing.T) {
 	}
 }
 
+func TestValidateJobPrincipal(t *testing.T) {
+	tests := []struct {
+		name      string
+		user      store.User
+		kind      string
+		tool      string
+		args      []string
+		sensitive bool
+		wantErr   string
+	}{
+		{
+			name: "disabled API operator remains a job principal",
+			user: store.User{ID: "system:api-operator", Role: "operator", Disabled: true},
+			kind: "vm-action", tool: "virsh", args: []string{"start", "vm"},
+		},
+		{
+			name: "disabled API admin remains a job principal",
+			user: store.User{ID: "system:api-admin", Role: "admin", Disabled: true},
+			kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm"},
+		},
+		{
+			name: "disabled regular user is rejected",
+			user: store.User{ID: "user-1", Role: "operator", Disabled: true},
+			kind: "vm-action", tool: "virsh", args: []string{"start", "vm"}, wantErr: "已被禁用",
+		},
+		{
+			name: "API operator cannot run admin-only operation",
+			user: store.User{ID: "system:api-operator", Role: "operator", Disabled: true},
+			kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm"}, wantErr: "当前角色",
+		},
+		{
+			name: "API operator cannot run sensitive command",
+			user: store.User{ID: "system:api-operator", Role: "operator", Disabled: true},
+			kind: "host-test", tool: "virsh", args: []string{"version"}, sensitive: true, wantErr: "敏感命令",
+		},
+		{
+			name: "API admin can run sensitive command",
+			user: store.User{ID: "system:api-admin", Role: "admin", Disabled: true},
+			kind: "command", tool: "virsh", args: []string{"list"}, sensitive: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateJobPrincipal(tc.user, tc.kind, tc.tool, tc.args, tc.sensitive)
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatalf("validateJobPrincipal() = %v, want nil", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("validateJobPrincipal() = %v, want error containing %q", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestRecoverJobPanic(t *testing.T) {
 	w := &Worker{log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	status, output, errText := func() (status, output, errText string) {

@@ -306,14 +306,8 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 		}
 		return "failed", "", "任务发起人不存在或无法读取"
 	}
-	if user.Disabled {
-		return "failed", "", "任务发起人已被禁用"
-	}
-	if err := authorizeQueuedJob(job.Kind, job.Tool, args, user.Role); err != nil {
+	if err := validateJobPrincipal(user, job.Kind, job.Tool, args, sensitive); err != nil {
 		return "failed", "", err.Error()
-	}
-	if sensitive && user.Role != command.RoleAdmin {
-		return "failed", "", "敏感命令仅允许由当前仍处于启用状态的管理员执行"
 	}
 	if strings.TrimSpace(job.HostID) == "" {
 		return "failed", "", "任务缺少主机配置；为避免误在本机执行，已拒绝运行"
@@ -372,6 +366,22 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 	}
 	w.log.Info("job succeeded", "job_id", job.ID, "tool", job.Tool, "target", target.Label, "duration", time.Since(start).String())
 	return "succeeded", output, ""
+}
+
+func validateJobPrincipal(user store.User, kind, tool string, args []string, sensitive bool) error {
+	// Bearer-token automation principals are intentionally marked disabled so
+	// they cannot authenticate through the browser. Their jobs still need a
+	// durable foreign-key owner, but the role is revalidated below on every run.
+	if user.Disabled && !store.IsSystemUserID(user.ID) {
+		return fmt.Errorf("任务发起人已被禁用")
+	}
+	if err := authorizeQueuedJob(kind, tool, args, user.Role); err != nil {
+		return err
+	}
+	if sensitive && user.Role != command.RoleAdmin {
+		return fmt.Errorf("敏感命令仅允许由当前仍处于启用状态的管理员执行")
+	}
+	return nil
 }
 
 func authorizeQueuedJob(kind, tool string, args []string, role string) error {

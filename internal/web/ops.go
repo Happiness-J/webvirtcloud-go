@@ -306,6 +306,9 @@ func vmResourceArgs(kind, vm, scope, rawValue, state string) ([]string, string, 
 	}
 	switch kind {
 	case "cpu", "cpu-max":
+		if kind == "cpu-max" && state != "shut off" {
+			return nil, "", fmt.Errorf("最大 vCPU 上限只能在虚拟机关机时修改")
+		}
 		count, err := strconv.Atoi(strings.TrimSpace(rawValue))
 		if err != nil || count < 1 || count > 1024 {
 			return nil, "", fmt.Errorf("vCPU 数量必须在 1-1024 之间")

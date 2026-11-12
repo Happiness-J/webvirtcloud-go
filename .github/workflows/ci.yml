@@ -45,6 +45,8 @@ jobs:
           go mod download
           go mod verify
           make fmt-check tidy-check vet
+      - name: Validate OpenAPI contract
+        run: npx --yes @redocly/cli@2.78.0 lint internal/web/static/openapi.yaml --format=stylish
       - name: Run tests with race detector and PostgreSQL integration
         run: make test-race
       - name: Build release binary

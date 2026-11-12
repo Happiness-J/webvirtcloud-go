@@ -22,6 +22,18 @@
   {{end}}
   </div>
 </section>{{end}}
+{{if eq .User.Role "admin"}}<section class="panel danger-zone">
+  <h2>删除虚拟机</h2>
+  {{if or (eq .Data.Detail.Domain.State "shut off") (eq .Data.Detail.Domain.State "crashed")}}
+  <p class="hint">删除会移除 libvirt 中的虚拟机定义、快照/检查点元数据和 NVRAM，默认保留磁盘文件。磁盘容量可在存储页单独清理。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="undefine">
+    <label>输入虚拟机名称 <code>{{.Data.VM}}</code> 以确认<input name="confirm_name" autocomplete="off" required></label>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>我了解磁盘不会随定义一起删除</label>
+    <button class="btn danger" data-confirm="确定永久删除虚拟机定义吗？">删除虚拟机定义</button>
+  </form>
+  {{else}}<p class="hint">虚拟机当前为 <strong>{{statusName .Data.Detail.Domain.State}}</strong>。请先正常关机；强制断电只应由运维人员在确认风险后执行。</p>{{end}}
+</section>{{end}}
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
   <h2>克隆、迁移和 USB</h2>
@@ -30,19 +42,26 @@
     <input name="snapshot" placeholder="新虚拟机名称" maxlength="128" required>
     <button class="btn" data-confirm="克隆会复制已关机虚拟机的磁盘，可能耗时较长，继续吗？">克隆</button>
   </form>
+  {{if or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="migrate">
     <input name="snapshot" placeholder="qemu+ssh://user@target/system" maxlength="256" required>
     <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
     <button class="btn danger">在线迁移</button>
   </form>
+  {{else}}<p class="hint">虚拟机已关机；在线迁移只在运行中或已挂起时开放。</p>{{end}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
-    <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <select name="action"><option value="usb-attach">挂载 USB</option><option value="usb-detach">卸载 USB</option></select>
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="usb-attach">
     <input name="snapshot" placeholder="/dev/disk/by-id/usb-..." maxlength="256" required>
-    <button class="btn" data-confirm="确定变更 USB 设备吗？">执行</button>
+    <button class="btn" data-confirm="确定挂载这个 USB 块设备吗？">挂载 USB</button>
   </form>
-  <p class="hint">克隆要求虚拟机已关机，使用 virt-clone 自动生成新磁盘、UUID 和 MAC。迁移只接受 qemu+ssh 或 qemu+tls，避免把虚拟机迁移到未加密目标。USB 只接受 /dev 下的主机块设备，并挂到客户机的 sda。客户机里如果已经有 sda，请先卸载后再挂新设备。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="usb-detach">
+    <select name="snapshot" required><option value="" disabled selected>选择要卸载的 sd 目标</option>{{range .Data.RemovableTargets}}<option value="{{.Target}}">{{.Target}} · {{.Source}}</option>{{end}}</select>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
+    <button class="btn danger" data-confirm="会从虚拟机卸载所选磁盘目标，请确认不是启动盘。确定继续吗？">卸载磁盘</button>
+  </form>
+  <p class="hint">克隆要求虚拟机已关机，使用 virt-clone 自动生成新磁盘、UUID 和 MAC。在线迁移只接受运行中或已挂起虚拟机，以及 qemu+ssh 或 qemu+tls 目标。USB 挂载只接受 /dev 下的主机块设备，并自动选择空闲 sd 盘符；卸载时选择目标盘符，注意不要移除启动盘。</p>
 </section>
 <section class="panel">
   <h2>磁盘容量</h2>

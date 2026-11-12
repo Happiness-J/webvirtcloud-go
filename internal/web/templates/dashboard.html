@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-head">
   <div><h1>基础设施概览</h1><p class="muted">VM 与 QEMU 操作通过异步任务执行；主机和用户管理同步写入并记录审计。</p></div>
-  {{if eq .User.Role "admin"}}<a class="btn primary" href="/hosts/new">添加主机</a>{{end}}
+  <div class="actions"><a class="btn" href="/vms">查看虚拟机</a>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a class="btn primary" href="/vms">创建 / 管理虚拟机</a>{{end}}{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/new">添加主机</a>{{end}}</div>
 </div>
 <section class="stats">
   <div class="stat"><strong>{{.Data.HostCount}}</strong><span>计算主机</span></div>

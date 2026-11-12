@@ -23,6 +23,33 @@ document.addEventListener('click', (event) => {
   }
 });
 
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('button[data-copy]');
+  if (!button) return;
+  const target = button.dataset.copyTarget ? document.getElementById(button.dataset.copyTarget) : null;
+  const value = target ? target.textContent.trim() : (button.dataset.copy || '');
+  try {
+    await navigator.clipboard.writeText(value);
+    const label = button.textContent;
+    button.textContent = '已复制';
+    button.classList.add('copied');
+    setTimeout(() => {
+      button.textContent = label;
+      button.classList.remove('copied');
+    }, 1400);
+  } catch (_) {
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+  }
+});
+
 document.addEventListener('change', (event) => {
   const master = event.target.closest('input[type="checkbox"][data-select-all]');
   if (!master) return;

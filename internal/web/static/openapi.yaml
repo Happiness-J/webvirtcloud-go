@@ -1,46 +1,477 @@
 openapi: 3.0.3
 info:
   title: WebVirtCloud Go API
-  version: 0.3.0
-  description: 只读接口。浏览器会话或 Bearer 令牌都可访问，令牌只有查看权限。
+  version: 0.4.0
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  description: |
+    Versioned API for QEMU/KVM inventory and asynchronous lifecycle automation.
+
+    Authentication uses `Authorization: Bearer <token>`. The legacy metrics token
+    is read-only. `WVC_API_TOKEN` has operator scope and `WVC_API_ADMIN_TOKEN` has
+    admin scope. Mutating calls return `202 Accepted` and must be polled through
+    `GET /api/v1/jobs/{jobID}`.
+
+    Responses never include libvirt connection URIs, SSH credentials, database
+    passwords, console passwords, or other secret material.
 servers:
   - url: /
+    description: Current WebVirtCloud Go origin
+tags:
+  - name: Inventory
+    description: Host inventory visible to the authenticated caller.
+  - name: Virtual machines
+    description: Read operations and asynchronous lifecycle changes.
+  - name: Jobs
+    description: Durable asynchronous job status and output.
+  - name: Resources
+    description: Dashboard resource snapshots for monitoring and operations.
+security:
+  - bearerAuth: []
 paths:
   /api/v1/hosts:
     get:
-      summary: 列出计算主机
+      tags: [Inventory]
+      operationId: listHosts
+      summary: List hosts visible to the API
       responses:
-        "200":
-          description: 主机 ID、名称和启用状态
+        '200':
+          description: Enabled and disabled host summaries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HostList'
+              example:
+                hosts:
+                  - id: host_7a1948f75172b724955409d87843a97f
+                    name: kvm-01
+                    enabled: true
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
   /api/v1/hosts/{hostID}/vms:
+    parameters:
+      - $ref: '#/components/parameters/HostID'
     get:
-      summary: 列出主机上的虚拟机
-      parameters:
-        - name: hostID
-          in: path
-          required: true
-          schema: {type: string}
+      tags: [Virtual machines]
+      operationId: listVirtualMachines
+      summary: List virtual machines on a host
       responses:
-        "200": {description: 虚拟机名称、状态和自启动}
-        "502": {description: libvirt 不可用}
+        '200':
+          description: Virtual machine summaries with exact KiB memory values
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [host_id, host_name, vms]
+                properties:
+                  host_id: { type: string }
+                  host_name: { type: string }
+                  vms:
+                    type: array
+                    items: { $ref: '#/components/schemas/VMSummary' }
+              example:
+                host_id: host_example
+                host_name: kvm-01
+                vms:
+                  - name: web-01
+                    id: '3'
+                    state: running
+                    autostart: enable
+                    vcpus: 4
+                    max_memory_kib: 8388608
+                    used_memory_kib: 2097152
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/HostNotFound' }
+        '502': { $ref: '#/components/responses/LibvirtUnavailable' }
+    post:
+      tags: [Virtual machines]
+      operationId: createVirtualMachine
+      summary: Create a virtual machine asynchronously
+      description: |
+        Requires operator or admin scope. The disk is created in qcow2 format.
+        When `iso` is omitted, a blank-disk VM is created. When `network` is
+        omitted, the VM has no network interface.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VMCreateRequest' }
+            examples:
+              ISO install:
+                value:
+                  name: web-01
+                  vcpus: 2
+                  memory_gb: 4
+                  disk_gb: 40
+                  network: default
+                  iso: /var/lib/libvirt/images/debian-13-netinst.iso
+                  os_variant: debian13
+              Blank disk:
+                value:
+                  name: test-01
+                  vcpus: 1
+                  memory_gb: 2
+                  disk_gb: 20
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadJSON' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/HostNotFound' }
+        '409': { $ref: '#/components/responses/JobRejected' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/InvalidVMSpec' }
   /api/v1/hosts/{hostID}/vms/{vm}:
+    parameters:
+      - $ref: '#/components/parameters/HostID'
+      - $ref: '#/components/parameters/VMName'
     get:
-      summary: 查看一台虚拟机
-      parameters:
-        - {name: hostID, in: path, required: true, schema: {type: string}}
-        - {name: vm, in: path, required: true, schema: {type: string}}
+      tags: [Virtual machines]
+      operationId: getVirtualMachine
+      summary: Get one virtual machine
       responses:
-        "200": {description: 状态、客户机 IP 和摘要}
-        "403": {description: 没有该虚拟机权限}
+        '200':
+          description: VM summary, guest addresses, and informational libvirt fields
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [host_id, host_name, vm, addresses, info]
+                properties:
+                  host_id: { type: string }
+                  host_name: { type: string }
+                  vm: { $ref: '#/components/schemas/VMSummary' }
+                  addresses:
+                    type: array
+                    items: { $ref: '#/components/schemas/GuestAddress' }
+                  info:
+                    type: object
+                    additionalProperties: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/HostNotFound' }
+        '502': { $ref: '#/components/responses/LibvirtUnavailable' }
+    delete:
+      tags: [Virtual machines]
+      operationId: deleteVirtualMachine
+      summary: Delete a stopped virtual machine definition
+      description: |
+        Requires admin scope. The VM must be shut off. The exact VM name must be
+        repeated in `confirm_name`. By default disk volumes are retained; set
+        `delete_storage=true` only when permanent volume deletion is intended.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VMDeleteRequest' }
+            example:
+              confirm: true
+              confirm_name: web-01
+              delete_storage: false
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/HostNotFound' }
+        '409': { $ref: '#/components/responses/VMMustBeStopped' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/LibvirtUnavailable' }
+  /api/v1/hosts/{hostID}/vms/{vm}/snapshots:
+    parameters:
+      - $ref: '#/components/parameters/HostID'
+      - $ref: '#/components/parameters/VMName'
+    get:
+      tags: [Virtual machines]
+      operationId: listVirtualMachineSnapshots
+      summary: List virtual machine snapshots
+      description: Returns libvirt internal snapshots. This does not create or revert a snapshot.
+      responses:
+        '200':
+          description: Snapshot names and metadata reported by libvirt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [host_id, vm, snapshots]
+                properties:
+                  host_id: { type: string }
+                  vm: { type: string }
+                  snapshots:
+                    type: array
+                    items:
+                      type: object
+                      required: [name]
+                      properties:
+                        name: { type: string }
+                        created_at: { type: string }
+                        state: { type: string }
+              example:
+                host_id: host_example
+                vm: web-01
+                snapshots:
+                  - name: before-upgrade
+                    created_at: '2026-11-13 00:00:00 +0800'
+                    state: shutoff
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/VMNotFound' }
+        '502': { $ref: '#/components/responses/LibvirtUnavailable' }
+  /api/v1/hosts/{hostID}/vms/{vm}/actions:
+    parameters:
+      - $ref: '#/components/parameters/HostID'
+      - $ref: '#/components/parameters/VMName'
+    post:
+      tags: [Virtual machines]
+      operationId: runVirtualMachineAction
+      summary: Run a lifecycle action asynchronously
+      description: |
+        Requires operator or admin scope. The action must be valid for the
+        current power state. Destructive actions require `confirm=true`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VMActionRequest' }
+            examples:
+              Start:
+                value: { action: start }
+              Graceful shutdown:
+                value: { action: shutdown }
+              Forced power off:
+                value: { action: destroy, confirm: true }
+      responses:
+        '202': { $ref: '#/components/responses/JobAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/HostNotFound' }
+        '409': { $ref: '#/components/responses/ActionNotAllowed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/LibvirtUnavailable' }
+  /api/v1/jobs/{jobID}:
+    parameters:
+      - name: jobID
+        in: path
+        required: true
+        schema: { type: string, pattern: '^job_[A-Za-z0-9_-]+$' }
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      summary: Get asynchronous job state
+      responses:
+        '200':
+          description: Current job state and output
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/JobNotFound' }
   /api/v1/resources:
     get:
-      summary: 读取实时资源
+      tags: [Resources]
+      operationId: getResources
+      summary: Read dashboard resource snapshots
       responses:
-        "200": {description: CPU、内存和磁盘占用}
+        '200':
+          description: Host and VM resource information used by the dashboard
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [generated_at, hosts]
+                properties:
+                  generated_at: { type: string, format: date-time }
+                  hosts:
+                    type: array
+                    items: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-security:
-  - bearerAuth: []
+      bearerFormat: opaque
+      description: Metrics token (read), WVC_API_TOKEN (operator), or WVC_API_ADMIN_TOKEN (admin).
+  parameters:
+    HostID:
+      name: hostID
+      in: path
+      required: true
+      description: Host ID returned by GET /api/v1/hosts
+      schema: { type: string }
+    VMName:
+      name: vm
+      in: path
+      required: true
+      description: Libvirt domain name. URL-encode spaces and reserved characters.
+      schema: { type: string, minLength: 1, maxLength: 128 }
+  responses:
+    JobAccepted:
+      description: The operation was safely queued
+      headers:
+        Location:
+          description: Relative URL for polling the job
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/JobAccepted' }
+          example: { job_id: job_123, status: queued, location: /api/v1/jobs/job_123 }
+    BadJSON:
+      description: Malformed JSON or unknown fields
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    BadRequest:
+      description: Invalid parameters or missing confirmation
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Token lacks the required scope
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    VMNotFound:
+      description: Virtual machine not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: Virtual machine not found, code: vm_not_found, request_id: req_example }
+    HostNotFound:
+      description: Host does not exist
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    JobNotFound:
+      description: Job does not exist or was cleaned up
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    JobRejected:
+      description: Job queue quota, duplicate work, missing tool, or host policy rejected the operation
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    InvalidVMSpec:
+      description: VM name, resources, network, ISO, or OS variant is invalid
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    UnsupportedMediaType:
+      description: Content-Type is not application/json
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    PayloadTooLarge:
+      description: JSON request body exceeds 64 KiB
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    VMMustBeStopped:
+      description: The VM must be shut off before its definition can be deleted
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ActionNotAllowed:
+      description: The action is invalid for the current VM power state
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    LibvirtUnavailable:
+      description: The selected host or libvirt could not be queried
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    InternalError:
+      description: Internal server error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    Host:
+      type: object
+      required: [id, name, enabled]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        enabled: { type: boolean }
+    HostList:
+      type: object
+      required: [hosts]
+      properties:
+        hosts: { type: array, items: { $ref: '#/components/schemas/Host' } }
+    VMSummary:
+      type: object
+      required: [name, state, autostart, vcpus, max_memory_kib]
+      properties:
+        name: { type: string }
+        id:
+          type: string
+          description: Runtime domain ID; omitted while the VM is shut off
+        state:
+          type: string
+          example: running
+        autostart: { type: string, example: enable }
+        vcpus: { type: integer, minimum: 0 }
+        max_memory_kib: { type: integer, format: int64, minimum: 0 }
+        used_memory_kib: { type: integer, format: int64, minimum: 0 }
+    GuestAddress:
+      type: object
+      required: [interface, protocol, address, prefix, source]
+      properties:
+        interface: { type: string }
+        protocol: { type: string, example: ipv4 }
+        address: { type: string }
+        prefix: { type: string }
+        source: { type: string, example: guest-agent }
+    VMCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, vcpus, memory_gb, disk_gb]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 128 }
+        vcpus: { type: integer, minimum: 1, maximum: 128 }
+        memory_gb: { type: integer, minimum: 1, maximum: 1024 }
+        disk_gb: { type: integer, minimum: 1, maximum: 10000 }
+        network:
+          type: string
+          description: Active libvirt network name; omit for no network interface
+        iso:
+          type: string
+          description: Absolute path to a regular .iso under WVC_LOCAL_IMAGE_DIR
+        os_variant:
+          type: string
+          default: generic
+          pattern: '^[A-Za-z0-9._-]{1,128}$'
+    VMActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [start, shutdown, reboot, destroy, suspend, resume, autostart-on, autostart-off]
+        confirm:
+          type: boolean
+          default: false
+          description: Required for reboot, destroy, suspend, autostart-off
+    VMDeleteRequest:
+      type: object
+      additionalProperties: false
+      required: [confirm, confirm_name]
+      properties:
+        confirm: { type: boolean, enum: [true] }
+        confirm_name: { type: string, description: Must exactly equal the VM path parameter }
+        delete_storage:
+          type: boolean
+          default: false
+          description: Permanently remove all associated storage volumes
+    JobAccepted:
+      type: object
+      required: [job_id, status, location]
+      properties:
+        job_id: { type: string }
+        status: { type: string, enum: [queued] }
+        location: { type: string }
+    Job:
+      type: object
+      required: [id, status, output, error]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+        output: { type: string }
+        error: { type: string }
+        created_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string, description: Human-readable message }
+        code: { type: string, description: Stable machine-readable error code }
+        request_id: { type: string, description: Correlation ID also present in logs }

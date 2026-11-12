@@ -367,7 +367,9 @@ editor .env
 
 - `WVC_WORKERS=2`：任务并发数，按 CPU 和磁盘 I/O 调整。
 - `WVC_LOG_LEVEL`、`WVC_LOG_FORMAT`：日志级别和格式。
-- `WVC_METRICS_TOKEN`：启用受 Bearer token 保护的 `/metrics`。
+- `WVC_METRICS_TOKEN`：启用受 Bearer token 保护的 `/metrics` 和只读 API。
+- `WVC_API_TOKEN`：可选的运维级 API token，可读取、创建虚拟机和执行生命周期操作；不能删除虚拟机。
+- `WVC_API_ADMIN_TOKEN`：可选的运维护理员 API token，额外允许删除已关机虚拟机定义。
 - `WVC_IMAGE_DIR`：需要让容器内 QEMU 工具访问宿主机镜像时设置，并取消 Compose 中对应 volume 注释；容器以 uid `10001` 运行，挂载目录必须可写。
 - `WVC_APP_MEM_LIMIT`、`WVC_APP_CPUS`：应用容器资源上限，默认 `4g` 和 `2.0`。运行大磁盘 `virt-v2v`/libguestfs 转换前应按数据量调高内存。
 - `WVC_TMP_DIR`：默认不需要设置，Compose 已把命名卷 `wvc-tmp` 挂到 `/var/tmp`。若改用独立宿主机目录，删除 Compose 中的 `wvc-tmp:/var/tmp`，取消 `${WVC_TMP_DIR:-./data/tmp}:/var/tmp` 注释，并确保目录可由 uid `10001` 写入。
@@ -624,7 +626,9 @@ Web 控制台默认只允许本机 libvirt、`qemu+ssh`，或显式开启有风�
 | `WVC_JOB_RETENTION` | `720h` | 已完成任务保留期；`0` 禁用清理 |
 | `WVC_AUDIT_RETENTION` | `4320h` | 审计保留期；`0` 禁用清理 |
 | `WVC_AUDIT_VERIFY_TIMEOUT` | `30m` | 启动时完整校验审计哈希链的超时，1m–24h；历史量大时可调高 |
-| `WVC_METRICS_TOKEN` | 空 | 空表示禁用 `/metrics`；设置后为 Bearer token，至少 32 字节 |
+| `WVC_METRICS_TOKEN` | 空 | 空表示禁用 `/metrics` 和只读 Bearer API；设置后至少 32 字节 |
+| `WVC_API_TOKEN` | 空 | 运维级 Bearer token，允许创建和生命周期操作；至少 32 个可打印 ASCII 字符 |
+| `WVC_API_ADMIN_TOKEN` | 空 | 管理员级 Bearer token，额外允许删除已关机虚拟机定义；至少 32 个可打印 ASCII 字符 |
 | `WVC_CONSOLE_LOOPBACK_ADDRESS` | 空 | 容器部署时改写 VNC 目标；Compose 默认 `host.docker.internal`，仅对可经宿主机网关访问的监听有效，不能穿透宿主 `127.0.0.1` 监听 |
 | `WVC_VIRSH_BIN` | `virsh` | virsh 路径 |
 | `WVC_QEMU_IMG_BIN` | `qemu-img` | qemu-img 路径 |
