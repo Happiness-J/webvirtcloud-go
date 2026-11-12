@@ -148,3 +148,10 @@ func TestRunJobDoesNotExposeCorruptArgumentDetails(t *testing.T) {
 		t.Fatalf("job error = %q, want safe diagnostic message", errText)
 	}
 }
+
+func TestRunJobHidesCommandFailureDetails(t *testing.T) {
+	message := "命令执行失败，请查看任务输出"
+	if strings.Contains(message, "qemu") || strings.Contains(message, "secret") {
+		t.Fatal("failure message contains backend details")
+	}
+}

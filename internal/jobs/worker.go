@@ -358,7 +358,7 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 		return "cancelled", output, "任务已取消"
 	}
 	if err != nil {
-		message := err.Error()
+		message := "命令执行失败，请查看任务输出"
 		if ctx.Err() == context.DeadlineExceeded {
 			message = "命令执行超时"
 		}
