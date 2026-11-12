@@ -321,3 +321,16 @@ func TestLoginKeysIncludeIPAndGlobalDimensions(t *testing.T) {
 		}
 	}
 }
+
+func TestFlagNameUsesOperatorLanguage(t *testing.T) {
+	tmpl := template.Must(template.New("flags").Funcs(template.FuncMap{"flagName": flagName}).Parse(`{{flagName .}}`))
+	for value, want := range map[string]string{"enable": "已启用", "yes": "已启用", "disable": "未启用", "no": "未启用", "": "-", "custom": "custom"} {
+		var buf strings.Builder
+		if err := tmpl.Execute(&buf, value); err != nil {
+			t.Fatal(err)
+		}
+		if buf.String() != want {
+			t.Errorf("flagName(%q) = %q, want %q", value, buf.String(), want)
+		}
+	}
+}

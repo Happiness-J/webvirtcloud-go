@@ -208,6 +208,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 				return status
 			}
 		},
+		"flagName": flagName,
 		"statusClass": func(status string) string {
 			switch status {
 			case "succeeded", "running", "active":
@@ -972,4 +973,17 @@ func (s *Server) apiTokenIdentity(r *http.Request) (store.User, bool) {
 		}
 	}
 	return store.User{}, false
+}
+
+func flagName(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "enable", "enabled", "yes", "on", "true":
+		return "已启用"
+	case "disable", "disabled", "no", "off", "false":
+		return "未启用"
+	case "":
+		return "-"
+	default:
+		return value
+	}
 }

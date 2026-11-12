@@ -25,7 +25,7 @@
   </form>
   {{end}}
   <div class="table-wrap"><table class="ops-table"><thead><tr><th><input type="checkbox" data-select-all="vm-batch" aria-label="全选虚拟机"></th><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th>vCPU</th><th>内存当前</th><th>内存上限</th><th>累计 CPU 时间</th></tr></thead><tbody>
-  {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{statusName .State}}</span></td><td>{{if .Autostart}}{{.Autostart}}{{else}}-{{end}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
+  {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{statusName .State}}</span></td><td>{{flagName .Autostart}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
   </tbody></table></div>
   <p class="hint">资源数据来自 <code>virsh domstats</code>。内存单位为 libvirt balloon 当前值与上限；“累计 CPU 时间”是虚拟机自启动以来的累计消耗，不是瞬时利用率。</p>
   {{else}}<p class="empty">该主机没有可展示的虚拟机。</p>{{end}}
