@@ -89,10 +89,13 @@ func TestBuildOpsVMRows(t *testing.T) {
 		{Name: "web", ID: "7", State: "running", Autostart: "enable", VCPUs: 4, UsedMemoryKiB: 1 << 20, MaxMemoryKiB: 4 << 20},
 		{Name: "db", State: "shut off", Autostart: "disable", VCPUs: 2, UsedMemoryKiB: 512 << 10, MaxMemoryKiB: 1 << 20},
 	}
-	stats := []libvirt.DomainResourceStats{{Name: "web", State: "running", BalloonCurrent: 2 << 20, BalloonMaximum: 4 << 20, CPUTimeNanos: 180000000000}}
+	stats := []libvirt.DomainResourceStats{{Name: "web", State: "running", BalloonCurrent: 4 << 20, BalloonAvailable: 4 << 20, BalloonUnused: 2 << 20, BalloonMaximum: 4 << 20, CPUTimeNanos: 180000000000}}
 	rows := buildOpsVMRows(domains, stats)
 	if len(rows) != 2 || rows[0].Name != "db" || rows[1].Name != "web" {
 		t.Fatalf("rows = %#v", rows)
+	}
+	if rows[0].MemoryCurrent != "未报告实际占用" {
+		t.Fatalf("stopped row memory = %#v", rows[0])
 	}
 	if rows[1].VCPU != "4" || rows[1].MemoryCurrent != "2.0 GB" || rows[1].CPUTime != "3m" || rows[1].Autostart != "enable" {
 		t.Fatalf("unexpected web row: %#v", rows[1])
