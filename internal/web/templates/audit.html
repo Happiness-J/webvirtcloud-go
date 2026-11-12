@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-head"><div><h1>审计日志</h1><p class="muted">登录、主机、用户、命令和任务结果均留痕。</p></div></div>
 <section class="panel">
-{{if .Data.Audits}}<table><thead><tr><th>时间</th><th>操作</th><th>操作人</th><th>主机/VM</th><th>来源 IP</th><th>详情</th></tr></thead><tbody>{{range .Data.Audits}}<tr><td class="muted">{{date .CreatedAt}}</td><td><code>{{.Action}}</code></td><td>{{.ActorName}}</td><td>{{if index $.Data.HostNames .HostID}}{{index $.Data.HostNames .HostID}}{{else}}{{.HostID}}{{end}}{{if .VMName}} / {{.VMName}}{{end}}</td><td>{{.RemoteIP}}</td><td><code class="tiny">{{auditDetail .Detail}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有审计记录。</p>{{end}}
+{{if .Data.Audits}}<table><thead><tr><th>时间</th><th>操作</th><th>操作人</th><th>主机/VM</th><th>来源 IP</th><th>详情</th></tr></thead><tbody>{{range .Data.Audits}}<tr><td class="muted">{{date .CreatedAt}}</td><td>{{auditActionName .Action}}<div class="tiny muted"><code>{{.Action}}</code></div></td><td>{{.ActorName}}</td><td>{{if index $.Data.HostNames .HostID}}{{index $.Data.HostNames .HostID}}{{else}}{{.HostID}}{{end}}{{if .VMName}} / {{.VMName}}{{end}}</td><td>{{.RemoteIP}}</td><td><code class="tiny">{{auditDetail .Detail}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有审计记录。</p>{{end}}
 {{if gt .Data.Page 1}}<a class="btn small" href="/audit?page={{sub .Data.Page 1}}">上一页</a>{{end}}{{if .Data.HasNext}}<a class="btn small" href="/audit?page={{add .Data.Page 1}}">下一页</a>{{end}}
 </section>
 {{end}}

@@ -72,3 +72,9 @@ func TestAuditDetailText(t *testing.T) {
 		t.Fatalf("detail = %q", got)
 	}
 }
+
+func TestAuditActionName(t *testing.T) {
+	if auditActionName("job.enqueue") != "提交任务" || auditActionName("custom.action") != "custom.action" {
+		t.Fatal("unexpected audit action label")
+	}
+}
