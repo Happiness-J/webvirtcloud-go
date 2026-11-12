@@ -1394,10 +1394,21 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
+	hosts, err := s.db.ListHosts(r.Context())
+	exampleHost := ""
+	if err == nil {
+		for _, host := range hosts {
+			if host.Enabled {
+				exampleHost = host.ID
+				break
+			}
+		}
+	}
 	s.render(w, r, "api_docs", pageData{Title: "OpenAPI", Nav: "api", Data: map[string]any{
 		"ReadConfigured":     s.cfg.MetricsToken != "" || s.cfg.APIToken != "" || s.cfg.APIAdminToken != "",
 		"OperatorConfigured": s.cfg.APIToken != "" || s.cfg.APIAdminToken != "",
 		"AdminConfigured":    s.cfg.APIAdminToken != "",
+		"ExampleHostID":      exampleHost,
 	}})
 }
 
