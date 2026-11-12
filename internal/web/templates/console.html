@@ -4,7 +4,8 @@
 <div id="console-security-warning" class="flash error" hidden></div>
 <div class="console-shell">
   <div id="screen" class="screen" tabindex="0" data-ws="{{.Data.WSURL}}" data-password-url="{{.Data.PasswordURL}}" data-allow-insecure-console="{{if .Data.AllowInsecureConsole}}true{{else}}false{{end}}"></div>
-  <div class="console-tools"><button id="send-ctrl-alt-del" class="btn">Ctrl+Alt+Del</button><button id="scale-toggle" class="btn">适应窗口</button><button id="paste-local" class="btn">粘贴本机剪贴板</button><span class="muted">虚拟机复制的文本会尝试写入本机剪贴板；反向粘贴需要浏览器允许剪贴板权限。控制台令牌短时有效且仅可使用一次。</span></div>
+  <div class="console-tools"><button id="send-ctrl-alt-del" class="btn">Ctrl+Alt+Del</button><button id="scale-toggle" class="btn">适应窗口</button><button id="paste-local" class="btn">粘贴本机剪贴板</button><button id="copy-console-text" class="btn">复制虚拟机文本</button><span class="muted">虚拟机里复制的文本会显示在下方，可直接复制到其他机器；浏览器允许时也会写入系统剪贴板。</span></div>
+  <label class="console-clipboard">虚拟机剪贴板<textarea id="console-clipboard" readonly placeholder="在虚拟机内复制文本后，这里会显示内容"></textarea></label>
 </div>
 <script type="module" src="/static/console.js"></script>
 {{end}}

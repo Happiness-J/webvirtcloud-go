@@ -237,3 +237,6 @@ details summary { cursor: pointer; color: var(--brand); }
 @media (max-width: 900px) {
   .api-auth-grid, .api-examples { grid-template-columns: 1fr; }
 }
+
+.console-clipboard { display: grid; gap: 6px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+.console-clipboard textarea { min-height: 76px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
