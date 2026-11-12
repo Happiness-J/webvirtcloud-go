@@ -966,7 +966,14 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 	if hasNext {
 		audits = audits[:pageSize]
 	}
-	s.render(w, r, "audit", pageData{Title: "审计", Nav: "audit", Data: map[string]any{"Audits": audits, "Page": page, "HasNext": hasNext}})
+	hosts, hostErr := s.db.ListHosts(r.Context())
+	hostNames := map[string]string{}
+	if hostErr == nil {
+		for _, host := range hosts {
+			hostNames[host.ID] = host.Name
+		}
+	}
+	s.render(w, r, "audit", pageData{Title: "审计", Nav: "audit", Data: map[string]any{"Audits": audits, "HostNames": hostNames, "Page": page, "HasNext": hasNext}})
 }
 
 func (s *Server) hostLookupError(w http.ResponseWriter, r *http.Request, err error) {
