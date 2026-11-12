@@ -508,12 +508,25 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
+		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
 		page.FlashType = "warn"
 	}
 	s.render(w, r, "vm_detail", page)
+}
+
+func parseKiBInfo(value string) uint64 {
+	fields := strings.Fields(value)
+	if len(fields) == 0 {
+		return 0
+	}
+	number, err := strconv.ParseUint(fields[0], 10, 64)
+	if err != nil {
+		return 0
+	}
+	return number * 1024
 }
 
 func removableDiskTargets(devices []libvirt.BlockDevice) []libvirt.BlockDevice {
@@ -1281,8 +1294,14 @@ func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 			memory = fmt.Sprintf("%d%% · 已用 %s / 总计 %s", usage, formatKiB(usedKiB), formatKiB(item.BalloonMaximum))
 		}
 		disk := "磁盘占用不可用"
-		if item.BlockCapacity > 0 && item.BlockAllocation <= item.BlockCapacity {
-			disk = fmt.Sprintf("已写入 %s / 虚拟容量 %s", formatBytes(item.BlockAllocation), formatBytes(item.BlockCapacity))
+		// qcow2 allocation can exceed virtual capacity by a small metadata
+		// overhead. Capacity is still the meaningful virtual size, while
+		// physical is the actual file size on the host.
+		if item.BlockCapacity > 0 {
+			disk = fmt.Sprintf("虚拟容量 %s", formatBytes(item.BlockCapacity))
+			if item.BlockPhysical > 0 {
+				disk += fmt.Sprintf(" · 文件 %s", formatBytes(item.BlockPhysical))
+			}
 		}
 		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "自启动累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage})
 	}

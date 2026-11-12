@@ -101,7 +101,7 @@
     <label>最大 vCPU 上限<input type="number" name="cpu_count" min="1" max="1024" value="{{index .Data.Detail.Info "CPU(s)"}}" required></label>
     <button class="btn" data-confirm="提高最大 vCPU 上限会改变虚拟机的可热插拔容量，确定继续吗？">更新 CPU 上限</button>
   </form>
-  <p class="hint">当前配置：{{index .Data.Detail.Info "CPU(s)"}} vCPU，最大内存 {{index .Data.Detail.Info "Max memory"}}。在线调大内存不得超过宿主机和 libvirt 允许的上限。</p>
+  <p class="hint">当前配置：{{index .Data.Detail.Info "CPU(s)"}} vCPU，最大内存 {{bytes .Data.MaxMemoryBytes}}。在线调大内存不得超过宿主机和 libvirt 允许的上限。</p>
 </section>
 <section class="panel">
   <h2>快照</h2>

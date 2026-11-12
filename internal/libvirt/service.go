@@ -753,6 +753,10 @@ func ParseDomainStats(output string) []DomainResourceStats {
 				parsed, _ := strconv.ParseUint(value, 10, 64)
 				current.BlockAllocation += parsed
 			}
+			if strings.HasPrefix(key, "block.") && strings.HasSuffix(key, ".physical") {
+				parsed, _ := strconv.ParseUint(value, 10, 64)
+				current.BlockPhysical += parsed
+			}
 		}
 		out = append(out, *current)
 		values = make(map[string]string)
