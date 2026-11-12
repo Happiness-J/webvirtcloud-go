@@ -124,4 +124,6 @@ type DomainResourceStats struct {
 	BlockCapacity    uint64
 	BlockAllocation  uint64
 	BlockPhysical    uint64
+	BlockReadBytes   uint64
+	BlockWriteBytes  uint64
 }

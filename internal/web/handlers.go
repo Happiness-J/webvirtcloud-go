@@ -44,14 +44,16 @@ type dashboardHostLive struct {
 }
 
 type dashboardVMLive struct {
-	Name         string
-	State        string
-	CPU          string
-	Memory       string
-	Disk         string
-	Usage        int
-	CPUTimeNanos uint64 `json:"CPUTimeNanos,omitempty"`
-	VCPUs        int    `json:"VCPUs,omitempty"`
+	Name            string
+	State           string
+	CPU             string
+	Memory          string
+	Disk            string
+	Usage           int
+	CPUTimeNanos    uint64 `json:"CPUTimeNanos,omitempty"`
+	VCPUs           int    `json:"VCPUs,omitempty"`
+	BlockReadBytes  uint64 `json:"BlockReadBytes,omitempty"`
+	BlockWriteBytes uint64 `json:"BlockWriteBytes,omitempty"`
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -517,6 +519,21 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		page.FlashType = "warn"
 	}
 	s.render(w, r, "vm_detail", page)
+}
+
+func readableInfoValue(key, value string) string {
+	if !strings.Contains(strings.ToLower(key), "memory") {
+		return value
+	}
+	fields := strings.Fields(value)
+	if len(fields) == 0 || !strings.EqualFold(fields[len(fields)-1], "KiB") {
+		return value
+	}
+	number, err := strconv.ParseUint(strings.ReplaceAll(fields[0], ",", ""), 10, 64)
+	if err != nil {
+		return value
+	}
+	return formatBytes(number * 1024)
 }
 
 func parseKiBInfo(value string) uint64 {
@@ -1312,7 +1329,7 @@ func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 				disk += fmt.Sprintf(" · 文件 %s", formatBytes(item.BlockPhysical))
 			}
 		}
-		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage, CPUTimeNanos: item.CPUTimeNanos, VCPUs: item.VCPUs})
+		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage, CPUTimeNanos: item.CPUTimeNanos, VCPUs: item.VCPUs, BlockReadBytes: item.BlockReadBytes, BlockWriteBytes: item.BlockWriteBytes})
 	}
 	return out
 }
