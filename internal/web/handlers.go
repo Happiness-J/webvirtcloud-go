@@ -494,7 +494,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	}
 	infoRows := make([]kvRow, 0, len(detail.Info))
 	for key, value := range detail.Info {
-		infoRows = append(infoRows, kvRow{Key: key, Value: value})
+		infoRows = append(infoRows, kvRow{Key: key, Value: readableInfoValue(key, value)})
 	}
 	sort.Slice(infoRows, func(i, j int) bool { return infoRows[i].Key < infoRows[j].Key })
 	actions := vmActions(sess.User.Role, detail.Domain.State, detail.Info["Autostart"])
