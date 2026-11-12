@@ -522,9 +522,9 @@ func (s *Service) ListPools(ctx context.Context, hostID string) ([]Pool, error) 
 			out[i].State = info["State"]
 			out[i].Autostart = info["Autostart"]
 			out[i].Persistent = info["Persistent"]
-			out[i].Capacity = info["Capacity"]
-			out[i].Allocation = info["Allocation"]
-			out[i].Available = info["Available"]
+			out[i].Capacity = readableCapacity(info["Capacity"])
+			out[i].Allocation = readableCapacity(info["Allocation"])
+			out[i].Available = readableCapacity(info["Available"])
 		}
 	})
 	return out, nil
