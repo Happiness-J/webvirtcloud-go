@@ -378,10 +378,10 @@ func (s *Server) vmResourceAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func readableStats(values map[string]string) []kvRow {
-	labels := map[string]string{"user:": "用户态 CPU", "system:": "内核态 CPU", "idle:": "空闲 CPU", "iowait:": "IO 等待", "total:": "总内存", "free:": "空闲内存", "buffers:": "缓冲区", "cached:": "缓存"}
+	labels := map[string]string{"user": "用户态 CPU", "system": "内核态 CPU", "idle": "空闲 CPU", "iowait": "IO 等待", "total": "总内存", "free": "空闲内存", "buffers": "缓冲区", "cached": "缓存"}
 	rows := make([]kvRow, 0, len(values))
 	for key, value := range values {
-		normalized := strings.ToLower(strings.TrimSpace(key))
+		normalized := strings.ToLower(strings.Trim(strings.TrimSpace(key), ":"))
 		if strings.Contains(normalized, "cpu.time") || strings.Contains(normalized, "cpu.user") || strings.Contains(normalized, "cpu.system") {
 			continue
 		}
@@ -396,13 +396,13 @@ func readableStats(values map[string]string) []kvRow {
 }
 
 func resourceSummary(cpu, memory map[string]string) []kvRow {
-	idle := statPercent(cpu, "idle:")
+	idle := statPercent(cpu, "idle")
 	usedCPU := 100 - idle
 	if usedCPU < 0 {
 		usedCPU = 0
 	}
-	total := statBytes(memory, "total:")
-	free := statBytes(memory, "free:") + statBytes(memory, "buffers:") + statBytes(memory, "cached:")
+	total := statBytes(memory, "total")
+	free := statBytes(memory, "free") + statBytes(memory, "buffers") + statBytes(memory, "cached")
 	used := uint64(0)
 	if total > free {
 		used = total - free
@@ -437,8 +437,17 @@ func readableStatValue(key, value string) string {
 	}
 }
 
+func firstStat(values map[string]string, key string) string {
+	for _, candidate := range []string{key, key + ":"} {
+		if value, ok := values[candidate]; ok {
+			return value
+		}
+	}
+	return ""
+}
+
 func statPercent(values map[string]string, key string) float64 {
-	number, err := strconv.ParseFloat(strings.TrimSpace(values[key]), 64)
+	number, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(firstStat(values, key)), "%"), 64)
 	if err != nil {
 		return 0
 	}
@@ -446,7 +455,7 @@ func statPercent(values map[string]string, key string) float64 {
 }
 
 func statBytes(values map[string]string, key string) uint64 {
-	fields := strings.Fields(values[key])
+	fields := strings.Fields(firstStat(values, key))
 	if len(fields) == 0 {
 		return 0
 	}
