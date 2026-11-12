@@ -254,7 +254,10 @@ func (s *Service) MemoryStats(ctx context.Context, hostID, name string) (string,
 		return "", err
 	}
 	res, err := s.run(ctx, hostID, []string{"dommemstat", name}, 10*time.Second)
-	return res.Output(), err
+	if err != nil {
+		return res.Output(), err
+	}
+	return formatMemoryStats(res.Stdout), nil
 }
 
 func (s *Service) GuestAgentInfo(ctx context.Context, hostID, name string) (string, error) {
@@ -1096,4 +1099,42 @@ func (s *Service) RunReadOnly(ctx context.Context, hostID string, args []string,
 		return command.Result{}, fmt.Errorf("诊断命令为空")
 	}
 	return s.run(ctx, hostID, args, timeout)
+}
+
+func formatMemoryStats(output string) string {
+	labels := map[string]string{
+		"actual": "当前分配", "swap_in": "换入页", "swap_out": "换出页",
+		"major_fault": "主缺页", "minor_fault": "次缺页", "unused": "客户机未使用",
+		"available": "客户机可用", "usable": "客户机可用", "rss": "宿主机 RSS",
+		"last_update": "最近更新时间",
+	}
+	var lines []string
+	for _, raw := range strings.Split(strings.ReplaceAll(output, "\r\n", "\n"), "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			lines = append(lines, line)
+			continue
+		}
+		key := strings.ToLower(fields[0])
+		number, err := strconv.ParseUint(fields[1], 10, 64)
+		label := labels[key]
+		if label == "" {
+			label = fields[0]
+		}
+		switch {
+		case err != nil:
+			lines = append(lines, label+": "+strings.Join(fields[1:], " "))
+		case key == "swap_in" || key == "swap_out" || key == "major_fault" || key == "minor_fault":
+			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
+		case key == "last_update" && number > 1_000_000_000:
+			lines = append(lines, label+": "+time.Unix(int64(number), 0).Local().Format("2006-01-02 15:04:05"))
+		default:
+			lines = append(lines, label+": "+humanBytes(number*1024))
+		}
+	}
+	return strings.Join(lines, "\n")
 }
