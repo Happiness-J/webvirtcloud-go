@@ -56,6 +56,21 @@
 
   const badge = (text, kind) => make('span', 'pill ' + (kind || 'muted'), text);
 
+
+  const commandPurpose = (item) => {
+    const purpose = {
+      help: '查看命令帮助', version: '查看版本', connect: '连接 libvirt', list: '列出对象',
+      dominfo: '查看虚拟机信息', dumpxml: '导出虚拟机配置', start: '启动虚拟机', shutdown: '正常关闭虚拟机',
+      destroy: '强制关闭虚拟机', reboot: '重启虚拟机', screenshot: '截取虚拟机画面'
+    };
+    return purpose[item.command] || (item.summary && /[\u4e00-\u9fff]/.test(item.summary) ? item.summary : item.category + '命令');
+  };
+  const commandState = (item) => {
+    if (item.toolAvailable === false) return '不可执行：工具未安装';
+    if (item.disabled) return '不可直接执行：交互式命令';
+    return '可执行';
+  };
+
   const sameItem = (left, right) => left && right && left.tool === right.tool && left.command === right.command;
 
   const quoteArg = (value) => {
@@ -104,11 +119,11 @@
       head.append(make('code', '', item.tool + ' ' + item.command));
       head.append(badge(item.risk, riskClass(item.risk)));
       button.append(head);
-      button.append(make('span', 'command-item-summary', item.summary || item.usage));
+      button.append(make('span', 'command-item-summary', commandPurpose(item)));
       const meta = make('span', 'command-item-meta');
+      meta.append(make('span', item.disabled || item.toolAvailable === false ? 'tiny bad-text' : 'tiny ok-text', commandState(item)));
       if (item.readOnly) meta.append(make('span', 'tiny ok-text', '只读'));
       if (item.sensitive) meta.append(make('span', 'tiny warn-text', '敏感'));
-      if (item.disabled) meta.append(make('span', 'tiny bad-text', '交互式/不可异步'));
       if (item.toolAvailable === false) meta.append(make('span', 'tiny bad-text', '工具未安装'));
       if (item.probeState === 'missing') meta.append(make('span', 'tiny warn-text', '当前版本未列出'));
       button.append(meta);
