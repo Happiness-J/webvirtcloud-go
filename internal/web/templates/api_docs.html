@@ -34,24 +34,25 @@ export WVC_API_TOKEN="至少32字符的运维令牌"</pre></div><div><h3>通用�
 </section>
 <section class="panel">
   <h2>可直接复制的调用示例</h2>
+  {{if .Data.ExampleHostID}}<p class="hint">示例已填入当前启用主机 <code>{{.Data.ExampleHostID}}</code>。令牌仍从环境变量读取，不会显示在页面上。</p>{{else}}<p class="hint">当前没有启用主机，示例保留 <code>$HOST_ID</code> 占位符。</p>{{end}}
   <div class="api-examples">
     <div class="api-example"><div class="api-example-head"><h3>创建虚拟机</h3><button type="button" class="btn small" data-copy data-copy-target="api-create-example">复制</button></div>
       <pre class="output" id="api-create-example">curl -sS -X POST \
   -H "Authorization: Bearer $WVC_API_TOKEN" \
   -H "Content-Type: application/json" \
-  "$WVC_BASE_URL/api/v1/hosts/$HOST_ID/vms" \
+  "$WVC_BASE_URL/api/v1/hosts/{{if .Data.ExampleHostID}}{{.Data.ExampleHostID}}{{else}}$HOST_ID{{end}}/vms" \
   -d '{"name":"web-01","vcpus":2,"memory_gb":4,"disk_gb":40,"network":"default","os_variant":"generic"}'</pre></div>
     <div class="api-example"><div class="api-example-head"><h3>启动虚拟机</h3><button type="button" class="btn small" data-copy data-copy-target="api-start-example">复制</button></div>
       <pre class="output" id="api-start-example">curl -sS -X POST \
   -H "Authorization: Bearer $WVC_API_TOKEN" \
   -H "Content-Type: application/json" \
-  "$WVC_BASE_URL/api/v1/hosts/$HOST_ID/vms/web-01/actions" \
+  "$WVC_BASE_URL/api/v1/hosts/{{if .Data.ExampleHostID}}{{.Data.ExampleHostID}}{{else}}$HOST_ID{{end}}/vms/web-01/actions" \
   -d '{"action":"start"}'</pre></div>
     <div class="api-example"><div class="api-example-head"><h3>删除虚拟机定义</h3><button type="button" class="btn small" data-copy data-copy-target="api-delete-example">复制</button></div>
       <pre class="output" id="api-delete-example">curl -sS -X DELETE \
   -H "Authorization: Bearer $WVC_API_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  "$WVC_BASE_URL/api/v1/hosts/$HOST_ID/vms/web-01" \
+  "$WVC_BASE_URL/api/v1/hosts/{{if .Data.ExampleHostID}}{{.Data.ExampleHostID}}{{else}}$HOST_ID{{end}}/vms/web-01" \
   -d '{"confirm":true,"confirm_name":"web-01","delete_storage":false}'</pre></div>
     <div class="api-example"><div class="api-example-head"><h3>轮询任务</h3><button type="button" class="btn small" data-copy data-copy-target="api-job-example">复制</button></div>
       <pre class="output" id="api-job-example">curl -sS \
