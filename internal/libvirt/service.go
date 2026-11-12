@@ -744,6 +744,9 @@ func ParseDomainStats(output string) []DomainResourceStats {
 		if value, ok := values["cpu.time"]; ok {
 			current.CPUTimeNanos, _ = strconv.ParseUint(value, 10, 64)
 		}
+		if value, ok := values["vcpu.current"]; ok {
+			current.VCPUs, _ = strconv.Atoi(value)
+		}
 		for key, value := range values {
 			if strings.HasPrefix(key, "block.") && strings.HasSuffix(key, ".capacity") {
 				parsed, _ := strconv.ParseUint(value, 10, 64)

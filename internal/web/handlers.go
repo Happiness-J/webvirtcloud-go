@@ -44,12 +44,14 @@ type dashboardHostLive struct {
 }
 
 type dashboardVMLive struct {
-	Name   string
-	State  string
-	CPU    string
-	Memory string
-	Disk   string
-	Usage  int
+	Name         string
+	State        string
+	CPU          string
+	Memory       string
+	Disk         string
+	Usage        int
+	CPUTimeNanos uint64 `json:"CPUTimeNanos,omitempty"`
+	VCPUs        int    `json:"VCPUs,omitempty"`
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
@@ -1303,7 +1305,7 @@ func dashboardVMViews(stats []libvirt.DomainResourceStats) []dashboardVMLive {
 				disk += fmt.Sprintf(" · 文件 %s", formatBytes(item.BlockPhysical))
 			}
 		}
-		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "自启动累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage})
+		out = append(out, dashboardVMLive{Name: item.Name, State: item.State, CPU: "累计 " + formatCPUTime(item.CPUTimeNanos), Memory: memory, Disk: disk, Usage: usage, CPUTimeNanos: item.CPUTimeNanos, VCPUs: item.VCPUs})
 	}
 	return out
 }

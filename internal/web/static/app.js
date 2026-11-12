@@ -133,6 +133,7 @@ document.addEventListener('change', (event) => {
   const board = document.getElementById('resource-board');
   if (!board) return;
   const history = new Map();
+  const cpuSamples = new Map();
   const draw = (card, values) => {
     const canvas = card.querySelector('canvas');
     if (!canvas) return;
@@ -164,13 +165,23 @@ document.addEventListener('change', (event) => {
         const key = host.Host.ID + ':' + vm.Name;
         const values = (history.get(key) || []).concat(vm.Usage || 0).slice(-30);
         history.set(key, values);
+        const now = Date.now();
+        const previous = cpuSamples.get(key);
+        cpuSamples.set(key, {time: now, cpu: vm.CPUTimeNanos || 0});
+        let cpuText = vm.CPU || '-';
+        if (previous && vm.CPUTimeNanos > previous.cpu && now > previous.time) {
+          const elapsed = (now - previous.time) * 1000000;
+          const vcpus = Math.max(1, vm.VCPUs || 1);
+          const percent = Math.max(0, Math.min(100 * vcpus, ((vm.CPUTimeNanos - previous.cpu) / elapsed) * 100));
+          cpuText = '当前 ' + percent.toFixed(1) + '% · ' + (vm.CPU || '');
+        }
         const card = document.createElement('article'); card.className='resource-card';
         card.innerHTML = '<header><strong></strong><span class="pill"></span></header><dl><div><dt>内存</dt><dd class="memory"></dd></div><div><dt>磁盘</dt><dd class="disk"></dd></div><div><dt>CPU</dt><dd class="cpu"></dd></div></dl><canvas aria-label="内存趋势"></canvas><div class="meter"><span></span></div>';
         card.querySelector('strong').textContent = vm.Name;
         const pill = card.querySelector('.pill'); const stateLabels = {running:'运行中','shut off':'已关机',paused:'已挂起',crashed:'崩溃',active:'运行',inactive:'停止'}; pill.textContent = stateLabels[vm.State] || vm.State || '-'; pill.classList.add(vm.State === 'running' ? 'ok' : 'muted');
         card.querySelector('.memory').textContent = vm.Memory || '-';
         card.querySelector('.disk').textContent = vm.Disk || '-';
-        card.querySelector('.cpu').textContent = vm.CPU || '-';
+        card.querySelector('.cpu').textContent = cpuText;
         card.querySelector('.meter span').style.width = (vm.Usage || 0) + '%';
         grid.appendChild(card); draw(card, values);
       });
