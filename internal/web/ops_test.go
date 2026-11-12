@@ -113,3 +113,14 @@ func TestReadableStatValue(t *testing.T) {
 		t.Fatalf("count = %q", got)
 	}
 }
+
+func TestResourceSummary(t *testing.T) {
+	got := resourceSummary(map[string]string{"idle": "75.0"}, map[string]string{"total": "8388608 KiB", "free": "4194304 KiB"})
+	if got[0].Value != "25.0%" || got[1].Value != "4.0 GB / 8.0 GB" {
+		t.Fatalf("resource summary = %#v", got)
+	}
+	missing := resourceSummary(nil, nil)
+	if missing[0].Value != "不可用" || missing[1].Value != "不可用" || missing[2].Value != "不可用" {
+		t.Fatalf("missing summary = %#v", missing)
+	}
+}

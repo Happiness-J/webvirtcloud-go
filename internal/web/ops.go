@@ -396,10 +396,17 @@ func readableStats(values map[string]string) []kvRow {
 }
 
 func resourceSummary(cpu, memory map[string]string) []kvRow {
-	idle := statPercent(cpu, "idle")
-	usedCPU := 100 - idle
-	if usedCPU < 0 {
-		usedCPU = 0
+	cpuText := "不可用"
+	if _, ok := statPercentPresent(cpu, "idle"); ok {
+		idle, _ := statPercentPresent(cpu, "idle")
+		usedCPU := 100 - idle
+		if usedCPU < 0 {
+			usedCPU = 0
+		}
+		if usedCPU > 100 {
+			usedCPU = 100
+		}
+		cpuText = fmt.Sprintf("%.1f%%", usedCPU)
 	}
 	total := statBytes(memory, "total")
 	free := statBytes(memory, "free") + statBytes(memory, "buffers") + statBytes(memory, "cached")
@@ -407,7 +414,15 @@ func resourceSummary(cpu, memory map[string]string) []kvRow {
 	if total > free {
 		used = total - free
 	}
-	return []kvRow{{Key: "CPU 使用率", Value: fmt.Sprintf("%.1f%%", usedCPU)}, {Key: "内存使用", Value: formatBytes(used) + " / " + formatBytes(total)}, {Key: "可用内存", Value: formatBytes(free)}}
+	memoryText := "不可用"
+	if total > 0 {
+		memoryText = formatBytes(used) + " / " + formatBytes(total)
+	}
+	freeText := "不可用"
+	if total > 0 || free > 0 {
+		freeText = formatBytes(free)
+	}
+	return []kvRow{{Key: "CPU 使用率", Value: cpuText}, {Key: "内存使用", Value: memoryText}, {Key: "可用内存", Value: freeText}}
 }
 
 func readableStatValue(key, value string) string {
@@ -446,12 +461,16 @@ func firstStat(values map[string]string, key string) string {
 	return ""
 }
 
-func statPercent(values map[string]string, key string) float64 {
-	number, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(firstStat(values, key)), "%"), 64)
-	if err != nil {
-		return 0
+func statPercentPresent(values map[string]string, key string) (float64, bool) {
+	raw := strings.TrimSpace(firstStat(values, key))
+	if raw == "" {
+		return 0, false
 	}
-	return number
+	number, err := strconv.ParseFloat(strings.TrimSuffix(raw, "%"), 64)
+	if err != nil {
+		return 0, false
+	}
+	return number, true
 }
 
 func statBytes(values map[string]string, key string) uint64 {
