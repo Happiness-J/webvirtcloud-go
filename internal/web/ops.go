@@ -408,19 +408,16 @@ func resourceSummary(cpu, memory map[string]string) []kvRow {
 		}
 		cpuText = fmt.Sprintf("%.1f%%", usedCPU)
 	}
-	total := statBytes(memory, "total")
-	free := statBytes(memory, "free") + statBytes(memory, "buffers") + statBytes(memory, "cached")
-	used := uint64(0)
-	if total > free {
-		used = total - free
-	}
+	total, totalOK := statBytesPresent(memory, "total")
+	free, freeOK := statBytesPresent(memory, "free")
+	buffers, _ := statBytesPresent(memory, "buffers")
+	cached, _ := statBytesPresent(memory, "cached")
+	available := free + buffers + cached
 	memoryText := "不可用"
-	if total > 0 {
-		memoryText = formatBytes(used) + " / " + formatBytes(total)
-	}
 	freeText := "不可用"
-	if total > 0 || free > 0 {
-		freeText = formatBytes(free)
+	if totalOK && freeOK && total >= available {
+		memoryText = formatBytes(total-available) + " / " + formatBytes(total)
+		freeText = formatBytes(available)
 	}
 	return []kvRow{{Key: "CPU 使用率", Value: cpuText}, {Key: "内存使用", Value: memoryText}, {Key: "可用内存", Value: freeText}}
 }
@@ -473,14 +470,14 @@ func statPercentPresent(values map[string]string, key string) (float64, bool) {
 	return number, true
 }
 
-func statBytes(values map[string]string, key string) uint64 {
+func statBytesPresent(values map[string]string, key string) (uint64, bool) {
 	fields := strings.Fields(firstStat(values, key))
 	if len(fields) == 0 {
-		return 0
+		return 0, false
 	}
 	number, err := strconv.ParseFloat(fields[0], 64)
-	if err != nil {
-		return 0
+	if err != nil || number < 0 {
+		return 0, false
 	}
-	return uint64(number * 1024)
+	return uint64(number * 1024), true
 }
