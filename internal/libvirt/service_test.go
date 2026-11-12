@@ -149,12 +149,12 @@ func TestDomainFromInfoPopulatesResourceFields(t *testing.T) {
 }
 
 func TestValidateName(t *testing.T) {
-	for _, name := range []string{"--connect", ".", "..", " vm", "vm/one"} {
+	for _, name := range []string{"--connect", ".", "..", " vm", "vm/one", "vm:1"} {
 		if err := ValidateName(name); err == nil {
 			t.Errorf("ValidateName(%q) unexpectedly succeeded", name)
 		}
 	}
-	for _, name := range []string{"vm", "vm with space", "vm:1", ".hidden"} {
+	for _, name := range []string{"vm", "vm with space", "default", ".hidden"} {
 		if err := ValidateName(name); err != nil {
 			t.Errorf("ValidateName(%q) = %v", name, err)
 		}

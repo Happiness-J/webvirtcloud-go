@@ -976,7 +976,7 @@ func ValidateName(name string) error {
 	if name == "" || !utf8.ValidString(name) || utf8.RuneCountInString(name) > 256 {
 		return fmt.Errorf("名称长度无效")
 	}
-	if name == "." || name == ".." || strings.TrimSpace(name) != name || strings.HasPrefix(name, "-") || strings.ContainsAny(name, `/\\`) {
+	if name == "." || name == ".." || strings.TrimSpace(name) != name || strings.HasPrefix(name, "-") || strings.ContainsAny(name, `/\\`) || strings.Contains(name, ":") {
 		return fmt.Errorf("名称包含非法字符")
 	}
 	for _, r := range name {
