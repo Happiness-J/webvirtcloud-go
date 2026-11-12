@@ -375,3 +375,10 @@ func TestReadableCapacity(t *testing.T) {
 		t.Fatalf("readableCapacity(unknown) = %q", got)
 	}
 }
+
+func TestFormatMemoryStats(t *testing.T) {
+	got := formatMemoryStats("actual 8388608\nunused 1048576\nswap_in 4\n")
+	if !strings.Contains(got, "当前分配: 8.0 GB") || !strings.Contains(got, "客户机未使用: 1.0 GB") || !strings.Contains(got, "换入页: 4") {
+		t.Fatalf("formatMemoryStats() = %q", got)
+	}
+}
