@@ -1,0 +1,4 @@
+{{define "content"}}
+<div class="page-head"><div><h1>{{.Data.Heading}}</h1><p class="muted">{{.Data.Host.Name}} · 只读诊断结果</p></div><a class="btn" href="{{.Data.Back}}">返回</a></div>
+<section class="panel"><pre class="output">{{if .Data.Output}}{{.Data.Output}}{{else}}没有返回内容。{{end}}</pre></section>
+{{end}}
