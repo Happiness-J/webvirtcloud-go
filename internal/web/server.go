@@ -246,6 +246,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 		"sub":              func(a, b int) int { return a - b },
 		"consoleAvailable": consoleAvailable,
 		"auditDetail":      auditDetailText,
+		"bytes":            formatBytes,
 	}
 	out := make(map[string]*template.Template)
 	for _, page := range pages {

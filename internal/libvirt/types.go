@@ -122,4 +122,5 @@ type DomainResourceStats struct {
 	CPUTimeNanos     uint64
 	BlockCapacity    uint64
 	BlockAllocation  uint64
+	BlockPhysical    uint64
 }
