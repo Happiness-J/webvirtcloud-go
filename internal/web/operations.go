@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"webvirtcloud-go/internal/libvirt"
+	"webvirtcloud-go/internal/store"
 )
 
 func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
@@ -32,9 +33,12 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 	var args []string
 	label := ""
 	switch action {
+	case "pool-info":
+		s.renderStorageDiagnostic(w, r, host, pool)
+		return
 	case "pool-capacity":
-		args = []string{"pool-info", pool}
-		label = "检查存储池容量 " + pool
+		s.renderStorageDiagnostic(w, r, host, pool)
+		return
 	case "pool-refresh":
 		args = []string{"pool-refresh", pool}
 		label = "刷新存储池 " + pool
@@ -167,12 +171,9 @@ func (s *Server) networkAction(w http.ResponseWriter, r *http.Request) {
 	var args []string
 	var label string
 	switch action {
-	case "net-dhcp-leases":
-		args = []string{"net-dhcp-leases", networkName}
-		label = "查看 DHCP 租约 " + networkName
-	case "net-info":
-		args = []string{"net-info", networkName}
-		label = "检查虚拟网络 " + networkName
+	case "net-dhcp-leases", "net-info":
+		s.renderNetworkDiagnostic(w, r, host, networkName, action)
+		return
 	case "net-start":
 		args = []string{"net-start", networkName}
 		label = "启动虚拟网络 " + networkName
@@ -368,4 +369,31 @@ func boundedOperationTimeout(maximum time.Duration, desired int) int {
 		return maxSeconds
 	}
 	return desired
+}
+
+func (s *Server) renderNetworkDiagnostic(w http.ResponseWriter, r *http.Request, host store.Host, networkName, action string) {
+	args := []string{action, networkName}
+	result, err := s.libvirt.RunReadOnly(r.Context(), host.ID, args, 15*time.Second)
+	output := strings.TrimSpace(result.Output())
+	if output == "" && err != nil {
+		output = "无法读取网络诊断信息，请检查主机连接和 libvirt 日志。"
+	}
+	title := "虚拟网络详情"
+	if action == "net-dhcp-leases" {
+		title = "DHCP 租约"
+	}
+	s.render(w, r, "diagnostic", pageData{Title: title, Nav: "hosts", Data: map[string]any{
+		"Host": host, "Heading": title + " · " + networkName, "Back": "/hosts/" + host.ID + "/networks", "Output": output,
+	}})
+}
+
+func (s *Server) renderStorageDiagnostic(w http.ResponseWriter, r *http.Request, host store.Host, pool string) {
+	result, err := s.libvirt.RunReadOnly(r.Context(), host.ID, []string{"pool-info", pool}, 15*time.Second)
+	output := strings.TrimSpace(result.Output())
+	if output == "" && err != nil {
+		output = "无法读取存储池信息，请检查主机连接和 libvirt 日志。"
+	}
+	s.render(w, r, "diagnostic", pageData{Title: "存储池详情", Nav: "hosts", Data: map[string]any{
+		"Host": host, "Heading": "存储池详情 · " + pool, "Back": "/hosts/" + host.ID + "/storage?pool=" + url.QueryEscape(pool), "Output": output,
+	}})
 }

@@ -1088,3 +1088,12 @@ func ParseKeyValue(output string) map[string]string {
 	}
 	return out
 }
+
+// RunReadOnly executes a bounded read-only virsh command for diagnostics that
+// should be shown immediately instead of being queued as a mutating job.
+func (s *Service) RunReadOnly(ctx context.Context, hostID string, args []string, timeout time.Duration) (command.Result, error) {
+	if len(args) == 0 {
+		return command.Result{}, fmt.Errorf("诊断命令为空")
+	}
+	return s.run(ctx, hostID, args, timeout)
+}
