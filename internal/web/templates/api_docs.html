@@ -21,4 +21,8 @@
   </tbody></table>
   <p class="hint">未登录返回 401，令牌错误返回 401，没有该虚拟机权限返回 403，libvirt 连不上返回 502。创建、删除、电源操作走网页任务，不开放给这个只读令牌。</p>
 </section>
+<section class="panel"><h2>机器可读文档</h2>
+<p><a class="btn" href="/static/openapi.yaml">下载 OpenAPI YAML</a></p>
+<p class="hint">外部系统可以把这份文档导入 Postman、Insomnia 或代码生成器。它只描述只读接口，不包含创建、删除或电源操作。</p>
+</section>
 {{end}}
