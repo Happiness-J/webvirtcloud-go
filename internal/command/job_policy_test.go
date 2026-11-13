@@ -25,7 +25,7 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "desktop start", kind: "vm-action", tool: "virsh", args: []string{"start", "vm"}, want: RoleDesktop},
 		{name: "desktop shutdown", kind: "vm-action", tool: "virsh", args: []string{"shutdown", "vm"}, want: RoleDesktop},
 		{name: "vm undefine", kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm"}, want: RoleAdmin},
-		{name: "vm snapshot", kind: "vm-action", tool: "virsh", args: []string{"snapshot-create-as", "vm", "snap"}, want: RoleOperator},
+		{name: "vm snapshot", kind: "vm-action", tool: "virsh", args: []string{"snapshot-create-as", "vm", "snap", "--quiesce"}, want: RoleOperator},
 		{name: "vm backup", kind: "vm-action", tool: "virsh", args: []string{"checkpoint-create-as", "vm", "--name", "nightly"}, want: RoleOperator},
 		{name: "vm autostart disable", kind: "vm-action", tool: "virsh", args: []string{"autostart", "--disable", "vm"}, want: RoleOperator},
 		{name: "storage grow", kind: "storage-action", tool: "virsh", args: []string{"vol-resize", "--pool", "images", "--delta", "disk.qcow2", "10G"}, want: RoleOperator},

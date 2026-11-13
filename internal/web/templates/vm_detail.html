@@ -132,13 +132,13 @@
   <p class="hint">当前配置：{{index .Data.Detail.Info "CPU(s)"}} vCPU，最大内存 {{bytes .Data.MaxMemoryBytes}}。在线调大内存不得超过宿主机和 libvirt 允许的上限。</p>
 </section>
 <section class="panel">
-  <h2>快照</h2>
+  <h2>静默快照</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
     <select name="action"><option value="snapshot-create">创建</option><option value="snapshot-revert">恢复</option><option value="snapshot-delete">删除</option></select>
     <input name="snapshot" placeholder="快照名称" maxlength="128" required>
     <label class="confirm"><input type="checkbox" name="confirm" value="yes">恢复/删除需确认</label>
-    <button class="btn" data-confirm="确定执行快照操作吗？">执行</button>
+    <button class="btn" data-confirm="创建快照时会先通过客户机代理冻结文件系统，确定继续吗？">执行</button>
   </form>
   {{if .Data.Detail.Snapshots}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Snapshots}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-revert"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">恢复</button></form>

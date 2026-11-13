@@ -83,7 +83,7 @@ func TestCloneAndSnapshotNamesAcceptSpaces(t *testing.T) {
 		t.Fatalf("clone args = %#v destructive=%v err=%v", args, destructive, err)
 	}
 	args, destructive, err = actionArgs("snapshot-create", "web prod", "before upgrade")
-	if err != nil || destructive || strings.Join(args, " ") != "snapshot-create-as web prod before upgrade" {
+	if err != nil || destructive || strings.Join(args, " ") != "snapshot-create-as web prod before upgrade --quiesce" {
 		t.Fatalf("snapshot args = %#v destructive=%v err=%v", args, destructive, err)
 	}
 }
