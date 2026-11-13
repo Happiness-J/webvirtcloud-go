@@ -102,7 +102,7 @@
     <input name="confirm_text" placeholder="缩容时输入 SHRINK">
     <button class="btn danger" data-confirm="调整磁盘容量前请确认分区和文件系统状态，继续吗？">调整磁盘</button>
   </form>
-  <p class="hint bad-text">在线扩容只扩展虚拟磁盘容量，仍需在 guest 内扩展分区和文件系统。缩容必须先关机，并在 guest 内先缩小文件系统/分区；错误缩容可能破坏磁盘数据。</p>
+  <p class="hint bad-text">在线扩容会扩展虚拟磁盘；如果客户机代理在线，会同时通知客户机刷新块设备。分区和文件系统仍需在客户机内扩展。缩容必须先关机，并在 guest 内先缩小文件系统/分区；错误缩容可能破坏磁盘数据。</p>
   {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
 </section>
 <section class="panel">

@@ -257,7 +257,7 @@ func validateNetworkActionArgs(args []string) error {
 func validateDiskActionArgs(tool string, args []string) error {
 	switch tool {
 	case "virsh":
-		if len(args) != 4 || args[0] != "blockresize" {
+		if args[0] != "blockresize" || (len(args) != 4 && !(len(args) == 5 && args[4] == "--guest-notify")) {
 			return fmt.Errorf("在线磁盘扩容参数不正确")
 		}
 		if err := validateActionOperand(args[1]); err != nil {
