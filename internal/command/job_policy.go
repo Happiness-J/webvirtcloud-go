@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -575,14 +576,35 @@ func validateVMCreateArgs(args []string) error {
 	default:
 		return fmt.Errorf("创建方式无效")
 	}
-	if index < len(args) {
-		if len(args) != index+2 || args[index] != "--network" {
+	if index < len(args) && args[index] == "--network" {
+		if index+1 >= len(args) {
 			return fmt.Errorf("网络参数无效")
 		}
 		network, ok := strings.CutPrefix(args[index+1], "network=")
 		if !ok || validateActionOperand(network) != nil {
 			return fmt.Errorf("网络参数无效")
 		}
+		index += 2
+	}
+	if index < len(args) {
+		if len(args) != index+2 || args[index] != "--cloud-init" || !validCloudInitArg(args[index+1]) {
+			return fmt.Errorf("cloud-init 参数无效")
+		}
 	}
 	return nil
+}
+
+func validCloudInitArg(value string) bool {
+	user, network, ok := strings.Cut(value, ",")
+	if !ok || !strings.HasPrefix(user, "user-data=") || !strings.HasPrefix(network, "network-config=") {
+		return false
+	}
+	userPath := strings.TrimPrefix(user, "user-data=")
+	networkPath := strings.TrimPrefix(network, "network-config=")
+	return userPath == networkPath && validGeneratedCloudInitPath(userPath)
+}
+
+func validGeneratedCloudInitPath(value string) bool {
+	clean := filepath.Clean(value)
+	return clean == value && filepath.IsAbs(clean) && !strings.Contains(clean, "..") && strings.HasPrefix(filepath.Base(clean), "cidata_") && strings.HasSuffix(clean, ".iso")
 }

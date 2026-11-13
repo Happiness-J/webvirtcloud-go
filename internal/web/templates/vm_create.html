@@ -10,6 +10,7 @@
 {{if .Data.NetworkError}}<p class="hint bad-text">读取虚拟网络失败。仍可创建无网络虚拟机，稍后检查主机连接并补充网络。</p>{{else if .Data.InactiveNetworks}}<p class="hint">已发现未启动网络：{{range $index, $name := .Data.InactiveNetworks}}{{if $index}}、{{end}}<code>{{$name}}</code>{{end}}。请先到虚拟网络页面启动，或先创建无网络虚拟机。</p>{{else if not .Data.Networks}}<p class="hint">这台主机没有已启动的虚拟网络；可以先创建无网络虚拟机。</p>{{end}}
 <label>安装 ISO（可选）<select name="cdrom"><option value="">创建空白磁盘，不启动安装器</option>{{range .Data.ISOs}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>
 <p class="hint">只列出镜像目录中的 .iso。选择 ISO 时以光盘引导；不选择 ISO 时创建一台可启动空磁盘的虚拟机，可稍后挂载安装介质。</p>
+<fieldset><legend>首次启动配置（可选）</legend><label>主机名<input name="hostname" maxlength="253" placeholder="web-01"></label><label>初始用户<input name="cloud_user" maxlength="32" placeholder="operator"></label><label>SSH 公钥<textarea name="ssh_key" rows="2" placeholder="ssh-ed25519 AAAA..."></textarea></label><label>客户机地址<input name="guest_address" placeholder="192.0.2.10/24"></label><label>网关<input name="guest_gateway" placeholder="192.0.2.1"></label><label>DNS<input name="guest_dns" placeholder="192.0.2.53"></label><p class="hint">填写后会生成 NoCloud cloud-init 配置。用户使用 SSH 公钥登录，不保存密码。静态网络需要同时填写地址和网关。</p></fieldset>
 <button class="btn primary" data-confirm="确定创建虚拟机吗？创建任务会进入后台执行。">创建虚拟机</button>
 </form><p class="hint">创建任务会异步执行并写入审计。删除虚拟机只删除 libvirt 定义和元数据，默认保留磁盘；需要清理磁盘时请在存储页单独确认删除。</p></section>
 {{end}}

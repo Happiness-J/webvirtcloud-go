@@ -73,7 +73,7 @@ func TestAPITokenCanReachWriteRoute(t *testing.T) {
 
 func TestVMCreateArgsBlankDiskIsImmediatelyRunnable(t *testing.T) {
 	server := &Server{cfg: config.Config{ImageDir: t.TempDir()}}
-	args, err := server.vmCreateArgs(context.Background(), "host", "web-01", 2, 4, 40, "", "", "")
+	args, err := server.vmCreateArgs(context.Background(), "host", "web-01", 2, 4, 40, "", "", "", cloudInitSpec{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestVMCreateArgsBlankDiskIsImmediatelyRunnable(t *testing.T) {
 
 func TestVMCreateArgsRejectsInvalidOSVariant(t *testing.T) {
 	server := &Server{cfg: config.Config{ImageDir: t.TempDir()}}
-	_, err := server.vmCreateArgs(context.Background(), "host", "web-01", 2, 4, 40, "", "", "generic;reboot")
+	_, err := server.vmCreateArgs(context.Background(), "host", "web-01", 2, 4, 40, "", "", "generic;reboot", cloudInitSpec{})
 	if err == nil {
 		t.Fatal("unsafe os_variant was accepted")
 	}
