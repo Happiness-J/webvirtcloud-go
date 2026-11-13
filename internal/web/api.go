@@ -117,7 +117,7 @@ func (s *Server) apiVMCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	args, err := s.vmCreateArgs(r.Context(), host.ID, request.Name, request.VCPUs, request.MemoryGB, request.DiskGB, request.Network, request.ISO, request.OSVariant)
+	args, err := s.vmCreateArgs(r.Context(), host.ID, request.Name, request.VCPUs, request.MemoryGB, request.DiskGB, request.Network, request.ISO, request.OSVariant, cloudInitSpec{})
 	if err != nil {
 		writeAPIError(w, r, http.StatusUnprocessableEntity, "invalid_vm_spec", err.Error())
 		return
@@ -289,7 +289,7 @@ func writeJobAccepted(w http.ResponseWriter, jobID string) {
 	})
 }
 
-func (s *Server) vmCreateArgs(ctx context.Context, hostID, name string, vcpus, memoryGB, diskGB int, network, iso, osVariant string) ([]string, error) {
+func (s *Server) vmCreateArgs(ctx context.Context, hostID, name string, vcpus, memoryGB, diskGB int, network, iso, osVariant string, cloud cloudInitSpec) ([]string, error) {
 	name = strings.TrimSpace(name)
 	if err := libvirt.ValidateName(name); err != nil {
 		return nil, errors.New("虚拟机名称无效")
@@ -344,6 +344,13 @@ func (s *Server) vmCreateArgs(ctx context.Context, hostID, name string, vcpus, m
 	}
 	if network != "" {
 		args = append(args, "--network", "network="+network)
+	}
+	if cloud.enabled() {
+		seed, err := writeCloudInitSeed(s.cfg.ImageDir, cloud)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "--cloud-init", "user-data="+seed+",network-config="+seed)
 	}
 	return args, nil
 }

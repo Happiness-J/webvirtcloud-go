@@ -1423,7 +1423,8 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	network := strings.TrimSpace(r.Form.Get("network"))
 	cdrom := strings.TrimSpace(r.Form.Get("cdrom"))
-	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic")
+	cloud := cloudInitSpec{Hostname: strings.TrimSpace(r.Form.Get("hostname")), Username: strings.TrimSpace(r.Form.Get("cloud_user")), SSHKey: strings.TrimSpace(r.Form.Get("ssh_key")), Address: strings.TrimSpace(r.Form.Get("guest_address")), Gateway: strings.TrimSpace(r.Form.Get("guest_gateway")), DNS: strings.TrimSpace(r.Form.Get("guest_dns"))}
+	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
