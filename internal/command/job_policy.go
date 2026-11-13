@@ -423,7 +423,7 @@ func validateVMActionArgs(args []string) error {
 			return fmt.Errorf("检查点名称无效: %w", err)
 		}
 	case "attach-disk":
-		if len(args) != 7 || args[4] != "--targetbus" || args[5] != "usb" || args[6] != "--live" {
+		if !(len(args) == 7 && args[4] == "--targetbus" && args[5] == "usb" && args[6] == "--live") && !(len(args) == 8 && args[4] == "--targetbus" && args[5] == "virtio" && args[6] == "--live" && args[7] == "--config") {
 			return fmt.Errorf("USB 挂载参数不正确")
 		}
 		if err := ValidateDevicePathPublic(args[2]); err != nil {
@@ -433,11 +433,28 @@ func validateVMActionArgs(args []string) error {
 			return err
 		}
 	case "detach-disk":
-		if len(args) != 4 || args[3] != "--live" {
-			return fmt.Errorf("USB 卸载参数不正确")
+		if !((len(args) == 4 && args[3] == "--live") || (len(args) == 5 && args[3] == "--live" && args[4] == "--config")) {
+			return fmt.Errorf("磁盘卸载参数不正确")
 		}
 		if err := ValidateDiskTargetPublic(args[2]); err != nil {
 			return err
+		}
+	case "attach-interface":
+		if len(args) != 9 || args[2] != "network" || args[5] != "--model" || args[6] != "virtio" || args[7] != "--live" || args[8] != "--config" {
+			return fmt.Errorf("网卡热添加参数不正确")
+		}
+		if err := validateActionOperand(args[4]); err != nil {
+			return fmt.Errorf("虚拟网络名称无效")
+		}
+	case "change-media":
+		if err := ValidateDiskTargetPublic(args[2]); err != nil {
+			return err
+		}
+		switch {
+		case len(args) == 6 && args[3] == "--eject" && args[4] == "--live" && args[5] == "--config":
+		case len(args) == 7 && args[3] == "--insert" && strings.HasPrefix(args[4], "/") && strings.HasSuffix(strings.ToLower(args[4]), ".iso") && !strings.Contains(args[4], "..") && args[5] == "--live" && args[6] == "--config":
+		default:
+			return fmt.Errorf("光盘更换参数不正确")
 		}
 	case "migrate":
 		if len(args) != 4 || args[2] != "--live" {
