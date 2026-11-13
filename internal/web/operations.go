@@ -425,3 +425,22 @@ func (s *Server) backupPolicySave(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, vmRedirect(host.ID, vmName), http.StatusSeeOther)
 }
+
+func (s *Server) vmMetrics(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeAPIError(w, r, http.StatusNotFound, "host_not_found", "Host not found")
+		return
+	}
+	vmName := r.PathValue("vm")
+	if err := libvirt.ValidateName(vmName); err != nil {
+		writeAPIError(w, r, http.StatusBadRequest, "invalid_vm_name", "Virtual machine name is invalid")
+		return
+	}
+	samples, err := s.db.ListMetricSamples(r.Context(), host.ID, vmName, time.Now().Add(-24*time.Hour))
+	if err != nil {
+		writeAPIError(w, r, http.StatusInternalServerError, "metrics_unavailable", "Could not read metric history")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"samples": samples})
+}

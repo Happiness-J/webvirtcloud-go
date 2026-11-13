@@ -225,3 +225,24 @@ document.addEventListener('change', (event) => {
   };
   poll(); setInterval(poll, 15000);
 })();
+
+(() => {
+  const canvas = document.getElementById('vm-history');
+  if (!canvas) return;
+  fetch(canvas.dataset.url, {credentials:'same-origin', headers:{'Accept':'application/json'}}).then(r => r.ok ? r.json() : null).then(payload => {
+    const samples = payload && payload.samples || [];
+    const values = samples.map(sample => sample.MemoryPercent || 0);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(320, Math.floor(rect.width * devicePixelRatio));
+    canvas.height = Math.floor(120 * devicePixelRatio);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#2f80ed'; ctx.lineWidth = 2 * devicePixelRatio; ctx.beginPath();
+    values.forEach((value, index) => {
+      const x = values.length < 2 ? 0 : index / (values.length - 1) * canvas.width;
+      const y = canvas.height - Math.max(0, Math.min(100, value)) / 100 * canvas.height;
+      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }).catch(() => {});
+})();
