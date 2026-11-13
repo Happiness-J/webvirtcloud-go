@@ -111,7 +111,7 @@ func writeCloudInitSeed(root string, spec cloudInitSpec) (string, error) {
 		return "", nil
 	}
 	dir := filepath.Join(root, "cloud-init")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("无法创建 cloud-init 目录")
 	}
 	path := filepath.Join(dir, id.New("cidata")+".iso")
