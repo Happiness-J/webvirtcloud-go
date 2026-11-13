@@ -46,6 +46,8 @@
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="migrate">
     <input name="snapshot" placeholder="qemu+ssh://user@target/system" maxlength="256" required>
+    <input name="bandwidth" inputmode="numeric" placeholder="带宽 MiB/s，可选" pattern="[0-9]*">
+    <label class="confirm"><input type="checkbox" name="encrypted" value="yes">加密传输</label>
     <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
     <button class="btn danger">在线迁移</button>
   </form>

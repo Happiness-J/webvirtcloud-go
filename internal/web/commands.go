@@ -151,10 +151,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		}
 		return []string{"--original", vm, "--name", snapshot, "--auto-clone"}, false, nil
 	case "migrate":
-		if err := command.ValidateMigrationURIPublic(snapshot); err != nil {
-			return nil, true, err
-		}
-		return []string{"migrate", vm, "--live", snapshot}, true, nil
+		return nil, true, fmt.Errorf("迁移参数由专用流程生成")
 	case "usb-detach":
 		if err := command.ValidateDiskTargetPublic(snapshot); err != nil {
 			return nil, false, err
@@ -224,7 +221,16 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
 	var args []string
 	var destructive bool
-	if action == "disk-attach" || action == "disk-detach" || action == "nic-attach" || action == "cdrom-change" {
+	if action == "migrate" {
+		bandwidth := strings.TrimSpace(r.Form.Get("bandwidth"))
+		encrypted := r.Form.Get("encrypted") == "yes"
+		args, err = migrationArgs(vmName, operand, bandwidth, encrypted)
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
+		destructive = true
+	} else if action == "disk-attach" || action == "disk-detach" || action == "nic-attach" || action == "cdrom-change" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil || detail.Domain.State != "running" {
 			s.redirectError(w, r, vmRedirect(host.ID, vmName), "热插拔只适用于正在运行的虚拟机")

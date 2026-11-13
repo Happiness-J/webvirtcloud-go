@@ -461,11 +461,24 @@ func validateVMActionArgs(args []string) error {
 			return fmt.Errorf("光盘更换参数不正确")
 		}
 	case "migrate":
-		if len(args) != 4 || args[2] != "--live" {
+		if len(args) < 4 || args[2] != "--live" || ValidateMigrationURIPublic(args[3]) != nil {
 			return fmt.Errorf("迁移参数不正确")
 		}
-		if err := ValidateMigrationURIPublic(args[3]); err != nil {
-			return err
+		index := 4
+		if index < len(args) && args[index] == "--bandwidth" {
+			if index+1 >= len(args) {
+				return fmt.Errorf("迁移带宽无效")
+			}
+			value, err := strconv.Atoi(args[index+1])
+			if err != nil || value < 1 || value > 1048576 {
+				return fmt.Errorf("迁移带宽无效")
+			}
+			index += 2
+		}
+		if index < len(args) {
+			if len(args) != index+1 || args[index] != "--tls" {
+				return fmt.Errorf("迁移加密参数无效")
+			}
 		}
 	default:
 		return fmt.Errorf("任务类型 vm-action 不支持操作 %q", args[0])
