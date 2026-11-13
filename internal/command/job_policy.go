@@ -408,7 +408,11 @@ func validateVMActionArgs(args []string) error {
 			}
 			seen[flag] = true
 		}
-	case "snapshot-create-as", "snapshot-revert", "snapshot-delete", "checkpoint-delete":
+	case "snapshot-create-as":
+		if len(args) != 4 || args[3] != "--quiesce" {
+			return fmt.Errorf("静默快照参数不正确")
+		}
+	case "snapshot-revert", "snapshot-delete", "checkpoint-delete":
 		if len(args) != 3 {
 			return fmt.Errorf("恢复点操作 %s 的参数数量不正确", args[0])
 		}

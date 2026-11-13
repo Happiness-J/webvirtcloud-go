@@ -166,7 +166,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		}
 		switch action {
 		case "snapshot-create":
-			return []string{"snapshot-create-as", vm, snapshot}, false, nil
+			return []string{"snapshot-create-as", vm, snapshot, "--quiesce"}, false, nil
 		case "snapshot-revert":
 			return []string{"snapshot-revert", vm, snapshot}, true, nil
 		case "snapshot-delete":
