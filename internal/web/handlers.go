@@ -1427,7 +1427,7 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
 	if err != nil {
 		s.log.Warn("build VM create arguments", "request_id", requestIDFrom(r.Context()), "result", "rejected")
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "虚拟机参数无效，请检查输入后重试")
+		http.Redirect(w, r, "/hosts/"+host.ID+"/vms/new", http.StatusSeeOther)
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
