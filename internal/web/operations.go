@@ -251,6 +251,9 @@ func (s *Server) vmDiskResize(w http.ResponseWriter, r *http.Request) {
 			}
 			tool = "virsh"
 			args = []string{"blockresize", vmName, disk.Target, strconv.FormatUint(current+delta, 10)}
+			if _, agentErr := s.libvirt.GuestAgentInfo(r.Context(), host.ID, vmName); agentErr == nil {
+				args = append(args, "--guest-notify")
+			}
 		} else if state == "shut off" {
 			tool = "qemu-img"
 			args = []string{"resize", disk.Source, "+" + amount}
