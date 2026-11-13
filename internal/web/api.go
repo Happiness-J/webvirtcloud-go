@@ -330,14 +330,10 @@ func (s *Server) vmCreateArgs(ctx context.Context, hostID, name string, vcpus, m
 	}) >= 0 {
 		return nil, errors.New("os_variant 只能包含字母、数字、点、下划线和连字符")
 	}
-	consolePassword, err := newConsolePassword()
-	if err != nil {
-		return nil, errors.New("无法生成控制台密码")
-	}
 	args := []string{
 		"--name", name, "--vcpus", strconv.Itoa(vcpus), "--memory", strconv.Itoa(memoryGB * 1024),
 		"--disk", "size=" + strconv.Itoa(diskGB) + ",format=qcow2",
-		"--osinfo", osVariant, "--graphics", graphicsArg(consolePassword), "--noautoconsole",
+		"--osinfo", osVariant, "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole",
 	}
 	if iso != "" {
 		args = append(args, "--cdrom", iso)
@@ -355,6 +351,15 @@ func (s *Server) vmCreateArgs(ctx context.Context, hostID, name string, vcpus, m
 			return nil, err
 		}
 		args = append(args, "--cloud-init", "user-data="+seed+",network-config="+seed)
+	}
+	consolePassword, err := newConsolePassword()
+	if err != nil {
+		return nil, errors.New("无法生成控制台密码")
+	}
+	for i := range args {
+		if args[i] == "--graphics" && i+1 < len(args) {
+			args[i+1] = graphicsArg(consolePassword)
+		}
 	}
 	return args, nil
 }
