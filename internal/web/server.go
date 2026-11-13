@@ -208,6 +208,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 		},
 		"flagName":      flagName,
 		"poolStateName": poolStateName,
+		"hasPrefix":     strings.HasPrefix,
 		"statusClass": func(status string) string {
 			switch status {
 			case "succeeded", "running", "active":

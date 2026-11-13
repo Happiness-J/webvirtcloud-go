@@ -224,7 +224,35 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
 	var args []string
 	var destructive bool
-	if action == "usb-attach" {
+	if action == "disk-attach" || action == "disk-detach" || action == "nic-attach" || action == "cdrom-change" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil || detail.Domain.State != "running" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "热插拔只适用于正在运行的虚拟机")
+			return
+		}
+		networks, _ := s.libvirt.ListNetworks(r.Context(), host.ID)
+		networkNames := map[string]bool{}
+		for _, network := range networks {
+			if network.State == "active" {
+				networkNames[network.Name] = true
+			}
+		}
+		network := strings.TrimSpace(r.Form.Get("network"))
+		if action == "nic-attach" && !networkNames[network] {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "只能连接到当前已启动的虚拟网络")
+			return
+		}
+		media := strings.TrimSpace(r.Form.Get("media"))
+		args, err = hotplugArgs(action, vmName, operand, network, operand, detail.BlockList)
+		if action == "cdrom-change" {
+			args, err = hotplugArgs(action, vmName, media, "", operand, detail.BlockList)
+		}
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
+		destructive = action == "disk-detach"
+	} else if action == "usb-attach" {
 		if err := command.ValidateDevicePathPublic(operand); err != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
 			return

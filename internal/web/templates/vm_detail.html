@@ -63,6 +63,34 @@
   </form>
   <p class="hint">克隆要求虚拟机已关机，使用 virt-clone 自动生成新磁盘、UUID 和 MAC。在线迁移只接受运行中或已挂起虚拟机，以及 qemu+ssh 或 qemu+tls 目标。USB 挂载只接受 /dev 下的主机块设备，并自动选择空闲 sd 盘符；卸载时选择目标盘符，注意不要移除启动盘。</p>
 </section>
+{{if eq .Data.Detail.Domain.State "running"}}
+<section class="panel">
+  <h2>运行中热插拔</h2>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="disk-attach">
+    <input name="snapshot" placeholder="/var/lib/libvirt/images/data.qcow2" maxlength="256" required>
+    <button class="btn" data-confirm="确定热添加这块 virtio 磁盘吗？">热添加磁盘</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="disk-detach">
+    <select name="snapshot" required><option value="" disabled selected>选择 virtio 磁盘</option>{{range .Data.Detail.BlockList}}{{if and (eq .Device "disk") (hasPrefix .Target "vd")}}<option value="{{.Target}}">{{.Target}} · {{.Source}}</option>{{end}}{{end}}</select>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
+    <button class="btn danger">热卸载磁盘</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="nic-attach">
+    <select name="network" required><option value="" disabled selected>选择虚拟网络</option>{{range .Data.Networks}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+    <button class="btn">热添加网卡</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cdrom-change">
+    <select name="snapshot" required><option value="" disabled selected>选择光驱</option>{{range .Data.Detail.BlockList}}{{if eq .Device "cdrom"}}<option value="{{.Target}}">{{.Target}}</option>{{end}}{{end}}</select>
+    <input name="media" placeholder="ISO 路径，留空表示弹出" maxlength="256">
+    <button class="btn">更换光盘</button>
+  </form>
+  <p class="hint">热操作会同时写入运行态和持久配置。磁盘使用 virtio，网卡使用 virtio 并连接到已有虚拟网络。更换光盘只接受 ISO 路径，留空表示弹出介质。</p>
+</section>
+{{end}}
 <section class="panel">
   <h2>磁盘容量</h2>
   {{if .Data.Detail.BlockList}}<table><thead><tr><th>类型</th><th>用途</th><th>目标</th><th>源</th></tr></thead><tbody>{{range .Data.Detail.BlockList}}<tr><td>{{.Type}}</td><td>{{.Device}}</td><td><code>{{.Target}}</code></td><td><code>{{.Source}}</code></td></tr>{{end}}</tbody></table>
