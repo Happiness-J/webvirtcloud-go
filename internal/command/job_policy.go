@@ -560,7 +560,7 @@ func ValidateMigrationURIPublic(value string) error {
 func validateVMCreateArgs(args []string) error {
 	if len(args) < 14 || args[0] != "--name" || args[2] != "--vcpus" || args[4] != "--memory" ||
 		args[6] != "--disk" || args[8] != "--osinfo" || args[10] != "--graphics" ||
-		args[11] != "vnc,listen=127.0.0.1" || args[12] != "--noautoconsole" {
+		!validConsoleGraphics(args[11]) || args[12] != "--noautoconsole" {
 		return fmt.Errorf("创建虚拟机参数不正确")
 	}
 	if err := validateActionOperand(args[1]); err != nil {
@@ -628,4 +628,15 @@ func validCloudInitArg(value string) bool {
 func validGeneratedCloudInitPath(value string) bool {
 	clean := filepath.Clean(value)
 	return clean == value && filepath.IsAbs(clean) && !strings.Contains(clean, "..") && strings.HasPrefix(filepath.Base(clean), "cidata_") && strings.HasSuffix(clean, ".iso")
+}
+
+func validConsoleGraphics(value string) bool {
+	if !strings.HasPrefix(value, "vnc,listen=127.0.0.1,password=") {
+		return false
+	}
+	password := strings.TrimPrefix(value, "vnc,listen=127.0.0.1,password=")
+	if len(password) < 16 || len(password) > 64 || strings.ContainsAny(password, ", \t\r\n") {
+		return false
+	}
+	return strings.Trim(password, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") == ""
 }

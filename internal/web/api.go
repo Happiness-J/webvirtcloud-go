@@ -330,10 +330,14 @@ func (s *Server) vmCreateArgs(ctx context.Context, hostID, name string, vcpus, m
 	}) >= 0 {
 		return nil, errors.New("os_variant 只能包含字母、数字、点、下划线和连字符")
 	}
+	consolePassword, err := newConsolePassword()
+	if err != nil {
+		return nil, errors.New("无法生成控制台密码")
+	}
 	args := []string{
 		"--name", name, "--vcpus", strconv.Itoa(vcpus), "--memory", strconv.Itoa(memoryGB * 1024),
 		"--disk", "size=" + strconv.Itoa(diskGB) + ",format=qcow2",
-		"--osinfo", osVariant, "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole",
+		"--osinfo", osVariant, "--graphics", graphicsArg(consolePassword), "--noautoconsole",
 	}
 	if iso != "" {
 		args = append(args, "--cdrom", iso)

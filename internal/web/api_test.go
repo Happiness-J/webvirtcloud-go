@@ -78,7 +78,7 @@ func TestVMCreateArgsBlankDiskIsImmediatelyRunnable(t *testing.T) {
 		t.Fatal(err)
 	}
 	joined := strings.Join(args, " ")
-	for _, want := range []string{"--name web-01", "--vcpus 2", "--memory 4096", "--disk size=40,format=qcow2", "--import", "--graphics vnc,listen=127.0.0.1", "--noautoconsole"} {
+	for _, want := range []string{"--name web-01", "--vcpus 2", "--memory 4096", "--disk size=40,format=qcow2", "--import", "--graphics vnc,listen=127.0.0.1,password=", "--noautoconsole"} {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("args %q do not contain %q", joined, want)
 		}
