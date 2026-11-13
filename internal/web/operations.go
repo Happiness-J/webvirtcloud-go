@@ -400,3 +400,28 @@ func (s *Server) renderStorageDiagnostic(w http.ResponseWriter, r *http.Request,
 		"Host": host, "Heading": "存储池详情 · " + pool, "Back": "/hosts/" + host.ID + "/storage?pool=" + url.QueryEscape(pool), "Output": output,
 	}})
 }
+
+func (s *Server) backupPolicySave(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	vmName := r.PathValue("vm")
+	if err := libvirt.ValidateName(vmName); err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms", "虚拟机名称无效")
+		return
+	}
+	interval, intervalErr := strconv.Atoi(r.Form.Get("interval_hours"))
+	retain, retainErr := strconv.Atoi(r.Form.Get("retain_count"))
+	if intervalErr != nil || retainErr != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "备份周期和保留数量必须是整数")
+		return
+	}
+	err = s.db.SaveBackupPolicy(r.Context(), store.BackupPolicy{HostID: host.ID, VMName: vmName, IntervalHours: interval, RetainCount: retain, Enabled: true, NextRunAt: time.Now().Add(time.Duration(interval) * time.Hour)})
+	if err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "无法保存备份策略")
+		return
+	}
+	http.Redirect(w, r, vmRedirect(host.ID, vmName), http.StatusSeeOther)
+}
