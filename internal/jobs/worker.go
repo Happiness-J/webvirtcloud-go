@@ -76,6 +76,7 @@ func (w *Worker) Run(ctx context.Context) {
 				return
 			case <-ticker.C:
 				w.publishHeartbeat(ctx)
+				w.enqueueDueBackups(ctx)
 				if _, err := w.store.PurgeWorkerHeartbeats(ctx, 10*time.Minute); err != nil && ctx.Err() == nil {
 					w.log.Warn("purge worker heartbeats", "error", err)
 				}

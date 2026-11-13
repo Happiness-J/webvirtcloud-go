@@ -162,7 +162,13 @@
   {{if .Data.Detail.Backups}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Backups}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
   </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有增量检查点。</p>{{end}}
-  <p class="hint">这里记录的是 libvirt 增量备份检查点，不是可一键回滚的整机快照。需要回滚请使用上面的快照。删除检查点只删除备份位图元数据。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/backup-policy" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <label>周期小时<input name="interval_hours" type="number" min="1" max="168" value="24" required></label>
+    <label>保留数量<input name="retain_count" type="number" min="1" max="100" value="7" required></label>
+    <button class="btn">保存定时备份</button>
+  </form>
+  <p class="hint">这里记录的是 libvirt 增量备份检查点，不是可一键回滚的整机快照。定时策略到期后创建新检查点，并删除超过保留数量的旧检查点。需要回滚请使用上面的快照。</p>
 </section>
 <section class="panel">
   <h2>运行诊断</h2>
