@@ -427,6 +427,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /account/password", s.protect("viewer", s.accountPasswordPage))
 	mux.Handle("POST /account/password", s.protect("viewer", s.accountPassword))
 	mux.Handle("GET /console/{host}/{vm}", s.protect("viewer", s.consolePage))
+	mux.Handle("GET /serial/{host}/{vm}", s.protect("viewer", s.serialPage))
 	mux.Handle("GET /console/{host}/{vm}/ws", s.protect("viewer", s.consoleWS))
 	mux.Handle("GET /console/{host}/{vm}/password", s.protect("viewer", s.consolePassword))
 

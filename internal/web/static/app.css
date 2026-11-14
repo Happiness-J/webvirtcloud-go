@@ -240,3 +240,5 @@ details summary { cursor: pointer; color: var(--brand); }
 
 .console-clipboard { display: grid; gap: 6px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }
 .console-clipboard textarea { min-height: 76px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+.serial-panel{display:grid;gap:12px}.serial-toolbar{display:flex;justify-content:space-between;align-items:center}.serial-screen{min-height:420px;max-height:62vh;overflow:auto;margin:0;padding:16px;border-radius:12px;background:#10151c;color:#d7e3f4;font:14px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}.serial-form{display:flex;gap:8px}.serial-form input{flex:1}

@@ -1,0 +1,10 @@
+{{define "content"}}
+<div class="page-head"><div><h1>串口终端 · {{.Data.VM}}</h1><p class="muted">{{.Data.HostName}} · 文本控制台</p></div><a class="btn" href="/hosts/{{.Data.HostID}}/vms/{{pathEscape .Data.VM}}">返回虚拟机</a></div>
+<section class="panel serial-panel">
+  <div class="serial-toolbar"><span id="serial-status" class="pill warn">连接中</span><button id="serial-reconnect" class="btn" type="button">重新连接</button></div>
+  <pre id="serial-screen" class="serial-screen" tabindex="0" data-ws="{{.Data.WSURL}}" aria-label="串口终端"></pre>
+  <form id="serial-form" class="serial-form"><input id="serial-input" autocomplete="off" spellcheck="false" placeholder="输入命令并回车"><button class="btn primary" type="submit">发送</button></form>
+  <p class="hint">用于无图形界面的 Linux 或安装器。会话使用一次性短时票据，关闭页面即断开。</p>
+</section>
+<script src="/static/serial.js" defer></script>
+{{end}}
