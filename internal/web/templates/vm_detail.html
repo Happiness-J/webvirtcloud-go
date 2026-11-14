@@ -8,7 +8,8 @@
 {{if .Data.ScreenshotAllowed}}<section class="panel">
   <h2>桌面预览</h2>
   <p class="hint">这是当前虚拟机画面的只读截图，不会保存到磁盘。打开 VNC 前可以用它确认系统是否已进入桌面、登录界面或报错界面。</p>
-  <img class="screenshot" src="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/screenshot" alt="{{.Data.VM}} 当前画面">
+  <img id="vm-preview" class="screenshot" src="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/screenshot" alt="{{.Data.VM}} 当前画面">
+  <div class="preview-meta"><span id="preview-size">正在读取画面尺寸</span><button id="preview-refresh" class="btn small" type="button">刷新画面</button></div>
 </section>{{end}}
 {{if .Data.Actions}}<section class="panel">
   <h2>电源与生命周期</h2>
