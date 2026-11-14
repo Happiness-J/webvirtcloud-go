@@ -36,7 +36,7 @@
 </section>{{end}}
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
-  <h2>克隆、迁移和 USB</h2>
+  <h2>名称</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/rename" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input name="new_name" placeholder="新名称" maxlength="128" required><button class="btn">重命名</button></form><h2>克隆、迁移和 USB</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="clone">
     <input name="snapshot" placeholder="新虚拟机名称" maxlength="128" required>

@@ -394,6 +394,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /hosts/{id}/vms/{vm}/metrics", s.protect("viewer", s.vmMetrics))
 	mux.Handle("GET /hosts/{id}/vms/{vm}/screenshot", s.protect("viewer", s.vmScreenshot))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/action", s.protect("desktop", s.vmAction))
+	mux.Handle("POST /hosts/{id}/vms/{vm}/rename", s.protect("operator", s.vmRename))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/backup-policy", s.protect("operator", s.backupPolicySave))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/disk-resize", s.protect("operator", s.vmDiskResize))
 	mux.Handle("POST /hosts/{id}/vms/{vm}/resource", s.protect("operator", s.vmResourceAction))
