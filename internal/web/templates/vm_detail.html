@@ -64,6 +64,16 @@
     <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
     <button class="btn danger" data-confirm="会从虚拟机卸载所选磁盘目标，请确认不是启动盘。确定继续吗？">卸载磁盘</button>
   </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="export">
+    <input name="snapshot" placeholder="/var/lib/libvirt/exports" maxlength="256" required>
+    <button class="btn">导出定义</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="import">
+    <input name="snapshot" placeholder="/var/lib/libvirt/exports" maxlength="256" required>
+    <button class="btn">从目录导入</button>
+  </form>
   <p class="hint">克隆要求虚拟机已关机，使用 virt-clone 自动生成新磁盘、UUID 和 MAC。在线迁移只接受运行中或已挂起虚拟机，以及 qemu+ssh 或 qemu+tls 目标。USB 挂载只接受 /dev 下的主机块设备，并自动选择空闲 sd 盘符；卸载时选择目标盘符，注意不要移除启动盘。</p>
 </section>
 {{if eq .Data.Detail.Domain.State "running"}}

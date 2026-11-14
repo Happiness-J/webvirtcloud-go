@@ -460,6 +460,14 @@ func validateVMActionArgs(args []string) error {
 		default:
 			return fmt.Errorf("光盘更换参数不正确")
 		}
+	case "dumpxml":
+		if len(args) != 4 || args[2] != "--destination" || !validTransferDir(args[3]) {
+			return fmt.Errorf("导出参数不正确")
+		}
+	case "define":
+		if len(args) != 2 || !strings.HasPrefix(args[1], "/") || strings.Contains(args[1], "..") || !strings.HasSuffix(args[1], ".xml") {
+			return fmt.Errorf("导入参数不正确")
+		}
 	case "migrate":
 		if len(args) < 4 || args[2] != "--live" || ValidateMigrationURIPublic(args[3]) != nil {
 			return fmt.Errorf("迁移参数不正确")
@@ -641,4 +649,8 @@ func validCloudInitArg(value string) bool {
 func validGeneratedCloudInitPath(value string) bool {
 	clean := filepath.Clean(value)
 	return clean == value && filepath.IsAbs(clean) && !strings.Contains(clean, "..") && strings.HasPrefix(filepath.Base(clean), "cidata_") && strings.HasSuffix(clean, ".iso")
+}
+
+func validTransferDir(value string) bool {
+	return strings.HasPrefix(value, "/") && !strings.Contains(value, "..") && !strings.ContainsAny(value, " \t\r\n")
 }
