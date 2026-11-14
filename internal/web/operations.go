@@ -444,3 +444,29 @@ func (s *Server) vmMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"samples": samples})
 }
+
+func (s *Server) alertRuleSave(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	vmName := strings.TrimSpace(r.Form.Get("vm"))
+	if vmName != "" {
+		if err := libvirt.ValidateName(vmName); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/ops", "虚拟机名称无效")
+			return
+		}
+	}
+	metric := strings.TrimSpace(r.Form.Get("metric"))
+	threshold, err := strconv.ParseFloat(strings.TrimSpace(r.Form.Get("threshold")), 64)
+	if err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/ops", "阈值必须是数字")
+		return
+	}
+	if err := s.db.SaveAlertRule(r.Context(), store.AlertRule{HostID: host.ID, VMName: vmName, Metric: metric, Threshold: threshold, Enabled: true}); err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/ops", "无法保存告警规则")
+		return
+	}
+	http.Redirect(w, r, "/hosts/"+host.ID+"/ops", http.StatusSeeOther)
+}

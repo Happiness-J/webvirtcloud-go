@@ -106,6 +106,7 @@ func (s *Server) dashboardLive(ctx context.Context, hosts []store.Host) []dashbo
 			continue
 		}
 		stats, err := s.libvirt.DomainStats(ctx, host.ID)
+		s.evaluateAlerts(ctx, host)
 		item := dashboardHostLive{Host: host, Domains: dashboardVMViews(stats)}
 		if err != nil {
 			s.log.Warn("load dashboard domain stats", "host", host.Name, "error", err)
