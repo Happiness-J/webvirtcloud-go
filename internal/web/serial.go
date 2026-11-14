@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"os/exec"
 
 	"github.com/gorilla/websocket"
 
@@ -73,33 +72,26 @@ func (s *Server) serialWS(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "virsh", "--connect", uri, "console", claims.VM, "--safe")
-	stdout, _ := cmd.StdoutPipe()
-	stdin, _ := cmd.StdinPipe()
-	if err := cmd.Start(); err != nil {
-		return
-	}
-	defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
+	output := make(chan command.Result, 1)
 	go func() {
-		buffer := make([]byte, 4096)
-		for {
-			n, readErr := stdout.Read(buffer)
-			if n > 0 {
-				_ = conn.WriteMessage(websocket.TextMessage, buffer[:n])
-			}
-			if readErr != nil {
-				cancel()
-				return
-			}
-		}
+		result, _ := s.runner.Run(ctx, request)
+		output <- result
 	}()
 	for {
-		_, message, readErr := conn.ReadMessage()
-		if readErr != nil {
+		select {
+		case <-ctx.Done():
 			return
-		}
-		if _, err := stdin.Write(message); err != nil {
+		case result := <-output:
+			if result.Output() != "" {
+				_ = conn.WriteMessage(websocket.TextMessage, []byte(result.Output()))
+			}
 			return
+		default:
+			_ = conn.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
+			_, message, readErr := conn.ReadMessage()
+			if readErr == nil && len(message) > 0 {
+				request.Stdin += string(message)
+			}
 		}
 	}
 }
