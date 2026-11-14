@@ -351,7 +351,7 @@ func validHypervisorType(value string) bool {
 }
 
 func validateVMCloneArgs(args []string) error {
-	if len(args) != 5 || args[0] != "--original" || args[2] != "--name" || args[4] != "--auto-clone" {
+	if len(args) < 5 || args[0] != "--original" || args[2] != "--name" || args[4] != "--auto-clone" || (len(args) != 5 && !(len(args) == 6 && args[5] == "--reflink")) {
 		return fmt.Errorf("克隆参数不正确")
 	}
 	if err := validateActionOperand(args[1]); err != nil {

@@ -78,11 +78,11 @@ func TestCommandArgsFromForm(t *testing.T) {
 }
 
 func TestCloneAndSnapshotNamesAcceptSpaces(t *testing.T) {
-	args, destructive, err := actionArgs("clone", "web prod", "web copy")
-	if err != nil || destructive || strings.Join(args, " ") != "--original web prod --name web copy --auto-clone" {
-		t.Fatalf("clone args = %#v destructive=%v err=%v", args, destructive, err)
+	args, err := cloneArgs("web prod", "web copy", true)
+	if err != nil || strings.Join(args, " ") != "--original web prod --name web copy --auto-clone --reflink" {
+		t.Fatalf("clone args = %#v err=%v", args, err)
 	}
-	args, destructive, err = actionArgs("snapshot-create", "web prod", "before upgrade")
+	args, destructive, err := actionArgs("snapshot-create", "web prod", "before upgrade")
 	if err != nil || destructive || strings.Join(args, " ") != "snapshot-create-as web prod before upgrade --quiesce" {
 		t.Fatalf("snapshot args = %#v destructive=%v err=%v", args, destructive, err)
 	}
