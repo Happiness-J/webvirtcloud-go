@@ -55,6 +55,7 @@ type Host struct {
 	URICiphertext string
 	Description   string
 	Enabled       bool
+	Maintenance   bool
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
@@ -1156,7 +1157,7 @@ func (s *Store) UpdateHost(ctx context.Context, h Host) error {
 }
 
 func (s *Store) ListHosts(ctx context.Context) ([]Host, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id,name,uri_ciphertext,description,enabled,created_at,updated_at
+	rows, err := s.pool.Query(ctx, `SELECT id,name,uri_ciphertext,description,enabled,maintenance,created_at,updated_at
 		FROM hosts ORDER BY name`)
 	if err != nil {
 		return nil, err
@@ -1174,13 +1175,13 @@ func (s *Store) ListHosts(ctx context.Context) ([]Host, error) {
 }
 
 func (s *Store) GetHost(ctx context.Context, id string) (Host, error) {
-	return scanHost(s.pool.QueryRow(ctx, `SELECT id,name,uri_ciphertext,description,enabled,created_at,updated_at
+	return scanHost(s.pool.QueryRow(ctx, `SELECT id,name,uri_ciphertext,description,enabled,maintenance,created_at,updated_at
 		FROM hosts WHERE id=$1`, id))
 }
 
 func scanHost(row rowScanner) (Host, error) {
 	var h Host
-	err := row.Scan(&h.ID, &h.Name, &h.URICiphertext, &h.Description, &h.Enabled, &h.CreatedAt, &h.UpdatedAt)
+	err := row.Scan(&h.ID, &h.Name, &h.URICiphertext, &h.Description, &h.Enabled, &h.Maintenance, &h.CreatedAt, &h.UpdatedAt)
 	return h, err
 }
 

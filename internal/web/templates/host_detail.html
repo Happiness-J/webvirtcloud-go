@@ -1,12 +1,12 @@
 {{define "content"}}
 <div class="page-head">
   <div><h1>{{.Data.Host.Name}}</h1><p class="muted">{{.Data.Host.Description}}</p></div>
-  <div class="actions"><a class="btn primary" href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a>{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/health" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="hypervisor" value="qemu"><button class="btn">健康检查</button></form>{{end}}</div>
+  <div class="actions"><a class="btn primary" href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a>{{if eq .User.Role "admin"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/maintenance" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="enabled" value="{{if .Data.Host.Maintenance}}0{{else}}1{{end}}"><button class="btn">{{if .Data.Host.Maintenance}}退出维护{{else}}进入维护</button>{{end}}</form><a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/health" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="hypervisor" value="qemu"><button class="btn">健康检查</button></form>{{end}}</div>
 </div>
 <div class="grid two">
   <section class="panel">
     <h2>连接信息</h2>
-    <dl class="kv"><dt>URI</dt><dd><code>{{.Data.Redacted}}</code></dd><dt>状态</dt><dd>{{if .Data.Host.Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</dd><dt>创建时间</dt><dd>{{date .Data.Host.CreatedAt}}</dd></dl>
+    <dl class="kv"><dt>URI</dt><dd><code>{{.Data.Redacted}}</code></dd><dt>状态</dt><dd>{{if .Data.Host.Maintenance}}<span class="pill warn">维护中</span>{{else if .Data.Host.Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</dd><dt>创建时间</dt><dd>{{date .Data.Host.CreatedAt}}</dd></dl>
   </section>
   <section class="panel">
     <h2>快捷入口</h2>
@@ -17,6 +17,7 @@
   <div class="panel-head"><h2>该主机的最近任务</h2><a href="/jobs">全部任务</a></div>
   {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td>{{.UserName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">尚无任务。</p>{{end}}
 </section>
+{{if and (eq .User.Role "admin") .Data.Host.Maintenance}}<section class="panel"><h2>疏散虚拟机</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/evacuate" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input name="target" placeholder="qemu+ssh://target/system" required><button class="btn danger" data-confirm="将把运行中的虚拟机迁移到目标主机，确定继续吗？">开始疏散</button></form></section>{{end}}
 {{if eq .User.Role "admin"}}
 <section class="panel danger-zone">
   <h2>危险操作</h2>

@@ -1411,6 +1411,10 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if host.Maintenance {
+		s.redirectError(w, r, "/hosts/"+host.ID, "主机处于维护模式，已阻止新虚拟机部署")
+		return
+	}
 	name := strings.TrimSpace(r.Form.Get("name"))
 	vcpus := strings.TrimSpace(r.Form.Get("vcpus"))
 	memory := strings.TrimSpace(r.Form.Get("memory"))
