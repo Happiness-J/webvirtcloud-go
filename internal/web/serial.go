@@ -73,7 +73,7 @@ func (s *Server) serialWS(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "virsh", append([]string{"--connect", uri}, request.Args...)...)
+	cmd := exec.CommandContext(ctx, "virsh", "--connect", uri, "console", claims.VM, "--safe")
 	stdout, _ := cmd.StdoutPipe()
 	stdin, _ := cmd.StdinPipe()
 	if err := cmd.Start(); err != nil {
