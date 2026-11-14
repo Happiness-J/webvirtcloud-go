@@ -470,3 +470,28 @@ func (s *Server) alertRuleSave(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, "/hosts/"+host.ID+"/ops", http.StatusSeeOther)
 }
+
+func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	oldName := r.PathValue("vm")
+	newName := strings.TrimSpace(r.Form.Get("new_name"))
+	args, err := renameArgs(oldName, newName)
+	if err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, oldName), err.Error())
+		return
+	}
+	if err := s.db.RenameVMReferences(r.Context(), host.ID, oldName, newName); err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, oldName), "无法同步平台中的虚拟机引用")
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	if _, err := s.enqueueCommand(r, sess.User, host.ID, "vm-action", "重命名 "+oldName, "virsh", args, "", 300); err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, oldName), err.Error())
+		return
+	}
+	http.Redirect(w, r, "/hosts/"+url.PathEscape(host.ID)+"/vms/"+url.PathEscape(newName), http.StatusSeeOther)
+}

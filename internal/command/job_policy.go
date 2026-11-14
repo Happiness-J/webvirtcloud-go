@@ -472,6 +472,10 @@ func validateVMActionArgs(args []string) error {
 		if len(args) != 2 || !strings.HasPrefix(args[1], "/") || strings.Contains(args[1], "..") || !strings.HasSuffix(args[1], ".xml") {
 			return fmt.Errorf("导入参数不正确")
 		}
+	case "domrename":
+		if len(args) != 3 || validateActionOperand(args[1]) != nil || validateActionOperand(args[2]) != nil || args[1] == args[2] {
+			return fmt.Errorf("重命名参数不正确")
+		}
 	case "migrate":
 		if len(args) < 4 || args[2] != "--live" || ValidateMigrationURIPublic(args[3]) != nil {
 			return fmt.Errorf("迁移参数不正确")
