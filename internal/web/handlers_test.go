@@ -23,11 +23,11 @@ func TestVMActionsFollowPowerState(t *testing.T) {
 	}{
 		{
 			name: "stopped admin", role: "admin", state: "shut off", autostart: "enable",
-			want: []string{"start", "autostart-off"},
+			want: []string{"start", "managed-start", "autostart-off"},
 		},
 		{
 			name: "running operator", role: "operator", state: "running", autostart: "disable",
-			want: []string{"shutdown", "reboot", "destroy", "suspend", "autostart-on"},
+			want: []string{"shutdown", "reboot", "destroy", "suspend", "managed-save", "autostart-on"},
 		},
 		{
 			name: "paused admin", role: "admin", state: "paused", autostart: "disable",
