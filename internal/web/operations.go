@@ -493,5 +493,5 @@ func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, vmRedirect(host.ID, oldName), err.Error())
 		return
 	}
-	http.Redirect(w, r, vmRedirect(host.ID, newName), http.StatusSeeOther)
+	http.Redirect(w, r, "/hosts/"+url.PathEscape(host.ID)+"/vms/"+url.PathEscape(newName), http.StatusSeeOther)
 }
