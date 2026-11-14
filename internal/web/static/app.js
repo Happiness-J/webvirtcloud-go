@@ -246,3 +246,18 @@ document.addEventListener('change', (event) => {
     ctx.stroke();
   }).catch(() => {});
 })();
+
+(() => {
+  const image = document.getElementById('vm-preview');
+  const size = document.getElementById('preview-size');
+  const refresh = document.getElementById('preview-refresh');
+  if (!image || !size || !refresh) return;
+  const showSize = () => { size.textContent = image.naturalWidth && image.naturalHeight ? image.naturalWidth + ' × ' + image.naturalHeight : '画面尺寸不可用'; };
+  image.addEventListener('load', () => { image.classList.remove('preview-error'); showSize(); });
+  image.addEventListener('error', () => { image.classList.add('preview-error'); size.textContent = '画面暂时不可用'; });
+  refresh.addEventListener('click', () => {
+    const url = new URL(image.src, window.location.href);
+    url.searchParams.set('t', Date.now().toString());
+    image.src = url.toString();
+  });
+})();
