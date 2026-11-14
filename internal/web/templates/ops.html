@@ -31,6 +31,7 @@
   {{else}}<p class="empty">该主机没有可展示的虚拟机。</p>{{end}}
 </section>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
+<section class="panel"><h2>阈值告警</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/alerts" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input name="vm" placeholder="虚拟机名称，留空表示整机规则"><select name="metric"><option value="cpu">CPU</option><option value="memory">内存</option></select><input name="threshold" type="number" min="1" max="100" value="90" required><button class="btn">保存告警</button></form><p class="hint">资源采样超过阈值时，通过已配置的 Webhook 发送告警。页面不保存 Webhook 地址或令牌。</p></section>
 <section class="panel">
   <h2>常用运维入口</h2>
   <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/vms">批量与单机生命周期</a><a href="/hosts/{{.Data.Host.ID}}/storage">卷扩容/克隆/删除</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络启停</a><a href="/jobs">任务与失败排查</a></div>
