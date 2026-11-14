@@ -146,10 +146,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 	case "undefine":
 		return []string{"undefine", vm}, true, nil
 	case "clone":
-		if err := libvirt.ValidateName(snapshot); err != nil {
-			return nil, false, fmt.Errorf("克隆名称无效")
-		}
-		return []string{"--original", vm, "--name", snapshot, "--auto-clone"}, false, nil
+		return nil, false, fmt.Errorf("克隆参数由专用流程生成")
 	case "migrate":
 		return nil, true, fmt.Errorf("迁移参数由专用流程生成")
 	case "usb-detach":
@@ -221,7 +218,14 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
 	var args []string
 	var destructive bool
-	if action == "migrate" {
+	if action == "clone" {
+		linked := r.Form.Get("linked") == "yes"
+		args, err = cloneArgs(vmName, operand, linked)
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
+	} else if action == "migrate" {
 		bandwidth := strings.TrimSpace(r.Form.Get("bandwidth"))
 		encrypted := r.Form.Get("encrypted") == "yes"
 		args, err = migrationArgs(vmName, operand, bandwidth, encrypted)

@@ -40,7 +40,8 @@
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="clone">
     <input name="snapshot" placeholder="新虚拟机名称" maxlength="128" required>
-    <button class="btn" data-confirm="克隆会复制已关机虚拟机的磁盘，可能耗时较长，继续吗？">克隆</button>
+    <label class="confirm"><input type="checkbox" name="linked" value="yes">链接克隆</label>
+    <button class="btn" data-confirm="完整克隆会复制磁盘；链接克隆会创建 qcow2 backing file，继续吗？">克隆</button>
   </form>
   {{if or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
