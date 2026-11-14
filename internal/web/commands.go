@@ -218,7 +218,18 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
 	var args []string
 	var destructive bool
-	if action == "clone" {
+	if action == "export" || action == "import" {
+		var err error
+		if action == "export" {
+			args, err = exportArgs(vmName, operand)
+		} else {
+			args, err = importArgs(operand, vmName)
+		}
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
+	} else if action == "clone" {
 		linked := r.Form.Get("linked") == "yes"
 		args, err = cloneArgs(vmName, operand, linked)
 		if err != nil {

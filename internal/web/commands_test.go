@@ -87,3 +87,14 @@ func TestCloneAndSnapshotNamesAcceptSpaces(t *testing.T) {
 		t.Fatalf("snapshot args = %#v destructive=%v err=%v", args, destructive, err)
 	}
 }
+
+func TestVMTransferArgs(t *testing.T) {
+	args, err := exportArgs("web-01", "/var/lib/libvirt/exports")
+	if err != nil || strings.Join(args, " ") != "dumpxml web-01 --destination /var/lib/libvirt/exports" {
+		t.Fatalf("export = %#v err=%v", args, err)
+	}
+	args, err = importArgs("/var/lib/libvirt/exports", "web-01")
+	if err != nil || strings.Join(args, " ") != "define /var/lib/libvirt/exports/web-01.xml" {
+		t.Fatalf("import = %#v err=%v", args, err)
+	}
+}
