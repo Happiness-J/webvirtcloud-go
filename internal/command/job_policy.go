@@ -389,9 +389,13 @@ func validateVMActionArgs(args []string) error {
 		return fmt.Errorf("虚拟机名称无效: %w", err)
 	}
 	switch args[0] {
-	case "start", "shutdown", "reboot", "destroy", "suspend", "resume":
+	case "shutdown", "reboot", "destroy", "suspend", "resume", "managedsave":
 		if len(args) != 2 {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
+		}
+	case "start":
+		if !(len(args) == 2 || (len(args) == 3 && args[2] == "--managed")) {
+			return fmt.Errorf("虚拟机启动参数不正确")
 		}
 	case "undefine":
 		if len(args) < 2 {

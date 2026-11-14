@@ -139,6 +139,10 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		return []string{"suspend", vm}, true, nil
 	case "resume":
 		return []string{"resume", vm}, false, nil
+	case "managed-save":
+		return []string{"managedsave", vm}, true, nil
+	case "managed-start":
+		return []string{"start", vm, "--managed"}, false, nil
 	case "autostart-on":
 		return []string{"autostart", vm}, false, nil
 	case "autostart-off":

@@ -578,13 +578,14 @@ func vmActions(role, state, autostart string) []vmActionView {
 	actions := make([]vmActionView, 0, 6)
 	switch state {
 	case "shut off", "crashed":
-		actions = append(actions, vmActionView{Name: "start", Label: "启动", Primary: true})
+		actions = append(actions, vmActionView{Name: "start", Label: "启动", Primary: true}, vmActionView{Name: "managed-start", Label: "从休眠恢复"})
 	case "running":
 		actions = append(actions,
 			vmActionView{Name: "shutdown", Label: "正常关机"},
 			vmActionView{Name: "reboot", Label: "重启", Destructive: true, Confirm: "确定重启虚拟机吗？"},
 			vmActionView{Name: "destroy", Label: "强制断电", Destructive: true, Confirm: "强制断电可能导致数据损坏，确定继续吗？"},
 			vmActionView{Name: "suspend", Label: "挂起", Destructive: true, Confirm: "挂起会暂停虚拟机运行，确定继续吗？"},
+			vmActionView{Name: "managed-save", Label: "休眠保存", Destructive: true, Confirm: "休眠会保存虚拟机内存并关闭虚拟机，确定继续吗？"},
 		)
 	case "paused":
 		actions = append(actions,
