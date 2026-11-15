@@ -1,6 +1,6 @@
 {{define "content"}}
 <script src="/static/command.js" defer></script>
-<div class="page-head"><div><h1>高级命令中心</h1><p class="muted">{{.Data.Host.Name}} · 执行目标：{{.Data.Target.Label}} · 官方命令目录 + 可视化参数构建 + argv 直接执行</p></div><a class="btn" href="/hosts/{{pathEscape .Data.Host.ID}}">返回主机</a></div>
+<div class="page-head"><div><p class="page-kicker">高级命令</p><h1>{{.Data.Host.Name}}</h1><p class="muted">从命令目录构建参数，执行前可以确认目标：{{.Data.Target.Label}}。</p></div><a class="btn" href="/hosts/{{pathEscape .Data.Host.ID}}">返回主机</a></div>
 <div class="flash warn"><strong>管理员专用。</strong> 当前目录共 {{.Data.Total}} 条结构化命令。{{.Data.Target.Description}} 版本差异可用“高级原始参数”补充；所有命令均记录审计。</div>
 
 <div id="command-center" class="command-center" data-catalog-url="/hosts/{{pathEscape .Data.Host.ID}}/command/catalog">

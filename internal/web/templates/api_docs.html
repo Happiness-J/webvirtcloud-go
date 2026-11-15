@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="page-head">
-  <div><h1>OpenAPI</h1><p class="muted">面向自动化平台、监控系统和运维脚本的版本化 HTTP API。写操作返回任务 ID，可轮询结果。</p></div>
+  <div><p class="page-kicker">自动化接口</p><h1>OpenAPI</h1><p class="muted">写操作返回任务 ID，结果可以通过任务接口轮询。</p></div>
   <div class="actions"><a class="btn" href="/static/openapi.yaml" target="_blank" rel="noopener">下载 OpenAPI YAML</a><a class="btn primary" href="/api/v1/hosts" target="_blank" rel="noopener">在线读取主机</a></div>
 </div>
 {{if .Flash}}<div class="flash {{.FlashType}}">{{.Flash}}</div>{{end}}
