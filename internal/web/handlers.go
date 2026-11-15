@@ -508,8 +508,15 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, accessErr)
 		return
 	}
+	stats, _ := s.libvirt.DomainStats(r.Context(), host.ID)
+	balloon := balloonView{}
+	for _, item := range stats {
+		if item.Name == vmName {
+			balloon = balloonFromStats(item)
+		}
+	}
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
-		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions,
+		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
@@ -1530,4 +1537,23 @@ func defaultForm(r *http.Request, key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+type balloonView struct {
+	Current   string
+	GuestUsed string
+	Reclaimed string
+}
+
+func balloonFromStats(item libvirt.DomainResourceStats) balloonView {
+	view := balloonView{Current: formatKiB(item.BalloonCurrent), GuestUsed: "未报告", Reclaimed: "未报告"}
+	if used, ok := guestMemoryUsedKiB(item); ok {
+		view.GuestUsed = formatKiB(used)
+		if item.BalloonCurrent > used {
+			view.Reclaimed = formatKiB(item.BalloonCurrent - used)
+		} else {
+			view.Reclaimed = formatKiB(0)
+		}
+	}
+	return view
 }
