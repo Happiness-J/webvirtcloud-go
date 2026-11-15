@@ -1445,6 +1445,11 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
 	}
+	hugepages, err := hugepageArg(strings.TrimSpace(r.Form.Get("hugepages")))
+	if err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
+		return
+	}
 	cpu, err := cpuModelArg(strings.TrimSpace(r.Form.Get("cpu_mode")), strings.TrimSpace(r.Form.Get("cpu_model")), r.Form.Get("nested") == "yes")
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
@@ -1453,6 +1458,9 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
 	if err == nil {
 		args = appendCPU(args, cpu)
+		if hugepages != "" {
+			args = append(args, "--memorybacking", hugepages)
+		}
 		for i := range args {
 			if args[i] == "--vcpus" && i+1 < len(args) {
 				args[i+1] = topology
