@@ -482,6 +482,10 @@ func validateVMActionArgs(args []string) error {
 		if len(args) != 3 || validateActionOperand(args[1]) != nil || validateActionOperand(args[2]) != nil || args[1] == args[2] {
 			return fmt.Errorf("重命名参数不正确")
 		}
+	case "numatune", "vcpupin":
+		if !validCPUSetArg(args) {
+			return fmt.Errorf("CPU 放置参数无效")
+		}
 	case "migrate":
 		if len(args) < 4 || args[2] != "--live" || ValidateMigrationURIPublic(args[3]) != nil {
 			return fmt.Errorf("迁移参数不正确")
@@ -704,4 +708,20 @@ func validCPUArg(value string) bool {
 	head, _, _ := strings.Cut(value, ",")
 	vcpus, err := strconv.Atoi(head)
 	return err == nil && vcpus >= 1 && vcpus <= 128 && (value == head || strings.Contains(value, "sockets=") && strings.Contains(value, "cores=") && strings.Contains(value, "threads="))
+}
+
+func validCPUSetArg(args []string) bool {
+	if len(args) < 4 || args[len(args)-1] != "--config" {
+		return false
+	}
+	value := args[len(args)-2]
+	if value == "" || len(value) > 64 {
+		return false
+	}
+	for _, r := range value {
+		if !(r == '-' || r == ',' || r >= '0' && r <= '9') {
+			return false
+		}
+	}
+	return true
 }

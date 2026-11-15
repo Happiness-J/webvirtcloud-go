@@ -222,7 +222,13 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
 	var args []string
 	var destructive bool
-	if action == "export" || action == "import" {
+	if action == "numa-bind" || action == "cpu-pin" {
+		args, err = placementArgs(action, vmName, operand)
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
+	} else if action == "export" || action == "import" {
 		var err error
 		if action == "export" {
 			args, err = exportArgs(vmName, operand)
