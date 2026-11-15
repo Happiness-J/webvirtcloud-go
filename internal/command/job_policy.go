@@ -595,8 +595,7 @@ func validateVMCreateArgs(args []string) error {
 	if err := validateActionOperand(args[1]); err != nil {
 		return fmt.Errorf("虚拟机名称无效")
 	}
-	vcpus, err := strconv.Atoi(args[3])
-	if err != nil || vcpus < 1 || vcpus > 128 {
+	if !validCPUArg(args[3]) {
 		return fmt.Errorf("vCPU 数量无效")
 	}
 	memory, err := strconv.Atoi(args[5])
@@ -661,4 +660,10 @@ func validGeneratedCloudInitPath(value string) bool {
 
 func validTransferDir(value string) bool {
 	return strings.HasPrefix(value, "/") && !strings.Contains(value, "..") && !strings.ContainsAny(value, " \t\r\n")
+}
+
+func validCPUArg(value string) bool {
+	head, _, _ := strings.Cut(value, ",")
+	vcpus, err := strconv.Atoi(head)
+	return err == nil && vcpus >= 1 && vcpus <= 128 && (value == head || strings.Contains(value, "sockets=") && strings.Contains(value, "cores=") && strings.Contains(value, "threads="))
 }
