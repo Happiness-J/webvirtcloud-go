@@ -246,3 +246,15 @@ details summary { cursor: pointer; color: var(--brand); }
 .preview-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;color:var(--muted);font-size:13px}
 
 .preview-error{opacity:.45}
+
+:root{--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--radius:14px;--radius-sm:10px;--shadow-soft:0 10px 30px rgba(18,32,58,.08)}
+.login-wrap{background:radial-gradient(circle at top,#eef3ff,transparent 42%),var(--bg)}
+.login-card{box-shadow:var(--shadow-soft)}
+.login-card h1{font-size:30px}
+.topbar{backdrop-filter:saturate(1.2)}
+.page-kicker{margin:0 0 var(--space-2);color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.vm-table td:first-child a{font-weight:700}
+.empty-state{display:grid;gap:var(--space-2);justify-items:center;padding:36px 16px;border:1px dashed var(--line);border-radius:var(--radius);background:linear-gradient(#fff,#f8fafc);color:var(--muted)}
+.empty-state strong{color:var(--ink);font-size:18px}
+.detail-hero{display:flex;justify-content:space-between;gap:var(--space-4);align-items:flex-start}
+.detail-hero .actions{justify-content:flex-end}
