@@ -13,6 +13,7 @@
     <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a><a href="/hosts/{{.Data.Host.ID}}/vms">虚拟机</a><a href="/hosts/{{.Data.Host.ID}}/storage">存储池</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络</a>{{if eq .User.Role "admin"}}<a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a>{{end}}</div>
   </section>
 </div>
+{{if eq .User.Role "admin"}}<section class="panel"><h2>KSM 内存合并</h2><p class="hint">开启后，宿主机可以合并相同内存页以节省物理内存。变更会写入审计。</p><form method="post" action="/hosts/{{.Data.Host.ID}}/ksm" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn" name="enabled" value="1">开启 KSM</button><button class="btn" name="enabled" value="0">关闭 KSM</button></form></section>{{end}}
 <section class="panel">
   <div class="panel-head"><h2>该主机的最近任务</h2><a href="/jobs">全部任务</a></div>
   {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td>{{.UserName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>这台主机还没有任务</strong><span>创建、迁移或调整资源后，任务会显示在这里。</span></div>{{end}}
