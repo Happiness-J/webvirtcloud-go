@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="page-head">
-  <div><h1>基础设施概览</h1><p class="muted">VM 与 QEMU 操作通过异步任务执行；主机和用户管理同步写入并记录审计。</p></div>
+  <div><p class="page-kicker">总览</p><h1>基础设施概览</h1><p class="muted">虚拟机操作进入任务队列，主机和用户变更会写入审计。</p></div>
   <div class="actions"><a class="btn" href="/vms">查看虚拟机</a>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a class="btn primary" href="/vms">创建 / 管理虚拟机</a>{{end}}{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/new">添加主机</a>{{end}}</div>
 </div>
 <section class="stats">
@@ -50,7 +50,7 @@
   </section>
   <section class="panel">
     <div class="panel-head"><h2>最近审计</h2>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a href="/audit">全部</a>{{end}}</div>
-    {{if .Data.Audit}}<table><tbody>{{range .Data.Audit}}<tr><td>{{.Action}}</td><td>{{.ActorName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有审计记录。</p>{{end}}
+    {{if .Data.Audit}}<table><tbody>{{range .Data.Audit}}<tr><td>{{.Action}}</td><td>{{.ActorName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有审计记录</strong><span>登录、主机变更和任务结果会出现在这里。</span></div>{{end}}
   </section>
 </div>
 {{end}}

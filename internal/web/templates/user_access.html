@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><h1>桌面授权 · {{.Data.Target.Username}}</h1><p class="muted">仅桌面用户可获得指定虚拟机的 VNC 控制台权限，不包含电源、磁盘和主机管理权限。</p></div><a class="btn" href="/users">返回用户</a></div>
+<div class="page-head"><div><p class="page-kicker">桌面授权</p><h1>{{.Data.Target.Username}}</h1><p class="muted">仅桌面用户可获得指定虚拟机的 VNC 控制台权限，不包含电源、磁盘和主机管理权限。</p></div><a class="btn" href="/users">返回用户</a></div>
 <section class="panel">
   <h2>新增授权</h2>
   <form method="post" action="/users/{{.Data.Target.ID}}/access" class="inline-form">

@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><h1>{{if .Data.Editing}}编辑主机{{else}}添加主机{{end}}</h1><p class="muted">URI 由服务端保管，任务执行时自动注入 <code>virsh --connect</code>。</p></div></div>
+<div class="page-head"><div><p class="page-kicker">主机连接</p><h1>{{if .Data.Editing}}编辑主机{{else}}添加主机{{end}}</h1><p class="muted">连接地址由服务端保管，执行任务时自动注入。</p></div></div>
 <section class="panel narrow">
 <form method="post" class="stack">
   <input type="hidden" name="_csrf" value="{{.CSRF}}">
