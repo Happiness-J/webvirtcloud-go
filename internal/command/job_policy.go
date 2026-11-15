@@ -131,6 +131,12 @@ func validateVMResourceArgs(tool string, args []string) error {
 		default:
 			return fmt.Errorf("vCPU 调优参数不正确")
 		}
+	case "setmaxmem":
+		kiB, err := strconv.ParseUint(args[2], 10, 64)
+		if err != nil || len(args) != 4 || args[3] != "--config" || kiB < 64*1024 || kiB > 1<<40 {
+			return fmt.Errorf("最大内存参数不正确")
+		}
+		return nil
 	case "setmem":
 		kiB, err := strconv.ParseUint(args[2], 10, 64)
 		if err != nil || kiB < 64*1024 || kiB > 1<<40 {

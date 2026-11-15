@@ -318,7 +318,10 @@ func vmResourceArgs(kind, vm, scope, rawValue, state string) ([]string, string, 
 		}
 		args := append([]string{"setvcpus", vm, strconv.Itoa(count)}, scopeFlags...)
 		return args, fmt.Sprintf("%s: %s vCPU 为 %d", vm, scopeLabel, count), nil
-	case "memory":
+	case "memory", "memory-max":
+		if kind == "memory-max" && state != "shut off" {
+			return nil, "", fmt.Errorf("最大内存只能在虚拟机关机时修改")
+		}
 		bytes, err := parseScaledAmount(strings.ToUpper(strings.TrimSpace(rawValue)))
 		if err != nil || bytes%1024 != 0 {
 			return nil, "", fmt.Errorf("内存容量格式无效，例如 4G")
@@ -326,6 +329,9 @@ func vmResourceArgs(kind, vm, scope, rawValue, state string) ([]string, string, 
 		kiB := bytes / 1024
 		if kiB < 64*1024 || kiB > 1<<40 {
 			return nil, "", fmt.Errorf("内存容量必须在 64 MiB 到 1 TiB 之间")
+		}
+		if kind == "memory-max" {
+			return []string{"setmaxmem", vm, strconv.FormatUint(kiB, 10), "--config"}, fmt.Sprintf("%s: 设置最大内存为 %s", vm, strings.ToUpper(strings.TrimSpace(rawValue))), nil
 		}
 		args := append([]string{"setmem", vm, strconv.FormatUint(kiB, 10)}, scopeFlags...)
 		return args, fmt.Sprintf("%s: %s内存为 %s", vm, scopeLabel, strings.ToUpper(strings.TrimSpace(rawValue))), nil
@@ -352,7 +358,7 @@ func (s *Server) vmResourceAction(w http.ResponseWriter, r *http.Request) {
 	}
 	kind := strings.TrimSpace(r.Form.Get("kind"))
 	var rawValue string
-	if kind == "memory" {
+	if kind == "memory" || kind == "memory-max" {
 		rawValue = r.Form.Get("memory_amount")
 	} else {
 		rawValue = r.Form.Get("cpu_count")
