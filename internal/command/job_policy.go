@@ -635,12 +635,38 @@ func validateVMCreateArgs(args []string) error {
 		}
 		index += 2
 	}
-	if index < len(args) {
-		if len(args) != index+2 || args[index] != "--cloud-init" || !validCloudInitArg(args[index+1]) {
+	if index < len(args) && args[index] == "--cloud-init" {
+		if len(args) < index+2 || !validCloudInitArg(args[index+1]) {
 			return fmt.Errorf("cloud-init 参数无效")
+		}
+		index += 2
+	}
+	if index < len(args) {
+		if len(args) != index+2 || args[index] != "--cpu" || !validCPUModelArg(args[index+1]) {
+			return fmt.Errorf("CPU 模型参数无效")
 		}
 	}
 	return nil
+}
+
+func validCPUModelArg(value string) bool {
+	base, feature, hasFeature := strings.Cut(value, ",")
+	if hasFeature && feature != "+vmx" && feature != "+svm" {
+		return false
+	}
+	return base == "host-model" || base == "host-passthrough" || validSimpleName(base)
+}
+
+func validSimpleName(value string) bool {
+	if value == "" || len(value) > 64 {
+		return false
+	}
+	for _, r := range value {
+		if !(r == '-' || r == '_' || r >= '0' && r <= '9' || r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z') {
+			return false
+		}
+	}
+	return true
 }
 
 func validCloudInitArg(value string) bool {

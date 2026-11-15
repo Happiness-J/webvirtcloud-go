@@ -3,7 +3,7 @@
 <section class="panel narrow"><form method="post" class="stack">
 <input type="hidden" name="_csrf" value="{{.CSRF}}">
 <label>名称<input name="name" required maxlength="64" placeholder="web-01"></label>
-<label>vCPU<input name="vcpus" value="2" required pattern="[1-9][0-9]*"></label><div class="grid two compact"><label>插槽<input name="sockets" value="1" required pattern="[1-9][0-9]*"></label><label>每插槽核心<input name="cores" value="2" required pattern="[1-9][0-9]*"></label><label>每核心线程<input name="threads" value="1" required pattern="[1-9][0-9]*"></label></div><p class="hint">插槽 × 核心 × 线程必须等于 vCPU 总数。</p>
+<label>vCPU<input name="vcpus" value="2" required pattern="[1-9][0-9]*"></label><div class="grid two compact"><label>插槽<input name="sockets" value="1" required pattern="[1-9][0-9]*"></label><label>每插槽核心<input name="cores" value="2" required pattern="[1-9][0-9]*"></label><label>每核心线程<input name="threads" value="1" required pattern="[1-9][0-9]*"></label></div><p class="hint">插槽 × 核心 × 线程必须等于 vCPU 总数。</p><label>CPU 模式<select name="cpu_mode"><option value="host-model">兼容宿主模型</option><option value="host-passthrough">直接使用宿主 CPU</option><option value="custom">自定义模型</option></select></label><label>自定义 CPU 模型<input name="cpu_model" placeholder="例如 Skylake-Client"></label><label class="confirm"><input type="checkbox" name="nested" value="yes">启用嵌套虚拟化</label>
 <label>内存<input name="memory" value="4" required pattern="[1-9][0-9]*"><span class="hint">单位 GB</span></label>
 <label>磁盘大小<input name="disk" value="40" required pattern="[1-9][0-9]*"><span class="hint">单位 GB，自动创建 qcow2</span></label>
 <label>网络（可选）<select name="network"><option value="">不连接网络，稍后在详情页配置</option>{{range .Data.Networks}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>
