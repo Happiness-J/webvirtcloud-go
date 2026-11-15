@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><h1>创建虚拟机</h1><p class="muted">{{.Data.Host.Name}} · 使用已有磁盘或 ISO 创建</p></div><a class="btn" href="/vms">返回</a></div>
+<div class="page-head"><div><p class="page-kicker">新建资源</p><h1>创建虚拟机</h1><p class="muted">{{.Data.Host.Name}} · 选择规格、安装介质和首次启动配置。</p></div><a class="btn" href="/vms">返回列表</a></div>
 <section class="panel narrow"><form method="post" class="stack">
 <input type="hidden" name="_csrf" value="{{.CSRF}}">
 <label>名称<input name="name" required maxlength="64" placeholder="web-01"></label>
