@@ -1,4 +1,4 @@
-FROM golang:1.26.11-bookworm AS build
+FROM golang:1.27.0-bookworm AS build
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
