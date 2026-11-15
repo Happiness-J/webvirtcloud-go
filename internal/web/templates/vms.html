@@ -1,17 +1,17 @@
 {{define "content"}}
-<div class="page-head"><div><h1>虚拟机</h1><p class="muted">创建、查看和打开控制台。删除虚拟机需要进入详情页输入完整名称确认。</p></div>
+<div class="page-head"><div><p class="page-kicker">计算资源</p><h1>虚拟机</h1><p class="muted">查看每台主机上的虚拟机，打开控制台或进入详情。删除必须在详情页输入完整名称。</p></div>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
   {{if .Data.Groups}}{{with index .Data.Groups 0}}<a class="btn primary" href="/hosts/{{.Host.ID}}/vms/new">创建虚拟机</a>{{end}}{{else}}<a class="btn primary" href="/hosts">先添加主机</a>{{end}}
 {{end}}</div>
-{{if not .Data.Groups}}<section class="panel"><p class="empty">还没有计算主机。管理员请先到「主机」页添加 libvirt 连接，然后再创建虚拟机。</p></section>{{end}}
+{{if not .Data.Groups}}<section class="panel"><div class="empty-state"><strong>还没有可管理的主机</strong><span>先添加 libvirt 连接，然后就能在这里创建和查看虚拟机。</span></div></section>{{end}}
 {{range $group := .Data.Groups}}
 <section class="panel">
   <div class="panel-head"><h2><a href="/hosts/{{$group.Host.ID}}">{{$group.Host.Name}}</a></h2><span class="actions">{{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}<a class="btn small primary" href="/hosts/{{$group.Host.ID}}/vms/new">在此主机创建</a>{{end}}<a href="/hosts/{{$group.Host.ID}}/vms">主机视图</a></span></div>
   {{if $group.Err}}<div class="flash error">{{$group.Err}}</div>{{else if $group.Domains}}
-  <table><thead><tr><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th></th></tr></thead><tbody>
+  <table class="vm-table"><thead><tr><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th></th></tr></thead><tbody>
   {{range $domain := $group.Domains}}<tr><td><a href="/hosts/{{$group.Host.ID}}/vms/{{pathEscape $domain.Name}}">{{$domain.Name}}</a></td><td>{{if $domain.ID}}{{$domain.ID}}{{else}}-{{end}}</td><td><span class="pill {{statusClass $domain.State}}">{{statusName $domain.State}}</span></td><td>{{flagName $domain.Autostart}}</td><td class="actions"><a class="btn small" href="/hosts/{{$group.Host.ID}}/vms/{{pathEscape $domain.Name}}">详情</a>{{if and (or (eq $.User.Role "admin") (eq $.User.Role "operator") (eq $.User.Role "desktop")) (consoleAvailable $domain.State)}}<a class="btn small" href="/console/{{$group.Host.ID}}/{{pathEscape $domain.Name}}">控制台</a>{{end}}</td></tr>{{end}}
   </tbody></table>
-  {{else}}<p class="empty">该主机上没有虚拟机。</p>{{end}}
+  {{else}}<div class="empty-state"><strong>这台主机还没有虚拟机</strong><span>可以创建一台新的，或先检查主机连接。</span></div>{{end}}
 </section>
 {{end}}
 {{end}}
