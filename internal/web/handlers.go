@@ -1421,16 +1421,31 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	memory := strings.TrimSpace(r.Form.Get("memory"))
 	disk := strings.TrimSpace(r.Form.Get("disk"))
 	vcpuCount, cpuErr := strconv.Atoi(vcpus)
+	sockets, socketErr := strconv.Atoi(defaultForm(r, "sockets", "1"))
+	cores, coreErr := strconv.Atoi(defaultForm(r, "cores", strconv.Itoa(vcpuCount)))
+	threads, threadErr := strconv.Atoi(defaultForm(r, "threads", "1"))
 	memoryCount, memoryErr := strconv.Atoi(memory)
 	diskCount, diskErr := strconv.Atoi(disk)
-	if cpuErr != nil || memoryErr != nil || diskErr != nil {
+	if cpuErr != nil || socketErr != nil || coreErr != nil || threadErr != nil || memoryErr != nil || diskErr != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "CPU、内存和磁盘容量必须是整数")
 		return
 	}
 	network := strings.TrimSpace(r.Form.Get("network"))
 	cdrom := strings.TrimSpace(r.Form.Get("cdrom"))
 	cloud := cloudInitSpec{Hostname: strings.TrimSpace(r.Form.Get("hostname")), Username: strings.TrimSpace(r.Form.Get("cloud_user")), SSHKey: strings.TrimSpace(r.Form.Get("ssh_key")), Address: strings.TrimSpace(r.Form.Get("guest_address")), Gateway: strings.TrimSpace(r.Form.Get("guest_gateway")), DNS: strings.TrimSpace(r.Form.Get("guest_dns"))}
+	topology, err := cpuTopologyArg(vcpuCount, sockets, cores, threads)
+	if err != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
+		return
+	}
 	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
+	if err == nil {
+		for i := range args {
+			if args[i] == "--vcpus" && i+1 < len(args) {
+				args[i+1] = topology
+			}
+		}
+	}
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
@@ -1494,4 +1509,11 @@ func validInstallISO(dir, path string) bool {
 	}
 	info, err := os.Stat(clean) // #nosec G703 -- clean is confined to the configured image directory and a regular .iso name.
 	return err == nil && info.Mode().IsRegular()
+}
+
+func defaultForm(r *http.Request, key, fallback string) string {
+	if value := strings.TrimSpace(r.Form.Get(key)); value != "" {
+		return value
+	}
+	return fallback
 }
