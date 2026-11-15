@@ -379,6 +379,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /hosts/{id}/delete", s.protect("admin", s.hostDelete))
 	mux.Handle("POST /hosts/{id}/test", s.protect("operator", s.hostTest))
 	mux.Handle("POST /hosts/{id}/health", s.protect("operator", s.hostHealth))
+	mux.Handle("POST /hosts/{id}/ksm", s.protect("admin", s.hostKSM))
 	mux.Handle("POST /hosts/{id}/maintenance", s.protect("admin", s.hostMaintenance))
 	mux.Handle("POST /hosts/{id}/evacuate", s.protect("admin", s.hostEvacuate))
 	mux.Handle("GET /hosts/{id}/vms", s.protect("viewer", s.hostVMsPage))

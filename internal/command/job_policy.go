@@ -486,6 +486,10 @@ func validateVMActionArgs(args []string) error {
 		if !validCPUSetArg(args) {
 			return fmt.Errorf("CPU 放置参数无效")
 		}
+	case "node-memory-tune":
+		if len(args) != 3 || args[1] != "shm-merge" || (args[2] != "0" && args[2] != "1") {
+			return fmt.Errorf("KSM 参数无效")
+		}
 	case "migrate":
 		if len(args) < 4 || args[2] != "--live" || ValidateMigrationURIPublic(args[3]) != nil {
 			return fmt.Errorf("迁移参数不正确")
