@@ -1101,6 +1101,16 @@ func (s *Service) RunReadOnly(ctx context.Context, hostID string, args []string,
 	return s.run(ctx, hostID, args, timeout)
 }
 
+func (s *Service) RunQMPQuery(ctx context.Context, hostID string, args []string, timeout time.Duration) (command.Result, error) {
+	if len(args) != 4 || args[0] != "qemu-monitor-command" || args[2] != "--pretty" || (args[3] != `{"execute":"query-status"}` && args[3] != `{"execute":"query-block"}`) {
+		return command.Result{}, fmt.Errorf("QMP 查询参数无效")
+	}
+	if err := ValidateName(args[1]); err != nil {
+		return command.Result{}, err
+	}
+	return s.runWithAccess(ctx, hostID, args, timeout, false)
+}
+
 func formatMemoryStats(output string) string {
 	labels := map[string]string{
 		"actual": "当前分配", "swap_in": "换入页", "swap_out": "换出页",
