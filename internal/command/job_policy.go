@@ -51,6 +51,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-nic":
+		if tool != "virt-xml" || !validNICAdvancedArgs(args) {
+			return "", fmt.Errorf("网卡高级参数无效")
+		}
+		return RoleOperator, nil
 	case "vm-firewall":
 		if tool != "virt-xml" || !validFirewallArgs(args) {
 			return "", fmt.Errorf("防火墙参数无效")
@@ -1059,4 +1064,39 @@ func validFirewallArgs(args []string) bool {
 		}
 	}
 	return len(parts) == 3 || parts[3] == "antispoof"
+}
+
+func validNICAdvancedArgs(args []string) bool {
+	if len(args) != 5 || args[1] != "--edit" || !strings.HasPrefix(args[2], "mac=") || args[3] != "--network" || validateActionOperand(args[0]) != nil || !validMACArg(strings.TrimPrefix(args[2], "mac=")) {
+		return false
+	}
+	for _, part := range strings.Split(args[4], ",") {
+		key, value, ok := strings.Cut(part, "=")
+		if !ok {
+			return false
+		}
+		switch key {
+		case "access", "trunk":
+			id, err := strconv.Atoi(value)
+			if err != nil || id < 1 || id > 4094 {
+				return false
+			}
+		case "mtu":
+			mtu, err := strconv.Atoi(value)
+			if err != nil || mtu < 576 || mtu > 9000 {
+				return false
+			}
+		case "mac":
+			if !validMACArg(value) {
+				return false
+			}
+		case "link":
+			if value != "up" && value != "down" {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }
