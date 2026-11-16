@@ -51,6 +51,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-device":
+		if tool != "virt-xml" {
+			return "", fmt.Errorf("虚拟设备配置只允许 virt-xml")
+		}
+		if err := validateGuestDeviceArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	case "vm-performance":
 		if tool != "virt-xml" && tool != "virsh" {
 			return "", fmt.Errorf("性能配置工具无效")
@@ -713,6 +721,18 @@ func validateVMCreateArgs(args []string) error {
 		}
 		index += 2
 	}
+	if index < len(args) && args[index] == "--rng" {
+		if index+1 >= len(args) || args[index+1] != "/dev/urandom" {
+			return fmt.Errorf("随机数设备参数无效")
+		}
+		index += 2
+	}
+	if index < len(args) && args[index] == "--watchdog" {
+		if index+1 >= len(args) || (args[index+1] != "i6300esb,action=reset" && args[index+1] != "i6300esb,action=shutdown" && args[index+1] != "i6300esb,action=none") {
+			return fmt.Errorf("看门狗参数无效")
+		}
+		index += 2
+	}
 	if index < len(args) && args[index] == "--boot" {
 		if index+1 >= len(args) || !validBootOrder(args[index+1]) {
 			return fmt.Errorf("启动顺序参数无效")
@@ -903,4 +923,21 @@ func validMACArg(value string) bool {
 		}
 	}
 	return true
+}
+
+func validateGuestDeviceArgs(args []string) error {
+	if len(args) != 4 || validateActionOperand(args[0]) != nil || (args[1] != "--add-device" && args[1] != "--remove-device") {
+		return fmt.Errorf("虚拟设备参数无效")
+	}
+	switch args[2] {
+	case "--rng":
+		if args[1] == "--add-device" && args[3] == "/dev/urandom" || args[1] == "--remove-device" && args[3] == "1" {
+			return nil
+		}
+	case "--watchdog":
+		if args[1] == "--add-device" && (args[3] == "i6300esb,action=reset" || args[3] == "i6300esb,action=shutdown" || args[3] == "i6300esb,action=none") || args[1] == "--remove-device" && args[3] == "1" {
+			return nil
+		}
+	}
+	return fmt.Errorf("虚拟设备参数无效")
 }

@@ -481,7 +481,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
-	detail, err := s.libvirt.Detail(r.Context(), host.ID, vmName, sess.User.Role == "admin")
+	detail, err := s.libvirt.Detail(r.Context(), host.ID, vmName, true)
 	if err != nil {
 		s.logRequestError(r, "load VM detail", err)
 		s.renderError(w, r, http.StatusBadGateway, "无法读取虚拟机", "无法从目标主机读取虚拟机信息，请检查主机连接或查看服务日志。")
@@ -528,7 +528,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
-		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces),
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
@@ -1471,6 +1471,16 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		args = append(args, "--boot", boot)
+		if r.Form.Get("rng") == "yes" {
+			args = append(args, "--rng", "/dev/urandom")
+		}
+		if action := strings.TrimSpace(r.Form.Get("watchdog")); action != "" {
+			if !validWatchdogAction(action) {
+				s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "看门狗动作无效")
+				return
+			}
+			args = append(args, "--watchdog", "i6300esb,action="+action)
+		}
 		args = appendCPU(args, cpu)
 		if hugepages != "" {
 			args = append(args, "--memorybacking", hugepages)
