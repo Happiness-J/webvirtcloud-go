@@ -528,7 +528,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
-		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog),
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
@@ -1465,6 +1465,13 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
 	if err == nil {
+		if strings.TrimSpace(r.Form.Get("graphics")) == "spice" {
+			for i := range args {
+				if args[i] == "--graphics" && i+1 < len(args) {
+					args[i+1] = "spice,listen=127.0.0.1"
+				}
+			}
+		}
 		boot, bootErr := bootOrderArg(strings.TrimSpace(r.Form.Get("boot_order")), r.Form.Get("boot_menu"))
 		if bootErr != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", bootErr.Error())

@@ -19,6 +19,7 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "vm action", kind: "vm-action", tool: "virsh", args: []string{"destroy", "vm"}, want: RoleOperator},
 		{name: "vm boot order", kind: "vm-boot", tool: "virt-xml", args: []string{"vm", "--edit", "--boot", "network,hd,menu=on"}, want: RoleOperator},
 		{name: "vm create blank disk", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "generic", "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole", "--import"}, want: RoleOperator},
+		{name: "vm create spice", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "generic", "--graphics", "spice,listen=127.0.0.1", "--noautoconsole", "--import"}, want: RoleOperator},
 		{name: "vm create iso and network", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "debian13", "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole", "--cdrom", "/isos/debian.iso", "--network", "network=default"}, want: RoleOperator},
 		{name: "USB attach dynamic target", kind: "vm-action", tool: "virsh", args: []string{"attach-disk", "vm", "/dev/disk/by-id/usb-drive", "sdb", "--targetbus", "usb", "--live"}, want: RoleOperator},
 		{name: "USB detach target", kind: "vm-action", tool: "virsh", args: []string{"detach-disk", "vm", "sdb", "--live"}, want: RoleOperator},
