@@ -286,6 +286,29 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "nic-queues" || action == "disk-iotune" || action == "disk-discard" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再保存性能配置")
+			return
+		}
+		kind = "vm-performance"
+		switch action {
+		case "nic-queues":
+			tool = "virt-xml"
+			queues, _ := strconv.Atoi(strings.TrimSpace(r.Form.Get("queues")))
+			args, err = nicQueueArgs(vmName, operand, queues)
+		case "disk-discard":
+			tool = "virt-xml"
+			args, err = diskDiscardArgs(vmName, operand, strings.TrimSpace(r.Form.Get("discard")))
+		default:
+			tool = "virsh"
+			args, err = diskTuneArgs(vmName, operand, strings.TrimSpace(r.Form.Get("read_bytes")), strings.TrimSpace(r.Form.Get("write_bytes")), strings.TrimSpace(r.Form.Get("read_iops")), strings.TrimSpace(r.Form.Get("write_iops")))
+		}
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "boot-order" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil || detail.Domain.State != "shut off" {
