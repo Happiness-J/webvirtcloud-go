@@ -286,6 +286,18 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "nic-advanced" {
+		if detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false); detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改网卡")
+			return
+		}
+		tool = "virt-xml"
+		kind = "vm-nic"
+		args, err = nicAdvancedArgs(vmName, operand, strings.TrimSpace(r.Form.Get("vlan")), strings.TrimSpace(r.Form.Get("vlan_mode")), strings.TrimSpace(r.Form.Get("mtu")), strings.TrimSpace(r.Form.Get("new_mac")), strings.TrimSpace(r.Form.Get("link")))
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "firewall-apply" {
 		if detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false); detailErr != nil || detail.Domain.State != "shut off" {
 			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改防火墙")
