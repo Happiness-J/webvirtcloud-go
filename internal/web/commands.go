@@ -286,6 +286,29 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "video-model" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, true)
+		if detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改显卡")
+			return
+		}
+		graphics := "vnc"
+		if strings.TrimSpace(r.Form.Get("video_model")) == "none" {
+			graphics = "none"
+		}
+		for _, item := range libvirt.ParseGraphics(detail.XML) {
+			if item.Type != "" {
+				graphics = item.Type
+			}
+		}
+		tool = "virt-xml"
+		kind = "vm-video"
+		vram, _ := strconv.Atoi(strings.TrimSpace(r.Form.Get("video_vram")))
+		args, err = videoEditArgs(vmName, strings.TrimSpace(r.Form.Get("video_model")), vram, graphics)
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "disk-controller" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil || detail.Domain.State != "shut off" {
