@@ -51,6 +51,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-performance":
+		if tool != "virt-xml" && tool != "virsh" {
+			return "", fmt.Errorf("性能配置工具无效")
+		}
+		if err := validatePerformanceArgs(tool, args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	case "vm-boot":
 		if tool != "virt-xml" {
 			return "", fmt.Errorf("启动配置只允许 virt-xml")
@@ -845,4 +853,54 @@ func validConvertFormatArg(value string) bool {
 func validManagedImagePath(value string) bool {
 	clean := filepath.Clean(value)
 	return clean == value && filepath.IsAbs(clean) && !strings.Contains(value, "..") && !strings.ContainsAny(value, " \t\r\n")
+}
+
+func validatePerformanceArgs(tool string, args []string) error {
+	if tool == "virt-xml" && len(args) == 5 && args[1] == "--edit" && strings.HasPrefix(args[2], "mac=") && args[3] == "--network" && strings.HasPrefix(args[4], "driver_queues=") {
+		if validateActionOperand(args[0]) != nil || !validMACArg(strings.TrimPrefix(args[2], "mac=")) || !validQueueArg(strings.TrimPrefix(args[4], "driver_queues=")) {
+			return fmt.Errorf("网卡队列参数无效")
+		}
+		return nil
+	}
+	if tool == "virt-xml" && len(args) == 5 && args[1] == "--edit" && strings.HasPrefix(args[2], "target=") && args[3] == "--disk" && (args[4] == "discard=ignore" || args[4] == "discard=unmap") {
+		if validateActionOperand(args[0]) != nil || ValidateDiskTargetPublic(strings.TrimPrefix(args[2], "target=")) != nil {
+			return fmt.Errorf("discard 参数无效")
+		}
+		return nil
+	}
+	if tool == "virsh" && len(args) == 12 && args[0] == "blkdeviotune" && args[3] == "--read-bytes-sec" && args[5] == "--write-bytes-sec" && args[7] == "--read-iops-sec" && args[9] == "--write-iops-sec" && args[11] == "--config" {
+		if validateActionOperand(args[1]) != nil || ValidateDiskTargetPublic(args[2]) != nil || !validTuneArg(args[4]) || !validTuneArg(args[6]) || !validTuneArg(args[8]) || !validTuneArg(args[10]) {
+			return fmt.Errorf("磁盘限速参数无效")
+		}
+		return nil
+	}
+	return fmt.Errorf("性能配置参数无效")
+}
+
+func validQueueArg(value string) bool {
+	number, err := strconv.Atoi(value)
+	return err == nil && number >= 1 && number <= 16
+}
+
+func validTuneArg(value string) bool {
+	number, err := strconv.ParseUint(value, 10, 64)
+	return err == nil && number <= 1000000000000
+}
+
+func validMACArg(value string) bool {
+	parts := strings.Split(value, ":")
+	if len(parts) != 6 {
+		return false
+	}
+	for _, part := range parts {
+		if len(part) != 2 {
+			return false
+		}
+		for _, r := range part {
+			if (r < '0' || r > '9') && (r < 'a' || r > 'f') && (r < 'A' || r > 'F') {
+				return false
+			}
+		}
+	}
+	return true
 }

@@ -144,6 +144,36 @@
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改启动顺序或 PXE。</span></div>{{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>多队列与磁盘限速</h2><span class="pill muted">关机后生效</span></div>
+  <p class="hint">virtio 网卡队列可以提高并发网络吞吐。磁盘限速按字节和 IOPS 分别限制读写，填 0 表示不限制。discard 设为 unmap 后，客户机释放的空间可以回收。</p>
+  {{if eq .Data.Detail.Domain.State "shut off"}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="nic-queues">
+    <select name="snapshot" required><option value="" disabled selected>选择 virtio 网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select>
+    <input name="queues" value="2" required pattern="([1-9]|1[0-6])">
+    <button class="btn">保存队列数</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="disk-iotune">
+    <div class="grid two compact">
+      <label>磁盘<select name="snapshot" required>{{range .Data.Detail.BlockList}}{{if eq .Device "disk"}}<option value="{{.Target}}">{{.Target}} · {{.Source}}</option>{{end}}{{end}}</select></label>
+      <label>读字节/秒<input name="read_bytes" value="0" required pattern="[0-9]{1,13}"></label>
+      <label>写字节/秒<input name="write_bytes" value="0" required pattern="[0-9]{1,13}"></label>
+      <label>读 IOPS<input name="read_iops" value="0" required pattern="[0-9]{1,13}"></label>
+      <label>写 IOPS<input name="write_iops" value="0" required pattern="[0-9]{1,13}"></label>
+    </div>
+    <button class="btn">保存磁盘限速</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="disk-discard">
+    <select name="snapshot" required>{{range .Data.Detail.BlockList}}{{if eq .Device "disk"}}<option value="{{.Target}}">{{.Target}}</option>{{end}}{{end}}</select>
+    <select name="discard"><option value="unmap">unmap</option><option value="ignore">ignore</option></select>
+    <button class="btn">保存 discard</button>
+  </form>
+  {{if not .Data.NICChoices}}<div class="empty-state"><strong>没有可配置的 virtio 网卡</strong><span>先为虚拟机添加 virtio 网卡，再设置队列数。</span></div>{{end}}
+  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改队列数、磁盘限速或 discard。</span></div>{{end}}
+</section>
+<section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
   <div class="grid two compact">

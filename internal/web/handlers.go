@@ -528,7 +528,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
-		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil,
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
