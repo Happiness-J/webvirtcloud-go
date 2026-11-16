@@ -247,6 +247,20 @@
     <div><h3>块设备</h3><pre class="output">{{.Data.QMPBlock}}</pre></div>
   </div>
 </section>
+{{if eq .User.Role "admin"}}<section class="panel danger-zone">
+  <div class="panel-head"><h2>GDB 调试</h2><span class="pill bad">默认关闭</span></div>
+  <p class="hint bad-text">开启后，虚拟机会在本机回环地址等待调试器。这会暂停客户机并暴露低级调试接口，只应在受控维护时使用。</p>
+  {{if .Data.GDB.Enabled}}<p class="hint">当前已配置：<code>127.0.0.1:{{.Data.GDB.Port}}</code>。调试器需在宿主机本机连接。</p>{{else}}<div class="empty-state"><strong>GDB 未开启</strong><span>需要时再设置端口并暂停启动。</span></div>{{end}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="gdb-enable">
+    <input name="gdb_port" value="1234" required pattern="[1-9][0-9]{3,4}">
+    <button class="btn danger" data-confirm="确定开启 GDB stub 吗？它只监听本机回环地址。">开启 GDB</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="gdb-start"><input type="hidden" name="gdb_port" value="1234">
+    <button class="btn" data-confirm="虚拟机会暂停启动并等待调试器，确定继续吗？">暂停启动</button>
+  </form>
+</section>{{end}}
 <section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>

@@ -286,6 +286,34 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "gdb-enable" || action == "gdb-start" {
+		if sess.User.Role != "admin" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "只有管理员可以开启 GDB 调试")
+			return
+		}
+		port, portErr := gdbPort(r.Form.Get("gdb_port"))
+		if portErr != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), portErr.Error())
+			return
+		}
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if action == "gdb-start" {
+			if detailErr != nil || detail.Domain.State != "shut off" {
+				s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机，再以暂停状态启动")
+				return
+			}
+			tool = "virsh"
+			kind = "vm-action"
+			args = gdbStartArgs(vmName)
+		} else {
+			if detailErr != nil || detail.Domain.State != "shut off" {
+				s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机，再配置 GDB")
+				return
+			}
+			tool = "virt-xml"
+			kind = "vm-debug"
+			args = gdbEnableArgs(vmName, port)
+		}
 	} else if action == "video-model" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, true)
 		if detailErr != nil || detail.Domain.State != "shut off" {

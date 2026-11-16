@@ -51,6 +51,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-debug":
+		if tool != "virt-xml" || !validGDBArgs(args) {
+			return "", fmt.Errorf("GDB 参数无效")
+		}
+		return RoleAdmin, nil
 	case "vm-video":
 		if tool != "virt-xml" || !validVideoArgs(args) {
 			return "", fmt.Errorf("显卡参数无效")
@@ -455,7 +460,7 @@ func validateVMActionArgs(args []string) error {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
 		}
 	case "start":
-		if !(len(args) == 2 || (len(args) == 3 && args[2] == "--managed")) {
+		if !(len(args) == 2 || (len(args) == 3 && (args[2] == "--managed" || args[2] == "--paused"))) {
 			return fmt.Errorf("虚拟机启动参数不正确")
 		}
 	case "undefine":
@@ -1017,4 +1022,16 @@ func validVideoValue(value string) bool {
 	default:
 		return false
 	}
+}
+
+func validGDBArgs(args []string) bool {
+	if len(args) != 4 || args[1] != "--edit" || args[2] != "--qemu-commandline" || validateActionOperand(args[0]) != nil {
+		return false
+	}
+	prefix := "-gdb tcp:127.0.0.1:"
+	if !strings.HasPrefix(args[3], prefix) {
+		return false
+	}
+	number, err := strconv.Atoi(strings.TrimPrefix(args[3], prefix))
+	return err == nil && number >= 1024 && number <= 65535
 }
