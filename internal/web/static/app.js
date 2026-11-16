@@ -261,3 +261,7 @@ document.addEventListener('change', (event) => {
     image.src = url.toString();
   });
 })();
+
+document.querySelectorAll('.help-tip').forEach((tip) => {
+  tip.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); tip.focus(); });
+});

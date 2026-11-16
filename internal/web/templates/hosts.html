@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">基础设施</p><h1>计算主机</h1><p class="muted">连接信息加密保存。进入主机详情后可以测试连接、维护和疏散。</p></div>{{if eq .User.Role "admin"}}<a class="btn primary" href="/hosts/new">添加主机</a>{{end}}</div>
+<div class="page-head"><div><p class="page-kicker">基础设施</p><h1>计算主机</h1><button type="button" class="help-tip" aria-label="说明" data-tip="主机是面板连接的 libvirt 节点。添加主机只保存连接配置，不会改宿主机上的虚拟机。">?</button><p class="muted">连接信息加密保存。进入主机详情后可以测试连接、维护和疏散。</p></div>{{if eq .User.Role "admin"}}<a class="btn primary" href="/hosts/new">添加主机</a>{{end}}</div>
 <section class="panel">
 {{if .Data.Hosts}}
 <table><thead><tr><th>名称</th><th>连接</th><th>状态</th><th>说明</th><th></th></tr></thead><tbody>

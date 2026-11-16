@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="page-head">
-  <div><p class="page-kicker">运维工作台</p><h1>{{.Data.Host.Name}}</h1><p class="muted">查看宿主机容量、虚拟机资源和批量生命周期操作。</p></div>
+  <div><p class="page-kicker">运维工作台</p><button type="button" class="help-tip" aria-label="说明" data-tip="集中查看这台主机的资源和批量电源操作。强制关闭可能丢失客户机未保存的数据。">?</button><h1>{{.Data.Host.Name}}</h1><p class="muted">查看宿主机容量、虚拟机资源和批量生命周期操作。</p></div>
   <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}">返回主机</a><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">虚拟机列表</a><a class="btn" href="/hosts/{{.Data.Host.ID}}/storage">存储池</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator")) (eq .Data.Host.Enabled true)}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn primary">测试连接</button></form>{{end}}</div>
 </div>
 {{if .Data.Warnings}}<div class="flash warn">{{range .Data.Warnings}}<div>{{.}}</div>{{end}}</div>{{end}}
