@@ -286,6 +286,18 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "firewall-apply" {
+		if detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false); detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改防火墙")
+			return
+		}
+		tool = "virt-xml"
+		kind = "vm-firewall"
+		args, err = firewallArgs(vmName, operand, r.Form.Get("direction"), r.Form.Get("protocol"), strings.TrimSpace(r.Form.Get("port")), r.Form.Get("antispoof") == "yes")
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "gdb-enable" || action == "gdb-start" {
 		if sess.User.Role != "admin" {
 			s.redirectError(w, r, vmRedirect(host.ID, vmName), "只有管理员可以开启 GDB 调试")

@@ -17,6 +17,7 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "host test", kind: "host-test", tool: "virsh", args: []string{"version"}, want: RoleOperator},
 		{name: "host health", kind: "host-test", tool: "virt-host-validate", args: []string{"--quiet", "qemu"}, want: RoleOperator},
 		{name: "vm action", kind: "vm-action", tool: "virsh", args: []string{"destroy", "vm"}, want: RoleOperator},
+		{name: "firewall", kind: "vm-firewall", tool: "virt-xml", args: []string{"vm", "--edit", "mac=52:54:00:11:22:33", "--network", "filterref=clean-traffic,in,tcp,22,antispoof"}, want: RoleOperator},
 		{name: "gdb stub", kind: "vm-debug", tool: "virt-xml", args: []string{"vm", "--edit", "--qemu-commandline", "-gdb tcp:127.0.0.1:1234"}, want: RoleAdmin},
 		{name: "video model", kind: "vm-video", tool: "virt-xml", args: []string{"vm", "--edit", "--video", "model=qxl,vram=65536"}, want: RoleOperator},
 		{name: "nvme controller", kind: "vm-disk-controller", tool: "virt-xml", args: []string{"vm", "--edit", "target=vda", "--disk", "bus=nvme,queues=4"}, want: RoleOperator},
