@@ -174,6 +174,28 @@
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改队列数、磁盘限速或 discard。</span></div>{{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>随机数与看门狗</h2><span class="pill muted">关机后生效</span></div>
+  <p class="hint">virtio 随机数设备为客户机提供熵源。看门狗在客户机停止响应时可以重启、关机，或只记录告警。</p>
+  {{if eq .Data.Detail.Domain.State "shut off"}}
+  <div class="grid two">
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack">
+      <h3>随机数设备</h3>
+      <p class="hint">{{if .Data.GuestDevices.RNG}}已添加 virtio-rng。{{else}}尚未添加。{{end}}</p>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      {{if .Data.GuestDevices.RNG}}<input type="hidden" name="action" value="rng-remove"><button class="btn danger" data-confirm="确定移除随机数设备吗？">移除</button>{{else}}<input type="hidden" name="action" value="rng-add"><button class="btn">添加 virtio-rng</button>{{end}}
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack">
+      <h3>看门狗</h3>
+      <p class="hint">当前：{{.Data.WatchdogLabel}}</p>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="watchdog-add">
+      <label>超时动作<select name="watchdog"><option value="reset">重启</option><option value="shutdown">关机</option><option value="none">仅告警</option></select></label>
+      <button class="btn">添加或更新</button>
+      {{if .Data.GuestDevices.Watchdog}}<button class="btn danger" name="action" value="watchdog-remove" data-confirm="确定移除看门狗吗？">移除</button>{{end}}
+    </form>
+  </div>
+  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再添加或移除随机数设备和看门狗。</span></div>{{end}}
+</section>
+<section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
   <div class="grid two compact">

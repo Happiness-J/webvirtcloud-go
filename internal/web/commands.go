@@ -286,6 +286,28 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "rng-add" || action == "rng-remove" || action == "watchdog-add" || action == "watchdog-remove" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改虚拟设备")
+			return
+		}
+		tool = "virt-xml"
+		kind = "vm-device"
+		switch action {
+		case "rng-add":
+			args, err = rngArgs(vmName, true)
+		case "rng-remove":
+			args, err = rngArgs(vmName, false)
+		case "watchdog-add":
+			args, err = watchdogArgs(vmName, strings.TrimSpace(r.Form.Get("watchdog")), true)
+		default:
+			args, err = watchdogArgs(vmName, "reset", false)
+		}
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "nic-queues" || action == "disk-iotune" || action == "disk-discard" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil || detail.Domain.State != "shut off" {
