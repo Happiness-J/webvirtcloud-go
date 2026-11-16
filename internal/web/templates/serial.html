@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">串口终端</p><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.HostName}} · 文本控制台</p></div><a class="btn" href="/hosts/{{.Data.HostID}}/vms/{{pathEscape .Data.VM}}">返回虚拟机</a></div>
+<div class="page-head"><div><p class="page-kicker">串口终端</p><h1>{{.Data.VM}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="这是文本控制台。图形界面不可用时，可以在这里查看启动信息和输入命令。">?</button><p class="muted">{{.Data.HostName}} · 文本控制台</p></div><a class="btn" href="/hosts/{{.Data.HostID}}/vms/{{pathEscape .Data.VM}}">返回虚拟机</a></div>
 <section class="panel serial-panel">
   <div class="serial-toolbar"><span id="serial-status" class="pill warn">连接中</span><button id="serial-reconnect" class="btn" type="button">重新连接</button></div>
   <pre id="serial-screen" class="serial-screen" tabindex="0" data-ws="{{.Data.WSURL}}" aria-label="串口终端"></pre>

@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">新建账号</p><h1>创建用户</h1><p class="muted">密码至少 10 个字符，保存时使用 Argon2id。</p></div></div>
+<div class="page-head"><div><p class="page-kicker">新建账号</p><h1>创建用户</h1><button type="button" class="help-tip" aria-label="说明" data-tip="创建后按角色限制权限。密码至少 10 个字符，保存时不会明文显示。">?</button><p class="muted">密码至少 10 个字符，保存时使用 Argon2id。</p></div></div>
 <section class="panel narrow"><form method="post" class="stack"><input type="hidden" name="_csrf" value="{{.CSRF}}">
   <label>用户名<input name="username" required minlength="3" maxlength="64" pattern="[A-Za-z0-9_.-]+" autocomplete="off"></label>
   <label>初始密码<input name="password" type="password" required minlength="10" autocomplete="new-password"></label>
