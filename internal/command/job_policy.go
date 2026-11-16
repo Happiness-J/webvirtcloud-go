@@ -51,6 +51,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-disk-controller":
+		if tool != "virt-xml" || !validDiskControllerArgs(args) {
+			return "", fmt.Errorf("磁盘控制器参数无效")
+		}
+		return RoleOperator, nil
 	case "vm-profile":
 		if tool != "virt-xml" {
 			return "", fmt.Errorf("客户机优化只允许 virt-xml")
@@ -690,7 +695,18 @@ func validateVMCreateArgs(args []string) error {
 	if err != nil || memory < 256 || memory > 1048576 {
 		return fmt.Errorf("内存参数无效")
 	}
-	diskSize, diskFormat, ok := strings.Cut(strings.TrimPrefix(args[7], "size="), ",format=")
+	diskValue := strings.TrimPrefix(args[7], "size=")
+	diskValue = strings.TrimSuffix(diskValue, ",bus=virtio")
+	diskValue = strings.TrimSuffix(diskValue, ",bus=sata")
+	diskValue = strings.TrimSuffix(diskValue, ",bus=scsi")
+	if strings.Contains(diskValue, ",bus=nvme,queues=") {
+		parts := strings.Split(diskValue, ",bus=nvme,queues=")
+		if len(parts) != 2 || !validQueueArg(parts[1]) {
+			return fmt.Errorf("磁盘控制器参数无效")
+		}
+		diskValue = parts[0]
+	}
+	diskSize, diskFormat, ok := strings.Cut(diskValue, ",format=")
 	diskGB, diskErr := strconv.Atoi(diskSize)
 	if !strings.HasPrefix(args[7], "size=") || !ok || diskFormat != "qcow2" || diskErr != nil || diskGB < 1 || diskGB > 10000 {
 		return fmt.Errorf("磁盘参数无效")
@@ -960,4 +976,17 @@ func validateGuestProfileArgs(args []string) error {
 		return nil
 	}
 	return fmt.Errorf("客户机优化参数无效")
+}
+
+func validDiskControllerArgs(args []string) bool {
+	if len(args) != 5 || args[1] != "--edit" || !strings.HasPrefix(args[2], "target=") || args[3] != "--disk" || validateActionOperand(args[0]) != nil || ValidateDiskTargetPublic(strings.TrimPrefix(args[2], "target=")) != nil {
+		return false
+	}
+	switch args[4] {
+	case "bus=virtio", "bus=sata", "bus=scsi":
+		return true
+	default:
+		value, ok := strings.CutPrefix(args[4], "bus=nvme,queues=")
+		return ok && validQueueArg(value)
+	}
 }
