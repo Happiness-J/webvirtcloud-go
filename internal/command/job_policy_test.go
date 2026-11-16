@@ -17,6 +17,7 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "host test", kind: "host-test", tool: "virsh", args: []string{"version"}, want: RoleOperator},
 		{name: "host health", kind: "host-test", tool: "virt-host-validate", args: []string{"--quiet", "qemu"}, want: RoleOperator},
 		{name: "vm action", kind: "vm-action", tool: "virsh", args: []string{"destroy", "vm"}, want: RoleOperator},
+		{name: "guest profile", kind: "vm-profile", tool: "virt-xml", args: []string{"vm", "--edit", "--features", "acpi=on", "--clock", "offset=utc,timer_kvm.present=yes"}, want: RoleOperator},
 		{name: "vm boot order", kind: "vm-boot", tool: "virt-xml", args: []string{"vm", "--edit", "--boot", "network,hd,menu=on"}, want: RoleOperator},
 		{name: "vm create blank disk", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "generic", "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole", "--import"}, want: RoleOperator},
 		{name: "vm create spice", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "generic", "--graphics", "spice,listen=127.0.0.1", "--noautoconsole", "--import"}, want: RoleOperator},

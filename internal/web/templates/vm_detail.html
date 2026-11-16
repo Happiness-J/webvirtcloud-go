@@ -201,6 +201,21 @@
   {{if .Data.Graphics}}<table><thead><tr><th>协议</th><th>地址</th><th>端口</th><th>密码</th></tr></thead><tbody>{{range .Data.Graphics}}<tr><td>{{.Type}}</td><td><code>{{if .Address}}{{.Address}}{{else}}127.0.0.1{{end}}</code></td><td>{{if gt .Port 0}}{{.Port}}{{else}}启动后分配{{end}}</td><td>{{if .Password}}已设置{{else}}未设置{{end}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>没有图形控制台</strong><span>创建虚拟机时可以选择 VNC 或 SPICE。</span></div>{{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>客户机优化</h2><span class="pill muted">关机后生效</span></div>
+  <p class="hint">按客户机类型应用一组固定配置。Windows 启用 Hyper-V 启发特性并使用本地时钟；Linux 使用 UTC 与 KVM 时钟。磁盘和网卡型号仍沿用现有创建配置。</p>
+  {{if eq .Data.Detail.Domain.State "shut off"}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="guest-profile">
+    <select name="profile"><option value="windows">Windows</option><option value="linux">Linux</option></select>
+    <button class="btn">应用优化档</button>
+  </form>
+  <div class="grid two">
+    <div><h3>Windows</h3><p class="hint">启用 Hyper-V relaxed、VAPIC 和 spinlocks。时钟使用本地时间。请在客户机内安装 virtio 磁盘、网卡和随机数驱动。</p></div>
+    <div><h3>Linux</h3><p class="hint">时钟使用 UTC 和 KVM 时钟。建议客户机内核使用 kvm-clock，磁盘调度器使用 none 或 mq-deadline。</p></div>
+  </div>
+  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再应用 Windows 或 Linux 优化档。</span></div>{{end}}
+</section>
+<section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
   <div class="grid two compact">
