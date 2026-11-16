@@ -10,7 +10,7 @@
   </section>
   <section class="panel">
     <h2>快捷入口</h2>
-    <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a><a href="/hosts/{{.Data.Host.ID}}/vms">虚拟机</a><a href="/hosts/{{.Data.Host.ID}}/storage">存储池</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络</a>{{if eq .User.Role "admin"}}<a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a>{{end}}</div>
+    <div class="tiles"><a href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a><a href="/hosts/{{.Data.Host.ID}}/vms">虚拟机</a><a href="/hosts/{{.Data.Host.ID}}/storage">存储池</a><a href="/images">镜像库</a><a href="/hosts/{{.Data.Host.ID}}/networks">虚拟网络</a>{{if eq .User.Role "admin"}}<a href="/hosts/{{.Data.Host.ID}}/command">高级命令中心</a>{{end}}</div>
   </section>
 </div>
 {{if eq .User.Role "admin"}}<section class="panel"><h2>KSM 内存合并</h2><p class="hint">开启后，宿主机可以合并相同内存页以节省物理内存。变更会写入审计。</p><form method="post" action="/hosts/{{.Data.Host.ID}}/ksm" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn" name="enabled" value="1">开启 KSM</button><button class="btn" name="enabled" value="0">关闭 KSM</button></form></section>{{end}}

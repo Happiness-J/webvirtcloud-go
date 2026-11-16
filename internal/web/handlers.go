@@ -1556,6 +1556,50 @@ func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
 	}})
 }
 
+func (s *Server) imageLibraryPage(w http.ResponseWriter, r *http.Request) {
+	images, err := listLibraryImages(s.cfg.ImageDir, r.URL.Query().Get("q"), r.URL.Query().Get("category"))
+	page := pageData{Title: "镜像库", Nav: "hosts", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category")}}
+	if err != nil {
+		page.Flash, page.FlashType = "无法读取镜像目录。", "error"
+	}
+	s.render(w, r, "images", page)
+}
+
+func (s *Server) imageLibraryUpload(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(64 << 20); err != nil {
+		s.redirectError(w, r, "/images", "上传内容无效")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		s.redirectError(w, r, "/images", "请选择镜像文件")
+		return
+	}
+	defer file.Close()
+	if err := saveLibraryUpload(s.cfg.ImageDir, header.Filename, file, 512<<20); err != nil {
+		s.redirectError(w, r, "/images", err.Error())
+		return
+	}
+	http.Redirect(w, r, "/images", http.StatusSeeOther)
+}
+
+func (s *Server) imageLibraryChecksum(w http.ResponseWriter, r *http.Request) {
+	sum, err := libraryChecksum(s.cfg.ImageDir, strings.TrimSpace(r.Form.Get("name")))
+	if err != nil {
+		s.redirectError(w, r, "/images", err.Error())
+		return
+	}
+	s.render(w, r, "diagnostic", pageData{Title: "镜像校验", Nav: "hosts", Data: map[string]any{"Heading": "SHA256 · " + r.Form.Get("name"), "Back": "/images", "Output": sum}})
+}
+
+func (s *Server) imageLibraryFetch(w http.ResponseWriter, r *http.Request) {
+	if err := fetchLibraryURL(s.cfg.ImageDir, strings.TrimSpace(r.Form.Get("name")), strings.TrimSpace(r.Form.Get("url")), strings.TrimSpace(r.Form.Get("sha256"))); err != nil {
+		s.redirectError(w, r, "/images", err.Error())
+		return
+	}
+	http.Redirect(w, r, "/images", http.StatusSeeOther)
+}
+
 func listInstallISOs(dir string) []string {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
