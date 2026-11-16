@@ -302,7 +302,10 @@ func validateDiskActionArgs(tool string, args []string) error {
 		if len(args) == 4 && args[0] == "resize" && args[1] == "--shrink" {
 			return validateDiskResizePathAndAmount(args[2], args[3], true)
 		}
-		return fmt.Errorf("离线磁盘扩缩容参数不正确")
+		if err := validateImageConvertArgs(args); err == nil {
+			return nil
+		}
+		return fmt.Errorf("离线磁盘操作参数不正确")
 	default:
 		return fmt.Errorf("磁盘操作不支持工具 %q", tool)
 	}
@@ -820,4 +823,26 @@ func validBootOrder(value string) bool {
 		seen[part] = true
 	}
 	return true
+}
+
+func validateImageConvertArgs(args []string) error {
+	if len(args) != 8 || args[0] != "convert" || args[1] != "-p" || args[2] != "-f" || args[4] != "-O" {
+		return fmt.Errorf("镜像转换参数不正确")
+	}
+	if !validConvertFormatArg(args[3]) || !validConvertFormatArg(args[5]) || args[3] == args[5] {
+		return fmt.Errorf("镜像格式无效")
+	}
+	if !validManagedImagePath(args[6]) || !validManagedImagePath(args[7]) || filepath.Dir(args[6]) != filepath.Dir(args[7]) || args[6] == args[7] {
+		return fmt.Errorf("镜像路径无效")
+	}
+	return nil
+}
+
+func validConvertFormatArg(value string) bool {
+	return value == "qcow2" || value == "raw" || value == "vmdk"
+}
+
+func validManagedImagePath(value string) bool {
+	clean := filepath.Clean(value)
+	return clean == value && filepath.IsAbs(clean) && !strings.Contains(value, "..") && !strings.ContainsAny(value, " \t\r\n")
 }
