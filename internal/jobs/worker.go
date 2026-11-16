@@ -310,6 +310,11 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 	if err := validateJobPrincipal(user, job.Kind, job.Tool, args, sensitive); err != nil {
 		return "failed", "", err.Error()
 	}
+	if len(args) > 0 && args[0] == "net-define" {
+		if err := command.ValidateNetworkXML(job.Stdin); err != nil {
+			return "failed", "", "虚拟网络定义无效"
+		}
+	}
 	if strings.TrimSpace(job.HostID) == "" {
 		return "failed", "", "任务缺少主机配置；为避免误在本机执行，已拒绝运行"
 	}

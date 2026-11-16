@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"webvirtcloud-go/internal/command"
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
 )
@@ -162,15 +163,42 @@ func (s *Server) networkAction(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
-	networkName := strings.TrimSpace(r.Form.Get("network"))
-	if err := libvirt.ValidateName(networkName); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/networks", "虚拟网络名称无效")
-		return
-	}
 	action := strings.TrimSpace(r.Form.Get("action"))
+	networkName := strings.TrimSpace(r.Form.Get("network"))
+	if action == "net-define" {
+		networkName = strings.TrimSpace(r.Form.Get("name"))
+	}
+	if action != "net-define" {
+		if err := libvirt.ValidateName(networkName); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/networks", "虚拟网络名称无效")
+			return
+		}
+	}
 	var args []string
+	var stdin string
 	var label string
 	switch action {
+	case "net-define":
+		prefix, _ := strconv.Atoi(strings.TrimSpace(r.Form.Get("prefix")))
+		xmlText, err := command.NetworkXML(command.NetworkDefinition{Name: networkName, Mode: strings.TrimSpace(r.Form.Get("mode")), Bridge: strings.TrimSpace(r.Form.Get("bridge")), Address: strings.TrimSpace(r.Form.Get("address")), Prefix: prefix})
+		if err != nil || command.ValidateNetworkXML(xmlText) != nil {
+			message := "虚拟网络参数无效"
+			if err != nil {
+				message = err.Error()
+			}
+			s.redirectError(w, r, "/hosts/"+host.ID+"/networks", message)
+			return
+		}
+		args = []string{"net-define", "/dev/stdin"}
+		stdin = xmlText
+		label = "定义虚拟网络 " + networkName
+	case "net-undefine":
+		if r.Form.Get("confirm") != "yes" {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/networks", "删除虚拟网络需要显式确认")
+			return
+		}
+		args = []string{"net-undefine", networkName}
+		label = "删除虚拟网络 " + networkName
 	case "net-dhcp-leases", "net-info":
 		s.renderNetworkDiagnostic(w, r, host, networkName, action)
 		return
@@ -195,7 +223,7 @@ func (s *Server) networkAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
-	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "network-action", label, "virsh", args, "", boundedOperationTimeout(s.cfg.MaxTimeout, 120))
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "network-action", label, "virsh", args, stdin, boundedOperationTimeout(s.cfg.MaxTimeout, 120))
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/networks", err.Error())
 		return

@@ -33,6 +33,8 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "storage grow", kind: "storage-action", tool: "virsh", args: []string{"vol-resize", "--pool", "images", "--delta", "disk.qcow2", "10G"}, want: RoleOperator},
 		{name: "storage shrink", kind: "storage-action", tool: "virsh", args: []string{"vol-resize", "--pool", "images", "--delta", "--shrink", "disk.qcow2", "10G"}, want: RoleOperator},
 		{name: "network start", kind: "network-action", tool: "virsh", args: []string{"net-start", "default"}, want: RoleOperator},
+		{name: "network define", kind: "network-action", tool: "virsh", args: []string{"net-define", "/dev/stdin"}, want: RoleOperator},
+		{name: "network delete", kind: "network-action", tool: "virsh", args: []string{"net-undefine", "lab"}, want: RoleOperator},
 		{name: "network leases", kind: "network-action", tool: "virsh", args: []string{"net-dhcp-leases", "default"}, want: RoleOperator},
 		{name: "storage capacity", kind: "storage-action", tool: "virsh", args: []string{"pool-info", "images"}, want: RoleOperator},
 		{name: "online disk grow", kind: "disk-action", tool: "virsh", args: []string{"blockresize", "vm", "vda", "50000000000"}, want: RoleOperator},

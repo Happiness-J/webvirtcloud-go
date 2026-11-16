@@ -247,6 +247,16 @@ func validateNetworkActionArgs(args []string) error {
 			return fmt.Errorf("网络操作参数数量不正确")
 		}
 		return validateActionOperand(args[1])
+	case "net-define":
+		if len(args) != 2 || args[1] != "/dev/stdin" {
+			return fmt.Errorf("网络定义参数不正确")
+		}
+		return nil
+	case "net-undefine":
+		if len(args) != 2 {
+			return fmt.Errorf("删除网络参数不正确")
+		}
+		return validateActionOperand(args[1])
 	case "net-autostart":
 		if len(args) == 2 {
 			return validateActionOperand(args[1])
