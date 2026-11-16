@@ -240,6 +240,14 @@
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改磁盘控制器。</span></div>{{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>QMP 管理接口</h2><span class="pill muted">只读</span></div>
+  <p class="hint">这里只提供 query-status 和 query-block 两个只读查询。写操作仍必须通过受控任务，不接受任意 QMP 命令。</p>
+  <div class="grid two">
+    <div><h3>状态</h3><pre class="output">{{.Data.QMPStatus}}</pre></div>
+    <div><h3>块设备</h3><pre class="output">{{.Data.QMPBlock}}</pre></div>
+  </div>
+</section>
+<section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
   <div class="grid two compact">
