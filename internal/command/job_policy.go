@@ -51,6 +51,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-boot":
+		if tool != "virt-xml" {
+			return "", fmt.Errorf("启动配置只允许 virt-xml")
+		}
+		if err := validateBootEditArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	case "vm-clone":
 		if tool != "virt-clone" {
 			return "", fmt.Errorf("任务类型 vm-clone 仅支持 virt-clone")
@@ -694,6 +702,12 @@ func validateVMCreateArgs(args []string) error {
 		}
 		index += 2
 	}
+	if index < len(args) && args[index] == "--boot" {
+		if index+1 >= len(args) || !validBootOrder(args[index+1]) {
+			return fmt.Errorf("启动顺序参数无效")
+		}
+		index += 2
+	}
 	if index < len(args) && args[index] == "--cpu" {
 		if index+1 >= len(args) || !validCPUModelArg(args[index+1]) {
 			return fmt.Errorf("CPU 模型参数无效")
@@ -784,4 +798,26 @@ func unsafeHostdevBlock(value string) bool {
 	nvme := strings.HasPrefix(base, "nvme") && strings.Contains(base, "n") && !strings.Contains(base, "p")
 	mmc := strings.HasPrefix(base, "mmcblk") && !strings.Contains(base, "p")
 	return whole || nvme || mmc
+}
+
+func validateBootEditArgs(args []string) error {
+	if len(args) != 4 || args[1] != "--edit" || args[2] != "--boot" || validateActionOperand(args[0]) != nil || !validBootOrder(args[3]) {
+		return fmt.Errorf("启动配置参数无效")
+	}
+	return nil
+}
+
+func validBootOrder(value string) bool {
+	order, menu, ok := strings.Cut(value, ",menu=")
+	if !ok || (menu != "on" && menu != "off") || order == "" {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, part := range strings.Split(order, ",") {
+		if (part != "hd" && part != "cdrom" && part != "network") || seen[part] {
+			return false
+		}
+		seen[part] = true
+	}
+	return true
 }

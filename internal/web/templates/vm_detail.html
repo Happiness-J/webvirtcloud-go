@@ -132,6 +132,18 @@
   {{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>启动顺序与 PXE</h2><span class="pill muted">关机后生效</span></div>
+  <p class="hint">调整下次启动时硬盘、光驱和网络的顺序。选择网络即可从 PXE 安装；启动菜单让控制台在启动时手动选择设备。</p>
+  {{if eq .Data.Detail.Domain.State "shut off"}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="boot-order">
+    <select name="snapshot"><option value="hd">硬盘</option><option value="cdrom,hd">光驱，然后硬盘</option><option value="network,hd">PXE 网络，然后硬盘</option><option value="network,cdrom,hd">PXE、光驱、硬盘</option></select>
+    <label class="confirm"><input type="checkbox" name="menu" value="on">显示启动菜单</label>
+    <button class="btn">保存启动配置</button>
+  </form>
+  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改启动顺序或 PXE。</span></div>{{end}}
+</section>
+<section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
   <div class="grid two compact">
