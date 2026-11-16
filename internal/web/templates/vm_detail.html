@@ -196,7 +196,17 @@
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再添加或移除随机数设备和看门狗。</span></div>{{end}}
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>图形控制台</h2></div>
+  <div class="panel-head"><h2>图形控制台与显卡</h2></div>
+  <p class="hint">当前显卡：{{if .Data.Video.Model}}{{.Data.Video.Model}}{{else}}未设置{{end}}{{if gt .Data.Video.VRAM 0}}，显存 {{.Data.Video.VRAM}} MiB{{end}}。无头显卡不能和 VNC 或 SPICE 同时使用。</p>
+  {{if eq .Data.Detail.Domain.State "shut off"}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="video-model">
+    <select name="video_model"><option value="virtio">virtio-gpu</option><option value="qxl">QXL</option><option value="vga">VGA</option><option value="none">无头</option></select>
+    <input name="video_vram" value="64" pattern="(16|32|64|128|256|512)">
+    <button class="btn">保存显卡</button>
+  </form>
+  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改显卡或显存。</span></div>{{end}}
+
   <p class="hint">网页控制台目前代理 VNC。SPICE 使用本机客户端连接，并沿用同一套回环监听和密码检查。</p>
   {{if .Data.Graphics}}<table><thead><tr><th>协议</th><th>地址</th><th>端口</th><th>密码</th></tr></thead><tbody>{{range .Data.Graphics}}<tr><td>{{.Type}}</td><td><code>{{if .Address}}{{.Address}}{{else}}127.0.0.1{{end}}</code></td><td>{{if gt .Port 0}}{{.Port}}{{else}}启动后分配{{end}}</td><td>{{if .Password}}已设置{{else}}未设置{{end}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>没有图形控制台</strong><span>创建虚拟机时可以选择 VNC 或 SPICE。</span></div>{{end}}
 </section>

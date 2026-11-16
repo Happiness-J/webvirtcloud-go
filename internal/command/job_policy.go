@@ -51,6 +51,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-video":
+		if tool != "virt-xml" || !validVideoArgs(args) {
+			return "", fmt.Errorf("显卡参数无效")
+		}
+		return RoleOperator, nil
 	case "vm-disk-controller":
 		if tool != "virt-xml" || !validDiskControllerArgs(args) {
 			return "", fmt.Errorf("磁盘控制器参数无效")
@@ -763,6 +768,12 @@ func validateVMCreateArgs(args []string) error {
 		}
 		index += 2
 	}
+	if index < len(args) && args[index] == "--video" {
+		if index+1 >= len(args) || !validVideoValue(args[index+1]) {
+			return fmt.Errorf("显卡参数无效")
+		}
+		index += 2
+	}
 	if index < len(args) && args[index] == "--cpu" {
 		if index+1 >= len(args) || !validCPUModelArg(args[index+1]) {
 			return fmt.Errorf("CPU 模型参数无效")
@@ -988,5 +999,22 @@ func validDiskControllerArgs(args []string) bool {
 	default:
 		value, ok := strings.CutPrefix(args[4], "bus=nvme,queues=")
 		return ok && validQueueArg(value)
+	}
+}
+
+func validVideoArgs(args []string) bool {
+	return len(args) == 4 && args[1] == "--edit" && args[2] == "--video" && validateActionOperand(args[0]) == nil && validVideoValue(args[3])
+}
+
+func validVideoValue(value string) bool {
+	switch value {
+	case "model=none", "model=virtio,vram=16384", "model=virtio,vram=32768", "model=virtio,vram=65536", "model=virtio,vram=131072", "model=virtio,vram=262144", "model=virtio,vram=524288":
+		return true
+	case "model=qxl,vram=16384", "model=qxl,vram=32768", "model=qxl,vram=65536", "model=qxl,vram=131072", "model=qxl,vram=262144", "model=qxl,vram=524288":
+		return true
+	case "model=vga,vram=16384", "model=vga,vram=32768", "model=vga,vram=65536", "model=vga,vram=131072", "model=vga,vram=262144", "model=vga,vram=524288":
+		return true
+	default:
+		return false
 	}
 }
