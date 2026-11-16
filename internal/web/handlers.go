@@ -515,12 +515,20 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 			balloon = balloonFromStats(item)
 		}
 	}
+	hostDevices, assignedDevices, hostdevErr := s.libvirt.ListHostDevices(r.Context(), host.ID)
+	var vmDevices []libvirt.AssignedDevice
+	for _, device := range assignedDevices {
+		if device.VM == vmName {
+			vmDevices = append(vmDevices, device)
+		}
+	}
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
 		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil,
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"

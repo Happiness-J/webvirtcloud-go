@@ -436,6 +436,8 @@ func validateVMActionArgs(args []string) error {
 		if err := validateActionOperand(args[3]); err != nil {
 			return fmt.Errorf("检查点名称无效: %w", err)
 		}
+	case "attach-device", "detach-device":
+		return validateHostdevArgs(args)
 	case "attach-disk":
 		if !(len(args) == 7 && args[4] == "--targetbus" && args[5] == "usb" && args[6] == "--live") && !(len(args) == 8 && args[4] == "--targetbus" && args[5] == "virtio" && args[6] == "--live" && args[7] == "--config") {
 			return fmt.Errorf("USB 挂载参数不正确")
@@ -555,6 +557,33 @@ func RoleAllows(role, minimum string) bool {
 func knownTool(tool string) bool {
 	_, ok := toolNames[tool]
 	return ok
+}
+
+func validateHostdevArgs(args []string) error {
+	if len(args) != 3 || (args[2] != "--config" && args[2] != "--live") {
+		return fmt.Errorf("主机设备参数不正确")
+	}
+	if err := validateActionOperand(args[1]); err != nil {
+		return fmt.Errorf("虚拟机名称无效")
+	}
+	return nil
+}
+
+// ValidateHostdevXML accepts only the device XML generated for USB passthrough
+// or a raw block LUN. Callers must pass the job stdin through this check.
+func ValidateHostdevXML(value string) error {
+	if len(value) == 0 || len(value) > 1024 || strings.ContainsAny(value, "\n\r\x00") {
+		return fmt.Errorf("主机设备描述无效")
+	}
+	usb := regexp.MustCompile(`^<hostdev mode='subsystem' type='usb' managed='yes'><source><vendor id='0x[0-9a-f]{4}'/><product id='0x[0-9a-f]{4}'/></source></hostdev>$`)
+	block := regexp.MustCompile(`^<disk type='block' device='lun'><driver name='qemu' type='raw' cache='none' io='native'/><source dev='/dev/[A-Za-z0-9_./-]{1,200}'/><target dev='sd[a-z]{1,4}' bus='scsi'/></disk>$`)
+	if usb.MatchString(value) {
+		return nil
+	}
+	if block.MatchString(value) && !strings.Contains(value, "..") && !unsafeHostdevBlock(value) {
+		return nil
+	}
+	return fmt.Errorf("主机设备描述无效")
 }
 
 func ValidateDevicePathPublic(value string) error {
@@ -728,4 +757,21 @@ func validCPUSetArg(args []string) bool {
 		}
 	}
 	return true
+}
+
+func unsafeHostdevBlock(value string) bool {
+	start := strings.Index(value, "dev='")
+	end := strings.Index(value, "'/><target")
+	if start < 0 || end < start {
+		return true
+	}
+	path := value[start+5 : end]
+	base := path[strings.LastIndex(path, "/")+1:]
+	if strings.HasPrefix(base, "loop") || strings.HasPrefix(base, "dm-") || strings.HasPrefix(base, "zram") || strings.HasPrefix(base, "nbd") {
+		return true
+	}
+	whole := (strings.HasPrefix(base, "sd") || strings.HasPrefix(base, "vd") || strings.HasPrefix(base, "hd")) && len(base) == 3
+	nvme := strings.HasPrefix(base, "nvme") && strings.Contains(base, "n") && !strings.Contains(base, "p")
+	mmc := strings.HasPrefix(base, "mmcblk") && !strings.Contains(base, "p")
+	return whole || nvme || mmc
 }

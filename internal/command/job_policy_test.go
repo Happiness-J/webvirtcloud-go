@@ -21,6 +21,8 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "vm create iso and network", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "debian13", "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole", "--cdrom", "/isos/debian.iso", "--network", "network=default"}, want: RoleOperator},
 		{name: "USB attach dynamic target", kind: "vm-action", tool: "virsh", args: []string{"attach-disk", "vm", "/dev/disk/by-id/usb-drive", "sdb", "--targetbus", "usb", "--live"}, want: RoleOperator},
 		{name: "USB detach target", kind: "vm-action", tool: "virsh", args: []string{"detach-disk", "vm", "sdb", "--live"}, want: RoleOperator},
+		{name: "hostdev attach", kind: "vm-action", tool: "virsh", args: []string{"attach-device", "vm", "--config"}, want: RoleOperator},
+		{name: "hostdev detach", kind: "vm-action", tool: "virsh", args: []string{"detach-device", "vm", "--live"}, want: RoleOperator},
 		{name: "vm delete metadata", kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm", "--snapshots-metadata", "--checkpoints-metadata", "--nvram"}, want: RoleAdmin},
 		{name: "desktop start", kind: "vm-action", tool: "virsh", args: []string{"start", "vm"}, want: RoleDesktop},
 		{name: "desktop shutdown", kind: "vm-action", tool: "virsh", args: []string{"shutdown", "vm"}, want: RoleDesktop},
@@ -94,5 +96,17 @@ func TestRoleAllows(t *testing.T) {
 		if got := RoleAllows(tc.role, tc.minimum); got != tc.want {
 			t.Errorf("RoleAllows(%q, %q) = %v, want %v", tc.role, tc.minimum, got, tc.want)
 		}
+	}
+}
+
+func TestValidateHostdevXML(t *testing.T) {
+	if err := ValidateHostdevXML("<hostdev mode='subsystem' type='usb' managed='yes'><source><vendor id='0x0781'/><product id='0x5581'/></source></hostdev>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateHostdevXML("<disk type='block' device='lun'><driver name='qemu' type='raw' cache='none' io='native'/><source dev='/dev/disk/by-id/scsi-data'/><target dev='sdb' bus='scsi'/></disk>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateHostdevXML("<hostdev mode='subsystem' type='pci' managed='yes'></hostdev>"); err == nil {
+		t.Fatal("unexpected device accepted")
 	}
 }
