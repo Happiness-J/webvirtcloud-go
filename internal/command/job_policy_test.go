@@ -39,6 +39,7 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "network leases", kind: "network-action", tool: "virsh", args: []string{"net-dhcp-leases", "default"}, want: RoleOperator},
 		{name: "storage capacity", kind: "storage-action", tool: "virsh", args: []string{"pool-info", "images"}, want: RoleOperator},
 		{name: "online disk grow", kind: "disk-action", tool: "virsh", args: []string{"blockresize", "vm", "vda", "50000000000"}, want: RoleOperator},
+		{name: "image convert", kind: "disk-action", tool: "qemu-img", args: []string{"convert", "-p", "-f", "qcow2", "-O", "vmdk", "/var/lib/libvirt/images/disk.qcow2", "/var/lib/libvirt/images/disk.vmdk"}, want: RoleOperator},
 		{name: "offline disk shrink", kind: "disk-action", tool: "qemu-img", args: []string{"resize", "--shrink", "/var/lib/libvirt/images/vm.qcow2", "-10G"}, want: RoleOperator},
 		{name: "vm cpu persistent", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "vm", "8", "--config"}, want: RoleOperator},
 		{name: "vm cpu live persistent", kind: "vm-resource", tool: "virsh", args: []string{"setvcpus", "vm", "8", "--live", "--config"}, want: RoleOperator},

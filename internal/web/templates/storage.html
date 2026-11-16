@@ -50,6 +50,20 @@
     </form>
   </div>
 </section>
+<section class="panel">
+  <div class="panel-head"><h2>镜像格式转换</h2><span class="pill muted">任务进度</span></div>
+  <p class="hint">在 qcow2、raw 和 vmdk 之间复制一份新镜像，源镜像保持不变。转换期间任务页会自动刷新 qemu-img 进度；完成后请核对目标文件大小和格式。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-convert">
+    <div class="grid two compact">
+      <label>源卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
+      <label>目标格式<select name="format"><option value="qcow2">qcow2</option><option value="raw">raw</option><option value="vmdk">vmdk</option></select></label>
+      <label>新文件名<input name="name" required maxlength="128" placeholder="disk.raw"></label>
+    </div>
+    <button class="btn primary" {{if not .Data.Volumes}}disabled{{end}} data-confirm="将在同一目录生成新镜像，源镜像不会被覆盖。确定开始转换吗？">开始转换</button>
+  </form>
+  {{if not .Data.Volumes}}<div class="empty-state"><strong>没有可转换的卷</strong><span>先创建或导入一个磁盘镜像，再选择目标格式。</span></div>{{end}}
+</section>
 <section class="panel"><h2>客户机文件系统</h2>
 <p class="hint">存储池只能看到 qcow2、raw、ISO 这类容器。ext4、xfs、NTFS、ZFS 等分区格式在客户机磁盘内部，需要用 libguestfs 离线读取。</p>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
