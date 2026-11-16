@@ -221,6 +221,7 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	}
 	operand := strings.TrimSpace(r.Form.Get("snapshot"))
 	var args []string
+	var stdin string
 	var destructive bool
 	if action == "numa-bind" || action == "cpu-pin" {
 		args, err = placementArgs(action, vmName, operand)
@@ -283,6 +284,13 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "hostdev-attach" || action == "hostdev-detach" {
+		args, stdin, err = s.hostdevAction(r, host.ID, vmName, action, operand)
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
+		destructive = action == "hostdev-detach"
 	} else if action == "usb-attach" {
 		if err := command.ValidateDevicePathPublic(operand); err != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
@@ -349,7 +357,7 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	if action == "clone" || action == "migrate" {
 		timeout = 3600
 	}
-	jobID, err := s.enqueueCommand(r, sess.User, host.ID, kind, label, tool, args, "", timeout)
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, kind, label, tool, args, stdin, timeout)
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
 		return

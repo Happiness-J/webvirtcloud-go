@@ -120,6 +120,18 @@
   {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>主机设备与 USB 直通</h2><span class="pill muted">分配前检查占用</span></div>
+  <p class="hint">可以把宿主机上的 USB 设备或独立块设备分配给这台虚拟机。系统盘、已被其他虚拟机占用的设备不会出现在可选项中。移除前请先在客户机内卸载。</p>
+  {{if .Data.HostDeviceError}}<div class="empty-state"><strong>暂时无法读取宿主机设备</strong><span>请检查主机连接后再试。已有虚拟机信息不受影响。</span></div>{{else}}
+  {{if .Data.AssignedDevices}}<table><thead><tr><th>类型</th><th>设备</th><th>标识</th><th></th></tr></thead><tbody>{{range .Data.AssignedDevices}}<tr><td>{{if eq .Kind "usb"}}USB{{else}}块设备{{end}}</td><td>{{.Description}}</td><td><code>{{.Source}}</code></td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="hostdev-detach"><input type="hidden" name="snapshot" value="{{.Source}}"><input type="hidden" name="confirm" value="yes"><button class="btn danger" data-confirm="确定从虚拟机移除这个主机设备吗？">移除</button></form></td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有分配主机设备</strong><span>选择下方空闲的 USB 设备或块设备后即可分配。</span></div>{{end}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="hostdev-attach">
+    <select name="snapshot" required><option value="" disabled selected>选择空闲设备</option>{{range .Data.HostDevices}}{{if .Assignable}}<option value="{{.Name}}">{{if eq .Kind "usb"}}USB{{else}}块设备{{end}} · {{.Description}}</option>{{end}}{{end}}</select>
+    <button class="btn" data-confirm="设备会从宿主机交给这台虚拟机，确定分配吗？">分配设备</button>
+  </form>
+  {{end}}
+</section>
+<section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
   <div class="grid two compact">
