@@ -1593,7 +1593,7 @@ func (s *Server) imageLibraryChecksum(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) imageLibraryFetch(w http.ResponseWriter, r *http.Request) {
-	if err := fetchLibraryURL(s.cfg.ImageDir, strings.TrimSpace(r.Form.Get("name")), strings.TrimSpace(r.Form.Get("url")), strings.TrimSpace(r.Form.Get("sha256"))); err != nil {
+	if err := fetchLibraryURL(s.cfg.ImageDir, strings.TrimSpace(r.Form.Get("name")), strings.TrimSpace(r.Form.Get("source")), strings.TrimSpace(r.Form.Get("sha256"))); err != nil {
 		s.redirectError(w, r, "/images", err.Error())
 		return
 	}

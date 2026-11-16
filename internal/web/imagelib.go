@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,13 +145,19 @@ func saveLibraryUpload(dir, name string, body io.Reader, limit int64) error {
 	return nil
 }
 
-func fetchLibraryURL(dir, name, rawURL, checksum string) error {
-	parsed, err := url.Parse(rawURL)
-	if err != nil || !validLibraryName(name) || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || strings.Contains(parsed.Path, "..") {
-		return fmt.Errorf("只允许通过 HTTPS 地址拉取镜像")
+func librarySources() map[string]string {
+	return map[string]string{
+		"virtio": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso",
+	}
+}
+
+func fetchLibraryURL(dir, name, source, checksum string) error {
+	rawURL, ok := librarySources()[source]
+	if !ok || !validLibraryName(name) {
+		return fmt.Errorf("只允许拉取预置镜像")
 	}
 	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	response, err := client.Get(parsed.String()) // #nosec G704 -- scheme, host, credentials, and path are checked above and redirects are disabled.
+	response, err := client.Get(rawURL)
 	if err != nil || response.StatusCode != http.StatusOK {
 		return fmt.Errorf("无法拉取镜像")
 	}
