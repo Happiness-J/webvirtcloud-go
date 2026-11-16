@@ -286,6 +286,20 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "disk-controller" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改磁盘控制器")
+			return
+		}
+		tool = "virt-xml"
+		kind = "vm-disk-controller"
+		queues, _ := strconv.Atoi(strings.TrimSpace(r.Form.Get("queues")))
+		args, err = diskControllerArgs(vmName, operand, strings.TrimSpace(r.Form.Get("bus")), queues)
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "guest-profile" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil || detail.Domain.State != "shut off" {

@@ -528,7 +528,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
-		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML),
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML), "DiskControllers": parseDiskControllers(detail.XML),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
@@ -1465,6 +1465,17 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
 	if err == nil {
+		queues, _ := strconv.Atoi(defaultForm(r, "disk_queues", "1"))
+		bus, busErr := diskBusArg(strings.TrimSpace(r.Form.Get("disk_bus")), queues)
+		if busErr != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", busErr.Error())
+			return
+		}
+		for i := range args {
+			if args[i] == "--disk" && i+1 < len(args) {
+				args[i+1] += ",bus=" + bus
+			}
+		}
 		if strings.TrimSpace(r.Form.Get("graphics")) == "spice" {
 			for i := range args {
 				if args[i] == "--graphics" && i+1 < len(args) {
