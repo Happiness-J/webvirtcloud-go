@@ -51,6 +51,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-firewall":
+		if tool != "virt-xml" || !validFirewallArgs(args) {
+			return "", fmt.Errorf("防火墙参数无效")
+		}
+		return RoleOperator, nil
 	case "vm-debug":
 		if tool != "virt-xml" || !validGDBArgs(args) {
 			return "", fmt.Errorf("GDB 参数无效")
@@ -1034,4 +1039,24 @@ func validGDBArgs(args []string) bool {
 	}
 	number, err := strconv.Atoi(strings.TrimPrefix(args[3], prefix))
 	return err == nil && number >= 1024 && number <= 65535
+}
+
+func validFirewallArgs(args []string) bool {
+	if len(args) != 5 || args[1] != "--edit" || !strings.HasPrefix(args[2], "mac=") || args[3] != "--network" || !strings.HasPrefix(args[4], "filterref=clean-traffic,") || validateActionOperand(args[0]) != nil || !validMACArg(strings.TrimPrefix(args[2], "mac=")) {
+		return false
+	}
+	parts := strings.Split(strings.TrimPrefix(args[4], "filterref=clean-traffic,"), ",")
+	if len(parts) < 3 || len(parts) > 4 {
+		return false
+	}
+	if (parts[0] != "in" && parts[0] != "out") || (parts[1] != "tcp" && parts[1] != "udp" && parts[1] != "icmp") {
+		return false
+	}
+	if parts[1] != "icmp" {
+		port, err := strconv.Atoi(parts[2])
+		if err != nil || port < 1 || port > 65535 {
+			return false
+		}
+	}
+	return len(parts) == 3 || parts[3] == "antispoof"
 }
