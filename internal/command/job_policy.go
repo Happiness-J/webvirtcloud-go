@@ -669,7 +669,7 @@ func ValidateMigrationURIPublic(value string) error {
 func validateVMCreateArgs(args []string) error {
 	if len(args) < 14 || args[0] != "--name" || args[2] != "--vcpus" || args[4] != "--memory" ||
 		args[6] != "--disk" || args[8] != "--osinfo" || args[10] != "--graphics" ||
-		args[11] != "vnc,listen=127.0.0.1" || args[12] != "--noautoconsole" {
+		(args[11] != "vnc,listen=127.0.0.1" && args[11] != "spice,listen=127.0.0.1") || args[12] != "--noautoconsole" {
 		return fmt.Errorf("创建虚拟机参数不正确")
 	}
 	if err := validateActionOperand(args[1]); err != nil {
