@@ -51,6 +51,14 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", fmt.Errorf("文件系统检查参数不正确")
 		}
 		return RoleOperator, nil
+	case "vm-profile":
+		if tool != "virt-xml" {
+			return "", fmt.Errorf("客户机优化只允许 virt-xml")
+		}
+		if err := validateGuestProfileArgs(args); err != nil {
+			return "", err
+		}
+		return RoleOperator, nil
 	case "vm-device":
 		if tool != "virt-xml" {
 			return "", fmt.Errorf("虚拟设备配置只允许 virt-xml")
@@ -940,4 +948,16 @@ func validateGuestDeviceArgs(args []string) error {
 		}
 	}
 	return fmt.Errorf("虚拟设备参数无效")
+}
+
+func validateGuestProfileArgs(args []string) error {
+	if len(args) != 6 || args[1] != "--edit" || args[2] != "--features" || args[4] != "--clock" || validateActionOperand(args[0]) != nil {
+		return fmt.Errorf("客户机优化参数无效")
+	}
+	windows := args[3] == "hyperv_relaxed=on,hyperv_vapic=on,hyperv_spinlocks=on" && args[5] == "offset=localtime,hypervclock_present=yes"
+	linux := args[3] == "acpi=on" && args[5] == "offset=utc,timer_kvm.present=yes"
+	if windows || linux {
+		return nil
+	}
+	return fmt.Errorf("客户机优化参数无效")
 }
