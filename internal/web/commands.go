@@ -223,6 +223,8 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	var args []string
 	var stdin string
 	var destructive bool
+	tool := "virsh"
+	kind := "vm-action"
 	if action == "numa-bind" || action == "cpu-pin" {
 		args, err = placementArgs(action, vmName, operand)
 		if err != nil {
@@ -284,6 +286,19 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		destructive = action == "disk-detach"
+	} else if action == "boot-order" {
+		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+		if detailErr != nil || detail.Domain.State != "shut off" {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), "请先关闭虚拟机再修改启动顺序")
+			return
+		}
+		tool = "virt-xml"
+		kind = "vm-boot"
+		args, err = bootEditArgs(vmName, operand, r.Form.Get("menu"))
+		if err != nil {
+			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+			return
+		}
 	} else if action == "hostdev-attach" || action == "hostdev-detach" {
 		args, stdin, err = s.hostdevAction(r, host.ID, vmName, action, operand)
 		if err != nil {
@@ -314,8 +329,6 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	tool := "virsh"
-	kind := "vm-action"
 	if action == "clone" || action == "migrate" {
 		detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
 		if detailErr != nil {

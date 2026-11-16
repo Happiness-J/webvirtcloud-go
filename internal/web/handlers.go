@@ -1465,6 +1465,12 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
 	if err == nil {
+		boot, bootErr := bootOrderArg(strings.TrimSpace(r.Form.Get("boot_order")), r.Form.Get("boot_menu"))
+		if bootErr != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", bootErr.Error())
+			return
+		}
+		args = append(args, "--boot", boot)
 		args = appendCPU(args, cpu)
 		if hugepages != "" {
 			args = append(args, "--memorybacking", hugepages)
