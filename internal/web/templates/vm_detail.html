@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="page-head detail-hero">
-  <div><p class="page-kicker">虚拟机详情</p><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.Host.Name}} · 状态 <span class="pill {{statusClass .Data.Detail.Domain.State}}">{{statusName .Data.Detail.Domain.State}}</span></p></div>
+  <div><p class="page-kicker">虚拟机详情</p><button type="button" class="help-tip" aria-label="说明" data-tip="集中查看状态、设备和配置。多数配置需要先关机再修改。">?</button><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.Host.Name}} · 状态 <span class="pill {{statusClass .Data.Detail.Domain.State}}">{{statusName .Data.Detail.Domain.State}}</span></p></div>
   <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">返回列表</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator") .Data.ConsoleAllowed) (consoleAvailable .Data.Detail.Domain.State)}}<a class="btn primary" href="/console/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">VNC 控制台</a><a class="btn" href="/serial/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">串口终端</a>{{end}}</div>
 </div>
 {{range .Data.ConsoleWarnings}}<div class="flash error"><strong>控制台安全：</strong>{{.}}</div>{{end}}
@@ -12,7 +12,7 @@
   <div class="preview-meta"><span id="preview-size">正在读取画面尺寸</span><button id="preview-refresh" class="btn small" type="button">刷新画面</button></div>
 </section>{{end}}
 {{if .Data.Actions}}<section class="panel">
-  <h2>电源与生命周期</h2>
+  <h2>电源与生命周期</h2><button type="button" class="help-tip" aria-label="说明" data-tip="优先使用正常关机。强制关闭和删除可能造成数据丢失，删除默认仍保留磁盘。">?</button>
   <div class="action-row">
   {{range .Data.Actions}}
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline action-form">
@@ -120,7 +120,7 @@
   {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>主机设备与 USB 直通</h2><span class="pill muted">分配前检查占用</span></div>
+  <div class="panel-head"><h2>主机设备与 USB 直通</h2><button type="button" class="help-tip" aria-label="说明" data-tip="设备交给虚拟机后，宿主机不能同时使用它。移除前先在客户机内卸载。">?</button><span class="pill muted">分配前检查占用</span></div>
   <p class="hint">可以把宿主机上的 USB 设备或独立块设备分配给这台虚拟机。系统盘、已被其他虚拟机占用的设备不会出现在可选项中。移除前请先在客户机内卸载。</p>
   {{if .Data.HostDeviceError}}<div class="empty-state"><strong>暂时无法读取宿主机设备</strong><span>请检查主机连接后再试。已有虚拟机信息不受影响。</span></div>{{else}}
   {{if .Data.AssignedDevices}}<table><thead><tr><th>类型</th><th>设备</th><th>标识</th><th></th></tr></thead><tbody>{{range .Data.AssignedDevices}}<tr><td>{{if eq .Kind "usb"}}USB{{else}}块设备{{end}}</td><td>{{.Description}}</td><td><code>{{.Source}}</code></td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="hostdev-detach"><input type="hidden" name="snapshot" value="{{.Source}}"><input type="hidden" name="confirm" value="yes"><button class="btn danger" data-confirm="确定从虚拟机移除这个主机设备吗？">移除</button></form></td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有分配主机设备</strong><span>选择下方空闲的 USB 设备或块设备后即可分配。</span></div>{{end}}
@@ -248,7 +248,7 @@
   </div>
 </section>
 {{if eq .User.Role "admin"}}<section class="panel danger-zone">
-  <div class="panel-head"><h2>GDB 调试</h2><span class="pill bad">默认关闭</span></div>
+  <div class="panel-head"><h2>GDB 调试</h2><button type="button" class="help-tip" aria-label="说明" data-tip="只在维护时使用。开启后虚拟机会暂停并等待调试器，默认关闭。">?</button><span class="pill bad">默认关闭</span></div>
   <p class="hint bad-text">开启后，虚拟机会在本机回环地址等待调试器。这会暂停客户机并暴露低级调试接口，只应在受控维护时使用。</p>
   {{if .Data.GDB.Enabled}}<p class="hint">当前已配置：<code>127.0.0.1:{{.Data.GDB.Port}}</code>。调试器需在宿主机本机连接。</p>{{else}}<div class="empty-state"><strong>GDB 未开启</strong><span>需要时再设置端口并暂停启动。</span></div>{{end}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
