@@ -388,6 +388,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /images/fetch", s.protect("operator", s.imageLibraryFetch))
 	mux.Handle("POST /images/checksum", s.protect("operator", s.imageLibraryChecksum))
 	mux.Handle("GET /hosts/{id}/storage", s.protect("viewer", s.storagePage))
+	mux.Handle("GET /hosts/{id}/monitoring", s.protect("viewer", s.monitoringPage))
 	mux.Handle("POST /hosts/{id}/storage/action", s.protect("operator", s.storageAction))
 	mux.Handle("GET /hosts/{id}/networks", s.protect("viewer", s.networksPage))
 	mux.Handle("POST /hosts/{id}/networks/action", s.protect("operator", s.networkAction))

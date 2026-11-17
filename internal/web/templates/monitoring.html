@@ -1,0 +1,21 @@
+{{define "content"}}
+<div class="page-head"><div><p class="page-kicker">监控对接</p><h1>{{.Data.Host.Name}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="Prometheus 抓取受令牌保护的指标端点。Grafana 模板随安装包提供，页面不保存令牌。">?</button><p class="muted">把宿主机和虚拟机指标交给 Prometheus 与 Grafana，站内趋势图和阈值告警保持不变。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}/ops">返回运维</a></div>
+<section class="panel">
+  <h2>Prometheus</h2>
+  {{if .Data.Enabled}}<p><span class="pill ok">端点已启用</span> 抓取地址为 <code>/metrics</code>，请求头使用 Bearer 令牌。</p>{{else}}<p><span class="pill">端点未启用</span> 设置指标令牌并重启服务后，Prometheus 才能抓取。</p>{{end}}
+  <pre class="output">scrape_configs:
+  - job_name: webvirtcloud
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/webvirtcloud-token
+    static_configs:
+      - targets: ["panel:8080"]</pre>
+  <p class="hint">导出宿主机 CPU 与内存、虚拟机累计 CPU、气球内存和磁盘读写。标签只含主机名和虚拟机名。</p>
+</section>
+<section class="panel">
+  <h2>Grafana</h2>
+  <p>安装包带有总览面板，导入后选择 Prometheus 数据源即可看到主机 CPU、内存、虚拟机 CPU、内存和磁盘传输。</p>
+  <p><a class="btn primary" href="/static/grafana/wvc-overview.json">下载面板 JSON</a></p>
+</section>
+{{end}}

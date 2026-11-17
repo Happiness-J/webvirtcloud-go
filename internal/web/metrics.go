@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -65,6 +66,64 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "# HELP wvc_console_sessions Active WebSocket console sessions in this process.\n")
 	fmt.Fprintf(w, "# TYPE wvc_console_sessions gauge\n")
 	fmt.Fprintf(w, "wvc_console_sessions %d\n", s.consoleSessions.Load())
+	s.writeInventoryMetrics(w, ctx)
+}
+
+func (s *Server) writeInventoryMetrics(w http.ResponseWriter, ctx context.Context) {
+	if s.db == nil || s.libvirt == nil {
+		return
+	}
+	hosts, err := s.db.ListHosts(ctx)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(w, "# HELP wvc_host_cpu_percent Host CPU utilization reported by libvirt.\n# TYPE wvc_host_cpu_percent gauge\n")
+	fmt.Fprintf(w, "# HELP wvc_host_memory_bytes Host memory reported by libvirt.\n# TYPE wvc_host_memory_bytes gauge\n")
+	fmt.Fprintf(w, "# HELP wvc_vm_cpu_seconds_total Cumulative virtual CPU time.\n# TYPE wvc_vm_cpu_seconds_total counter\n")
+	fmt.Fprintf(w, "# HELP wvc_vm_memory_bytes Virtual machine memory reported by the balloon driver.\n# TYPE wvc_vm_memory_bytes gauge\n")
+	fmt.Fprintf(w, "# HELP wvc_vm_block_bytes Virtual machine block capacity, allocation, and transferred bytes.\n# TYPE wvc_vm_block_bytes gauge\n")
+	for _, host := range hosts {
+		if !host.Enabled {
+			continue
+		}
+		hostLabel := promLabel(host.Name)
+		stats := s.libvirt.HostResourceStats(ctx, host.ID)
+		if value, ok := parseMetricNumber(stats.CPUStats["usage"]); ok {
+			fmt.Fprintf(w, "wvc_host_cpu_percent{host=%s} %g\n", hostLabel, value)
+		}
+		if total, ok := parseMetricNumber(stats.MemoryStats["total"]); ok {
+			fmt.Fprintf(w, "wvc_host_memory_bytes{host=%s,kind=\"total\"} %g\n", hostLabel, total*1024)
+		}
+		if free, ok := parseMetricNumber(stats.MemoryStats["free"]); ok {
+			fmt.Fprintf(w, "wvc_host_memory_bytes{host=%s,kind=\"free\"} %g\n", hostLabel, free*1024)
+		}
+		domains, err := s.libvirt.DomainStats(ctx, host.ID)
+		if err != nil {
+			continue
+		}
+		for _, domain := range domains {
+			vmLabel := promLabel(domain.Name)
+			fmt.Fprintf(w, "wvc_vm_cpu_seconds_total{host=%s,vm=%s} %g\n", hostLabel, vmLabel, float64(domain.CPUTimeNanos)/1e9)
+			fmt.Fprintf(w, "wvc_vm_memory_bytes{host=%s,vm=%s,kind=\"current\"} %d\n", hostLabel, vmLabel, domain.BalloonCurrent*1024)
+			fmt.Fprintf(w, "wvc_vm_memory_bytes{host=%s,vm=%s,kind=\"maximum\"} %d\n", hostLabel, vmLabel, domain.BalloonMaximum*1024)
+			fmt.Fprintf(w, "wvc_vm_block_bytes{host=%s,vm=%s,kind=\"capacity\"} %d\n", hostLabel, vmLabel, domain.BlockCapacity)
+			fmt.Fprintf(w, "wvc_vm_block_bytes{host=%s,vm=%s,kind=\"read\"} %d\n", hostLabel, vmLabel, domain.BlockReadBytes)
+			fmt.Fprintf(w, "wvc_vm_block_bytes{host=%s,vm=%s,kind=\"write\"} %d\n", hostLabel, vmLabel, domain.BlockWriteBytes)
+		}
+	}
+}
+
+func promLabel(value string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", ``).Replace(value) + `"`
+}
+
+func parseMetricNumber(value string) (float64, bool) {
+	fields := strings.Fields(value)
+	if len(fields) == 0 {
+		return 0, false
+	}
+	number, err := strconv.ParseFloat(fields[0], 64)
+	return number, err == nil
 }
 
 func (s *Server) metricsAuthorized(r *http.Request) bool {
@@ -81,4 +140,13 @@ func (s *Server) metricsAuthorized(r *http.Request) bool {
 	wantHash := []byte(auth.TokenHash(s.cfg.MetricsToken))
 	gotHash := []byte(auth.TokenHash(provided))
 	return subtle.ConstantTimeCompare(wantHash, gotHash) == 1
+}
+
+func (s *Server) monitoringPage(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	s.render(w, r, "monitoring", pageData{Title: "监控对接", Nav: "hosts", Data: map[string]any{"Host": host, "Enabled": s.cfg.MetricsToken != ""}})
 }

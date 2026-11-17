@@ -1,0 +1,12 @@
+{
+  "title": "WebVirtCloud overview",
+  "uid": "wvc-overview",
+  "schemaVersion": 39,
+  "panels": [
+    {"type": "timeseries", "title": "Host CPU", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}, "targets": [{"expr": "wvc_host_cpu_percent", "refId": "A"}]},
+    {"type": "timeseries", "title": "Host memory", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}, "targets": [{"expr": "wvc_host_memory_bytes", "refId": "A"}]},
+    {"type": "timeseries", "title": "VM CPU time", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}, "targets": [{"expr": "rate(wvc_vm_cpu_seconds_total[5m])", "refId": "A"}]},
+    {"type": "timeseries", "title": "VM memory", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}, "targets": [{"expr": "wvc_vm_memory_bytes", "refId": "A"}]},
+    {"type": "timeseries", "title": "VM disk transfer", "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}, "targets": [{"expr": "wvc_vm_block_bytes", "refId": "A"}]}
+  ]
+}
