@@ -442,6 +442,13 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 		tool = "virt-xml"
 		kind = "vm-boot"
 		args, err = bootEditArgs(vmName, operand, r.Form.Get("menu"))
+		if err == nil {
+			var firmwareErr error
+			args, firmwareErr = firmwareEditArgs(vmName, operand, r.Form.Get("menu"), r.Form.Get("firmware"), r.Form.Get("secure_boot"))
+			if firmwareErr != nil {
+				err = firmwareErr
+			}
+		}
 		if err != nil {
 			s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
 			return
