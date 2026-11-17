@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">首次运行</p><h1>准备这台控制面</h1><button type="button" class="help-tip" aria-label="说明" data-tip="检测本机是否能运行 KVM。默认存储池和网络只会在已添加的第一台主机上创建。">?</button><p class="muted">确认虚拟化可用，然后初始化默认存储池和默认网络。</p></div><a class="btn" href="/">返回概览</a></div>
+<div class="page-head"><div><p class="page-kicker">首次运行</p><h1>准备这台控制面</h1><button type="button" class="help-tip" aria-label="说明" data-tip="检测本机是否能运行 KVM。默认存储池和网络只会在已启用的本机 libvirt 主机上创建、启动并设置开机自启。">?</button><p class="muted">确认虚拟化可用，然后初始化默认存储池和默认网络。</p></div><a class="btn" href="/">返回概览</a></div>
 <section class="panel">
   <h2>本机检测</h2>
   <dl class="kv">{{range .Data.Checks}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
@@ -16,7 +16,7 @@
   {{else}}
   <form method="post" action="/setup" class="stack">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="confirm" value="yes">
-    <p class="hint">将在第一台已登记主机上定义名为 default 的目录存储池和 NAT 网络。已存在同名资源时，任务会记录失败而不覆盖。</p>
+    <p class="hint">将在本机 libvirt 主机上创建名为 default 的目录存储池和 NAT 网络，并立即启动、设置开机自启。已存在同名资源时，任务会记录失败而不覆盖。</p>
     <button class="btn primary" data-confirm="确定初始化默认存储池和默认网络吗？">初始化默认资源</button>
   </form>
   {{end}}
