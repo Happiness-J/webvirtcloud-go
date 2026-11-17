@@ -68,6 +68,20 @@ func (w *Worker) Run(ctx context.Context) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				w.reconcileCluster(ctx)
+			}
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -78,7 +92,6 @@ func (w *Worker) Run(ctx context.Context) {
 				w.publishHeartbeat(ctx)
 				w.enqueueDueBackups(ctx)
 				w.enqueueDueVMSchedules(ctx)
-				w.reconcileCluster(ctx)
 				if _, err := w.store.PurgeWorkerHeartbeats(ctx, 10*time.Minute); err != nil && ctx.Err() == nil {
 					w.log.Warn("purge worker heartbeats", "error", err)
 				}

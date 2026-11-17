@@ -37,6 +37,9 @@ func (w *Worker) reconcileCluster(ctx context.Context) {
 	byID := map[string]store.Host{}
 	for _, host := range hosts {
 		byID[host.ID] = host
+		if ctx.Err() != nil {
+			return
+		}
 		view := w.probeHost(ctx, host, previous[host.ID])
 		views = append(views, view)
 	}
@@ -83,17 +86,17 @@ func (w *Worker) probeHost(ctx context.Context, host store.Host, previous store.
 		return view
 	}
 	view.URI = strings.TrimSpace(uri)
-	probeCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	probeCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
 	target, err := command.ResolveTarget(view.URI)
 	reachable := false
 	if err == nil {
-		result, runErr := w.runner.Run(probeCtx, target.Request("virsh", []string{"list", "--name"}, "", true, 8*time.Second))
+		result, runErr := w.runner.Run(probeCtx, target.Request("virsh", []string{"list", "--name"}, "", true, 4*time.Second))
 		reachable = runErr == nil
 		if reachable {
 			view.RunningVMs = countLines(result.Stdout)
-			cpu, cpuErr := w.runner.Run(probeCtx, target.Request("virsh", []string{"nodecpustats", "--percent"}, "", true, 8*time.Second))
-			mem, memErr := w.runner.Run(probeCtx, target.Request("virsh", []string{"nodememstats"}, "", true, 8*time.Second))
+			cpu, cpuErr := w.runner.Run(probeCtx, target.Request("virsh", []string{"nodecpustats", "--percent"}, "", true, 4*time.Second))
+			mem, memErr := w.runner.Run(probeCtx, target.Request("virsh", []string{"nodememstats"}, "", true, 4*time.Second))
 			if cpuErr == nil {
 				view.CPUPercent = percent(field(cpu.Stdout, "usage"))
 			}
