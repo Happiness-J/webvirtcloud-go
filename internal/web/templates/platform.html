@@ -1,0 +1,17 @@
+{{define "content"}}
+<div class="page-head"><div><p class="page-kicker">平台</p><h1>配置自备份</h1><button type="button" class="help-tip" aria-label="说明" data-tip="导出包含主机名称和启用状态，不包含连接口令、会话或主密钥。恢复前会校验摘要。">?</button><p class="muted">升级前导出一份可校验的平台清单。数据库本体仍按运维备份流程保存。</p></div><a class="btn" href="/users">返回用户</a></div>
+<section class="panel">
+  <h2>导出</h2>
+  <p>文件包含版本、导出时间和主机清单，并附带 SHA-256。连接地址和密钥不会写入文件。</p>
+  <form method="post" action="/platform/export"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn primary">下载平台配置</button></form>
+</section>
+<section class="panel">
+  <h2>校验并登记恢复</h2>
+  <form method="post" action="/platform/restore" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="confirm" value="yes">
+    <label>导出文件<input type="file" name="bundle" accept="application/json" required></label>
+    <button class="btn" data-confirm="只校验并记录这次恢复，不会直接覆盖数据库。确定继续吗？">校验导出包</button>
+  </form>
+  <p class="hint">校验通过后会写入审计。数据库恢复使用同一份摘要核对离线备份，避免页面持有数据库超级用户权限。</p>
+</section>
+{{end}}
