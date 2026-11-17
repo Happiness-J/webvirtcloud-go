@@ -127,11 +127,14 @@ func TestValidateHostdevXML(t *testing.T) {
 }
 
 func TestFailoverDefinePath(t *testing.T) {
-	if _, err := JobMinimumRole("vm-action", "virsh", []string{"define", "/var/lib/libvirt/images/ha/web.xml", "--start"}); err != nil {
+	if _, err := JobMinimumRole("vm-action", "virsh", []string{"create", "/var/lib/libvirt/images/ha/web.xml", "--validate"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := JobMinimumRole("vm-action", "virsh", []string{"define", "/tmp/web.xml", "--start"}); err == nil {
-		t.Fatal("start outside the shared ha directory accepted")
+	if _, err := JobMinimumRole("vm-action", "virsh", []string{"create", "/tmp/web.xml", "--validate"}); err == nil {
+		t.Fatal("create outside the shared ha directory accepted")
+	}
+	if _, err := JobMinimumRole("vm-action", "virsh", []string{"define", "/var/lib/libvirt/images/ha/web.xml", "--start"}); err == nil {
+		t.Fatal("virsh define does not accept --start")
 	}
 	if _, err := JobMinimumRole("vm-action", "virsh", []string{"define", "/var/lib/libvirt/images/ha/web.xml"}); err != nil {
 		t.Fatal(err)

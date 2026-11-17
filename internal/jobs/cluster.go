@@ -62,10 +62,10 @@ func (w *Worker) reconcileCluster(ctx context.Context) {
 		if err := command.ValidateMigrationURIPublic(decision.URI); err != nil {
 			continue
 		}
-		// The failed host cannot initiate a live migration. Define the shared
-		// domain XML on the survivor, then start that persistent domain.
+		// The failed host cannot initiate a live migration. virsh define does
+		// not start a domain, so create it from the shared XML in one command.
 		xmlPath := "/var/lib/libvirt/images/ha/" + item.VMName + ".xml"
-		raw, _ := json.Marshal([]string{"define", xmlPath, "--start"})
+		raw, _ := json.Marshal([]string{"create", xmlPath, "--validate"})
 		job := store.Job{ID: id.New("job"), UserID: "system:cluster", HostID: decision.HostID, Kind: "vm-action", Label: "故障重启 " + item.VMName, Tool: "virsh", ArgsJSON: string(raw), TimeoutSeconds: 300, DedupeKey: "ha:" + item.HostID + ":" + item.VMName}
 		if err := w.store.EnqueueJob(ctx, job); err != nil && !store.IsDuplicateJob(err) {
 			w.log.Warn("enqueue failover", "vm", item.VMName, "error", err)
