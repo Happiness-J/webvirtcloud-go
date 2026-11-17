@@ -1528,7 +1528,7 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 			inactive = append(inactive, network.Name)
 		}
 	}
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir)}})
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles()}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
@@ -1573,7 +1573,18 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
 	}
-	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, "generic", cloud)
+	profile, profileErr := osProfileByID(defaultForm(r, "os_profile", "generic"))
+	if profileErr != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", profileErr.Error())
+		return
+	}
+	if strings.TrimSpace(r.Form.Get("disk_bus")) == "" {
+		r.Form.Set("disk_bus", profile.DiskBus)
+	}
+	if strings.TrimSpace(r.Form.Get("firmware")) == "" {
+		r.Form.Set("firmware", profile.Firmware)
+	}
+	args, err := s.vmCreateArgs(r.Context(), host.ID, name, vcpuCount, memoryCount, diskCount, network, cdrom, profile.Variant, cloud)
 	if err == nil {
 		video, videoErr := videoArg(strings.TrimSpace(r.Form.Get("video_model")), videoVRAM(r.Form.Get("video_vram")), strings.TrimSpace(r.Form.Get("graphics")))
 		if videoErr != nil {
@@ -1590,6 +1601,9 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		for i := range args {
 			if args[i] == "--disk" && i+1 < len(args) {
 				args[i+1] += ",bus=" + bus
+			}
+			if args[i] == "--network" && i+1 < len(args) && !strings.Contains(args[i+1], "model=") {
+				args[i+1] += ",model=" + profile.NIC
 			}
 		}
 		graphics := strings.TrimSpace(r.Form.Get("graphics"))
