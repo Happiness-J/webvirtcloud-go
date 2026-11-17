@@ -226,7 +226,7 @@ func (s *Server) hostUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.Form.Get("name"))
 	if err := validateDisplayText(name, 128, "主机名称"); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", err.Error())
+		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", "主机名称无效")
 		return
 	}
 	if name == "" {
@@ -235,7 +235,7 @@ func (s *Server) hostUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	description := strings.TrimSpace(r.Form.Get("description"))
 	if err := validateDisplayText(description, 2000, "主机描述"); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", err.Error())
+		s.redirectError(w, r, "/hosts/"+host.ID+"/edit", "主机描述无效")
 		return
 	}
 	uriChanged := false
