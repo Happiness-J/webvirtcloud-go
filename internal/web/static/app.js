@@ -265,3 +265,33 @@ document.addEventListener('change', (event) => {
 document.querySelectorAll('.help-tip').forEach((tip) => {
   tip.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); tip.focus(); });
 });
+const createForm = document.querySelector('#vm-create-form');
+if (createForm) {
+  createForm.addEventListener('submit', (event) => {
+    const error = document.querySelector('#create-error');
+    let first = null;
+    for (const field of createForm.querySelectorAll('[required], [pattern]')) {
+      field.classList.remove('field-error');
+      if (!field.checkValidity()) {
+        field.classList.add('field-error');
+        const group = field.closest('details');
+        if (group) group.open = true;
+        first = first || field;
+      }
+    }
+    const vcpus = Number(createForm.vcpus.value || 0);
+    const product = ['sockets','cores','threads'].reduce((total, name) => total * Number(createForm[name].value || 1), 1);
+    if (product !== vcpus) {
+      for (const name of ['sockets','cores','threads']) createForm[name].classList.add('field-error');
+      createForm.querySelector('[data-group="cpu"]').open = true;
+      first = first || createForm.sockets;
+    }
+    if (first) {
+      event.preventDefault();
+      error.hidden = false;
+      error.textContent = `请检查${first.dataset.label || '字段'}。必填项在常用区，高级项已展开到对应分组。`;
+      first.scrollIntoView({behavior:'smooth', block:'center'});
+      first.focus();
+    }
+  });
+}
