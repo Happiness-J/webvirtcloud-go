@@ -350,11 +350,7 @@ func (s *Server) networkAction(w http.ResponseWriter, r *http.Request) {
 		prefix, _ := strconv.Atoi(strings.TrimSpace(r.Form.Get("prefix")))
 		xmlText, err := command.NetworkXML(command.NetworkDefinition{Name: networkName, Mode: strings.TrimSpace(r.Form.Get("mode")), Bridge: strings.TrimSpace(r.Form.Get("bridge")), Address: strings.TrimSpace(r.Form.Get("address")), Prefix: prefix})
 		if err != nil || command.ValidateNetworkXML(xmlText) != nil {
-			message := "虚拟网络参数无效"
-			if err != nil {
-				message = err.Error()
-			}
-			s.redirectError(w, r, "/hosts/"+host.ID+"/networks", message)
+			s.redirectError(w, r, "/hosts/"+host.ID+"/networks", "虚拟网络参数无效")
 			return
 		}
 		args = []string{"net-define", "/dev/stdin"}
