@@ -11,7 +11,12 @@ func (s *Server) ipPoolCreate(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
 	pool := store.IPPool{HostID: hostID, Name: strings.TrimSpace(r.Form.Get("name")), CIDR: strings.TrimSpace(r.Form.Get("cidr")), Floating: r.Form.Get("floating") == "yes"}
 	if err := s.db.CreateIPPool(r.Context(), pool); err != nil {
-		s.redirectError(w, r, "/hosts/"+hostID+"/networks", err.Error())
+		message := "无法创建地址池"
+		switch err.Error() {
+		case "地址池网段无效", "地址池名称无效":
+			message = err.Error()
+		}
+		s.redirectError(w, r, "/hosts/"+hostID+"/networks", message)
 		return
 	}
 	http.Redirect(w, r, flashURL("/hosts/"+hostID+"/networks", "地址池已创建", "ok"), http.StatusSeeOther)
