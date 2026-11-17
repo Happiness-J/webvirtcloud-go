@@ -323,13 +323,32 @@
   {{if .Data.Detail.Backups}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Backups}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
   </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有增量检查点。</p>{{end}}
-  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/backup-policy" class="inline-form">
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/backup-policy" class="stack">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <label>周期小时<input name="interval_hours" type="number" min="1" max="168" value="24" required></label>
-    <label>保留数量<input name="retain_count" type="number" min="1" max="100" value="7" required></label>
+    <div class="grid two compact">
+      <label>周期小时<input name="interval_hours" type="number" min="1" max="168" value="24" required></label>
+      <label>保留数量<input name="retain_count" type="number" min="1" max="100" value="7" required></label>
+      <label>异地目标<select name="target_kind"><option value="local">仅本机检查点</option><option value="nfs">NFS</option><option value="s3">S3 兼容对象存储</option></select></label>
+      <label>目标地址<input name="target_ref" placeholder="主机:/导出路径 或 s3://桶/前缀" maxlength="300"></label>
+    </div>
     <button class="btn">保存定时备份</button>
   </form>
-  <p class="hint">这里记录的是 libvirt 增量备份检查点，不是可一键回滚的整机快照。定时策略到期后创建新检查点，并删除超过保留数量的旧检查点。需要回滚请使用上面的快照。</p>
+  <p class="hint">定时策略仍创建 libvirt 增量检查点。NFS 与对象存储地址只记录副本应送到的位置，不保存访问密钥。恢复后请把副本摘要记到下面的演练记录。</p>
+  <h3>恢复演练</h3>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/backup-drill" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <div class="grid two compact">
+      <label>目标<select name="target_kind"><option value="local">本机</option><option value="nfs">NFS</option><option value="s3">对象存储</option></select></label>
+      <label>目标地址<input name="target_ref" maxlength="300" placeholder="本机可留空"></label>
+      <label>SHA-256<input name="checksum" required minlength="64" maxlength="64" pattern="[0-9a-fA-F]{64}" placeholder="64 位十六进制"></label>
+      <label>结果<select name="result"><option value="passed">通过</option><option value="failed">未通过</option></select></label>
+    </div>
+    <label>说明<input name="note" maxlength="500" placeholder="恢复了哪一份副本、核对了什么"></label>
+    <button class="btn">记录演练</button>
+  </form>
+  {{if .Data.Drills}}<table><thead><tr><th>时间</th><th>目标</th><th>结果</th><th>摘要</th><th>说明</th></tr></thead><tbody>
+  {{range .Data.Drills}}<tr><td class="muted">{{date .CreatedAt}}</td><td>{{.TargetKind}} {{.TargetRef}}</td><td>{{if eq .Result "passed"}}<span class="pill ok">通过</span>{{else}}<span class="pill bad">未通过</span>{{end}}</td><td><code>{{short .Checksum}}</code></td><td>{{.Note}}</td></tr>{{end}}
+  </tbody></table>{{else}}<p class="empty">还没有恢复演练记录。</p>{{end}}
 </section>
 <section class="panel">
   <h2>运行诊断</h2>

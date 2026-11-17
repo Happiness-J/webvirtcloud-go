@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"webvirtcloud-go/internal/command"
+	"webvirtcloud-go/internal/id"
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
 )
@@ -555,7 +557,12 @@ func (s *Server) backupPolicySave(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), "备份周期和保留数量必须是整数")
 		return
 	}
-	err = s.db.SaveBackupPolicy(r.Context(), store.BackupPolicy{HostID: host.ID, VMName: vmName, IntervalHours: interval, RetainCount: retain, Enabled: true, NextRunAt: time.Now().Add(time.Duration(interval) * time.Hour)})
+	kind := strings.TrimSpace(r.Form.Get("target_kind"))
+	if kind == "" {
+		kind = "local"
+	}
+	ref := strings.TrimSpace(r.Form.Get("target_ref"))
+	err = s.db.SaveBackupPolicy(r.Context(), store.BackupPolicy{HostID: host.ID, VMName: vmName, IntervalHours: interval, RetainCount: retain, Enabled: true, NextRunAt: time.Now().Add(time.Duration(interval) * time.Hour), TargetKind: kind, TargetRef: ref})
 	if err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), "无法保存备份策略")
 		return
@@ -631,4 +638,38 @@ func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/hosts/"+url.PathEscape(host.ID)+"/vms/"+url.PathEscape(newName), http.StatusSeeOther)
+}
+
+func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	vmName := r.PathValue("vm")
+	if err := libvirt.ValidateName(vmName); err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "虚拟机名称无效")
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	kind := strings.TrimSpace(r.Form.Get("target_kind"))
+	if kind == "" {
+		kind = "local"
+	}
+	note := strings.TrimSpace(r.Form.Get("note"))
+	if utf8.RuneCountInString(note) > 500 {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "演练说明过长")
+		return
+	}
+	drill := store.BackupDrill{
+		ID: id.New("drill"), HostID: host.ID, VMName: vmName, TargetKind: kind,
+		TargetRef: strings.TrimSpace(r.Form.Get("target_ref")), Checksum: strings.ToLower(strings.TrimSpace(r.Form.Get("checksum"))),
+		Result: strings.TrimSpace(r.Form.Get("result")), Note: note, ActorName: sess.User.Username,
+	}
+	if err := s.db.AddBackupDrill(r.Context(), drill); err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+		return
+	}
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "backup.drill", HostID: host.ID, VMName: vmName, RemoteIP: s.clientIP(r), Detail: map[string]any{"result": drill.Result, "target": kind}})
+	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "恢复演练记录已保存", "ok"), http.StatusSeeOther)
 }
