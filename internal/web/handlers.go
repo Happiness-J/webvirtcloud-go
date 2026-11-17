@@ -529,13 +529,17 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 			vmDevices = append(vmDevices, device)
 		}
 	}
+	schedules, schedErr := s.db.ListVMSchedules(r.Context(), host.ID, vmName)
+	if schedErr != nil {
+		s.logRequestError(r, "load vm schedules", schedErr)
+	}
 	drills, drillErr := s.db.ListBackupDrills(r.Context(), host.ID, vmName)
 	if drillErr != nil {
 		s.logRequestError(r, "load backup drills", drillErr)
 	}
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
-		"Drills": drills,
-		"Host":   host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
+		"Drills": drills, "Schedules": schedules,
+		"Host": host, "VM": vmName, "Detail": detail, "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
