@@ -16,7 +16,7 @@ func (s *Server) hostKSM(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
 	args := []string{"node-memory-tune", "shm-merge", enabled}
 	if _, err := s.enqueueCommand(r, sess.User, host.ID, "host-action", "设置 KSM", "virsh", args, "", 60); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID, err.Error())
+		s.redirectError(w, r, "/hosts/"+host.ID, "无法提交 KSM 设置")
 		return
 	}
 	http.Redirect(w, r, "/hosts/"+host.ID, http.StatusSeeOther)
