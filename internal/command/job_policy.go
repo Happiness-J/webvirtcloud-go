@@ -1230,10 +1230,3 @@ func validateImportedDiskArg(args []string) error {
 	}
 	return nil
 }
-
-func validateVMCreateTail(args []string, index int) error {
-	if index >= len(args) || args[index] != "--import" {
-		return fmt.Errorf("导入磁盘必须使用导入模式")
-	}
-	return nil
-}
