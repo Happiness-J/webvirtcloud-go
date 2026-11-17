@@ -26,7 +26,11 @@ func (s *Server) ipAllocate(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
 	address, err := s.db.AllocateIP(r.Context(), r.Form.Get("pool_id"), strings.TrimSpace(r.Form.Get("owner")))
 	if err != nil {
-		s.redirectError(w, r, "/hosts/"+hostID+"/networks", err.Error())
+		message := "无法分配地址"
+		if err.Error() == "地址池已满" {
+			message = err.Error()
+		}
+		s.redirectError(w, r, "/hosts/"+hostID+"/networks", message)
 		return
 	}
 	http.Redirect(w, r, flashURL("/hosts/"+hostID+"/networks", "已分配 "+address, "ok"), http.StatusSeeOther)
