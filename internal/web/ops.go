@@ -176,7 +176,7 @@ func normalizeBatchVMNames(values []string) ([]string, error) {
 			continue
 		}
 		if err := libvirt.ValidateName(name); err != nil {
-			return nil, fmt.Errorf("虚拟机名称无效: %w", err)
+			return nil, fmt.Errorf("虚拟机名称无效")
 		}
 		if _, ok := seen[name]; ok {
 			continue
