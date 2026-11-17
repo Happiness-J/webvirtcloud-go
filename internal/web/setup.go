@@ -76,7 +76,7 @@ func (s *Server) setupApply(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/setup", err.Error())
 		return
 	}
-	netXML, err := command.NetworkXML(command.NetworkDefinition{Name: "default", Mode: "nat", Address: "192.0.2.0", Prefix: 24})
+	netXML, err := command.NetworkXML(command.NetworkDefinition{Name: "default", Mode: "nat", Address: "192.168.122.0", Prefix: 24})
 	if err != nil || command.ValidateNetworkXML(netXML) != nil {
 		s.redirectError(w, r, "/setup", "默认网络定义无效")
 		return

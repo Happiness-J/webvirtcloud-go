@@ -16,7 +16,7 @@ func TestLocalCheckState(t *testing.T) {
 }
 
 func TestSetupNetworkXML(t *testing.T) {
-	xmlText, err := command.NetworkXML(command.NetworkDefinition{Name: "default", Mode: "nat", Address: "192.0.2.0", Prefix: 24})
+	xmlText, err := command.NetworkXML(command.NetworkDefinition{Name: "default", Mode: "nat", Address: "192.168.122.0", Prefix: 24})
 	if err != nil || command.ValidateNetworkXML(xmlText) != nil {
 		t.Fatal(err)
 	}
