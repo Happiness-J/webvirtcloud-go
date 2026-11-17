@@ -73,6 +73,8 @@ type domainHostdevXML struct {
 func (s *Service) ListHostDevices(ctx context.Context, hostID string) ([]HostDevice, []AssignedDevice, error) {
 	usb, usbErr := s.nodeDevices(ctx, hostID, "usb_device")
 	storage, storageErr := s.nodeDevices(ctx, hostID, "storage")
+	pci, _ := s.nodeDevices(ctx, hostID, "pci")
+	mdev, _ := s.nodeDevices(ctx, hostID, "mdev")
 	if usbErr != nil && storageErr != nil {
 		return nil, nil, fmt.Errorf("无法读取宿主机设备")
 	}
@@ -81,8 +83,8 @@ func (s *Service) ListHostDevices(ctx context.Context, hostID string) ([]HostDev
 	for _, item := range assigned {
 		claimed[assignmentKey(item.Kind, item.Source)] = item.VM
 	}
-	devices := make([]HostDevice, 0, len(usb)+len(storage))
-	for _, item := range append(usb, storage...) {
+	devices := make([]HostDevice, 0, len(usb)+len(storage)+len(pci)+len(mdev))
+	for _, item := range append(append(append(usb, storage...), pci...), mdev...) {
 		key := assignmentKey(item.Kind, item.Source)
 		if owner := claimed[key]; owner != "" {
 			item.AssignedTo = owner
@@ -172,6 +174,13 @@ type nodeDeviceXML struct {
 		Bus     string `xml:"bus"`
 		Device  string `xml:"device"`
 		Block   string `xml:"block"`
+		UUID    string `xml:"uuid"`
+		Address *struct {
+			Domain   string `xml:"domain,attr"`
+			Bus      string `xml:"bus,attr"`
+			Slot     string `xml:"slot,attr"`
+			Function string `xml:"function,attr"`
+		} `xml:"address"`
 	} `xml:"capability"`
 }
 
@@ -210,6 +219,17 @@ func parseNodeDevice(name, capability, xmlText string) (HostDevice, bool) {
 				continue
 			}
 			return HostDevice{Name: name, Kind: "block", Description: cap.Block, Source: cap.Block}, true
+		case "pci":
+			if cap.Type != "pci" || cap.Address == nil {
+				continue
+			}
+			source := fmt.Sprintf("%s:%s:%s.%s", cap.Address.Domain, cap.Address.Bus, cap.Address.Slot, cap.Address.Function)
+			return HostDevice{Name: name, Kind: "pci", Description: "PCI " + source, Source: source}, true
+		case "mdev":
+			if cap.Type != "mdev" || cap.UUID == "" {
+				continue
+			}
+			return HostDevice{Name: name, Kind: "mdev", Description: "vGPU " + cap.UUID, Source: cap.UUID}, true
 		}
 	}
 	return HostDevice{}, false
@@ -282,6 +302,14 @@ func HostDeviceXML(device HostDevice, diskTarget string) (string, error) {
 			return "", fmt.Errorf("USB 设备标识无效")
 		}
 		return fmt.Sprintf("<hostdev mode='subsystem' type='usb' managed='yes'><source><vendor id='0x%s'/><product id='0x%s'/></source></hostdev>", normalizeHexID(device.Vendor), normalizeHexID(device.Product)), nil
+	case "pci":
+		domain, bus, slot, function := pciParts(device.Source)
+		return fmt.Sprintf("<hostdev mode='subsystem' type='pci' managed='yes'><source><address domain='0x%s' bus='0x%s' slot='0x%s' function='0x%s'/></source></hostdev>", domain, bus, slot, function), nil
+	case "mdev":
+		if len(device.Source) < 36 {
+			return "", fmt.Errorf("介导设备标识无效")
+		}
+		return fmt.Sprintf("<hostdev mode='subsystem' type='mdev' model='vfio-pci' managed='yes'><source><address uuid='%s'/></source></hostdev>", xmlEscape(device.Source)), nil
 	case "block":
 		if !strings.HasPrefix(device.Source, "/dev/") || strings.Contains(device.Source, "..") || isUnsafeBlock(device.Source) {
 			return "", fmt.Errorf("块设备路径无效")
@@ -315,4 +343,13 @@ func compactDisk(source, target string) string {
 		target = "sdb"
 	}
 	return fmt.Sprintf("<disk type='block' device='lun'><driver name='qemu' type='raw' cache='none' io='native'/><source dev='%s'/><target dev='%s' bus='scsi'/></disk>", xmlEscape(source), xmlEscape(target))
+}
+
+func pciParts(source string) (string, string, string, string) {
+	parts := strings.Split(source, ":")
+	if len(parts) != 3 {
+		return "0000", "00", "00", "0"
+	}
+	slot, function, _ := strings.Cut(parts[2], ".")
+	return strings.TrimPrefix(parts[0], "0x"), strings.TrimPrefix(parts[1], "0x"), strings.TrimPrefix(slot, "0x"), strings.TrimPrefix(function, "0x")
 }
