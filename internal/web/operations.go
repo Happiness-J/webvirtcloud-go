@@ -753,7 +753,12 @@ func (s *Server) vmScheduleSave(w http.ResponseWriter, r *http.Request) {
 	action := strings.TrimSpace(r.Form.Get("power_action"))
 	err = s.db.SaveVMSchedule(r.Context(), store.VMSchedule{HostID: host.ID, VMName: vmName, Kind: kind, IntervalHours: interval, RetainCount: retain, PowerAction: action, Enabled: true, NextRunAt: time.Now().Add(time.Duration(interval) * time.Hour)})
 	if err != nil {
-		s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+		message := "无法保存定时任务"
+		switch err.Error() {
+		case "定时任务类型无效", "定时参数超出范围", "电源动作无效":
+			message = err.Error()
+		}
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), message)
 		return
 	}
 	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "定时任务已保存", "ok"), http.StatusSeeOther)
