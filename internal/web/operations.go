@@ -687,7 +687,7 @@ func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, _ := sessionFrom(r.Context())
 	if _, err := s.enqueueCommand(r, sess.User, host.ID, "vm-action", "重命名 "+oldName, "virsh", args, "", 300); err != nil {
-		s.redirectError(w, r, vmRedirect(host.ID, oldName), err.Error())
+		s.redirectError(w, r, vmRedirect(host.ID, oldName), "无法提交重命名")
 		return
 	}
 	http.Redirect(w, r, "/hosts/"+url.PathEscape(host.ID)+"/vms/"+url.PathEscape(newName), http.StatusSeeOther)
