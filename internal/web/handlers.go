@@ -868,8 +868,10 @@ func (s *Server) userAccessPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	quota, _ := s.db.GetUserQuota(r.Context(), target.ID)
+	usage, _ := s.db.UserUsage(r.Context(), target.ID)
 	s.render(w, r, "user_access", pageData{Title: "授权 · " + target.Username, Nav: "users", Data: map[string]any{
-		"Target": target, "Hosts": hosts, "Access": access, "HostAccess": hostAccess,
+		"Target": target, "Hosts": hosts, "Access": access, "HostAccess": hostAccess, "Quota": quota, "Usage": usage,
 	}})
 }
 
@@ -1628,6 +1630,12 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
+	if sess.User.Role != "admin" {
+		if err := s.db.ReserveVMUsage(r.Context(), sess.User.ID, host.ID, name, vcpuCount, memoryCount, diskCount); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
+			return
+		}
+	}
 	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-create", "创建虚拟机 "+name, "virt-install", args, "", boundedOperationTimeout(s.cfg.MaxTimeout, 1800))
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
