@@ -59,14 +59,19 @@ func (w *Worker) reconcileCluster(ctx context.Context) {
 		if err := command.ValidateMigrationURIPublic(decision.URI); err != nil {
 			continue
 		}
-		// The failed host cannot initiate a live migration. Restart by name on
-		// the selected survivor; the XML path is fixed and contains no URI.
+		// The failed host cannot initiate a live migration. Define the shared
+		// domain XML on the survivor, then start that persistent domain.
 		xmlPath := "/var/lib/libvirt/images/ha/" + item.VMName + ".xml"
-		args := []string{"start", item.VMName, "--file", xmlPath}
-		raw, _ := json.Marshal(args)
-		job := store.Job{ID: id.New("job"), UserID: "system:cluster", HostID: decision.HostID, Kind: "vm-action", Label: "故障重启 " + item.VMName, Tool: "virsh", ArgsJSON: string(raw), TimeoutSeconds: 900}
-		if err := w.store.EnqueueJob(ctx, job); err != nil {
-			w.log.Warn("enqueue failover", "vm", item.VMName, "error", err)
+		defineArgs, _ := json.Marshal([]string{"define", xmlPath})
+		defineJob := store.Job{ID: id.New("job"), UserID: "system:cluster", HostID: decision.HostID, Kind: "vm-action", Label: "故障定义 " + item.VMName, Tool: "virsh", ArgsJSON: string(defineArgs), TimeoutSeconds: 120, DedupeKey: "ha-define:" + decision.HostID + ":" + item.VMName}
+		if err := w.store.EnqueueJob(ctx, defineJob); err != nil && !store.IsDuplicateJob(err) {
+			w.log.Warn("enqueue failover define", "vm", item.VMName, "error", err)
+			continue
+		}
+		startArgs, _ := json.Marshal([]string{"start", item.VMName})
+		startJob := store.Job{ID: id.New("job"), UserID: "system:cluster", HostID: decision.HostID, Kind: "vm-action", Label: "故障重启 " + item.VMName, Tool: "virsh", ArgsJSON: string(startArgs), TimeoutSeconds: 180, DedupeKey: "ha-start:" + decision.HostID + ":" + item.VMName}
+		if err := w.store.EnqueueJob(ctx, startJob); err != nil && !store.IsDuplicateJob(err) {
+			w.log.Warn("enqueue failover start", "vm", item.VMName, "error", err)
 		}
 	}
 }

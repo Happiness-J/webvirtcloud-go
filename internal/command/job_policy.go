@@ -179,6 +179,12 @@ func validateVMResourceArgs(tool string, args []string) error {
 	if tool != "virsh" || len(args) < 3 {
 		return fmt.Errorf("虚拟机资源调优参数不正确")
 	}
+	if args[0] == "define" {
+		if len(args) != 2 || (!validHAXML(args[1]) && !validImportedXML(args[1])) {
+			return fmt.Errorf("导入参数不正确")
+		}
+		return nil
+	}
 	if err := validateActionOperand(args[1]); err != nil {
 		return fmt.Errorf("虚拟机名称无效: %w", err)
 	}
@@ -450,6 +456,10 @@ func validateHostTestArgs(tool string, args []string) error {
 	}
 }
 
+func validImportedXML(value string) bool {
+	return strings.HasPrefix(value, "/") && !strings.Contains(value, "..") && strings.HasSuffix(value, ".xml")
+}
+
 func validHAXML(value string) bool {
 	const prefix = "/var/lib/libvirt/images/ha/"
 	if !strings.HasPrefix(value, prefix) || !strings.HasSuffix(value, ".xml") || strings.Contains(value, "..") {
@@ -503,6 +513,12 @@ func validateVMActionArgs(args []string) error {
 		}
 		return fmt.Errorf("虚拟机自启动操作参数不正确")
 	}
+	if args[0] == "define" {
+		if len(args) != 2 || (!validHAXML(args[1]) && !validImportedXML(args[1])) {
+			return fmt.Errorf("导入参数不正确")
+		}
+		return nil
+	}
 	if err := validateActionOperand(args[1]); err != nil {
 		return fmt.Errorf("虚拟机名称无效: %w", err)
 	}
@@ -512,9 +528,6 @@ func validateVMActionArgs(args []string) error {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
 		}
 	case "start":
-		if len(args) == 4 && args[2] == "--file" && validHAXML(args[3]) {
-			return nil
-		}
 		if !(len(args) == 2 || (len(args) == 3 && (args[2] == "--managed" || args[2] == "--paused"))) {
 			return fmt.Errorf("虚拟机启动参数不正确")
 		}
@@ -590,10 +603,6 @@ func validateVMActionArgs(args []string) error {
 	case "dumpxml":
 		if len(args) != 4 || args[2] != "--destination" || !validTransferDir(args[3]) {
 			return fmt.Errorf("导出参数不正确")
-		}
-	case "define":
-		if len(args) != 2 || !strings.HasPrefix(args[1], "/") || strings.Contains(args[1], "..") || !strings.HasSuffix(args[1], ".xml") {
-			return fmt.Errorf("导入参数不正确")
 		}
 	case "domrename":
 		if len(args) != 3 || validateActionOperand(args[1]) != nil || validateActionOperand(args[2]) != nil || args[1] == args[2] {
