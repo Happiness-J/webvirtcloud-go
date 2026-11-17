@@ -40,7 +40,7 @@ func (s *Server) hostOpsPage(w http.ResponseWriter, r *http.Request) {
 	warnings := append([]string(nil), hostStats.Warnings...)
 	page := pageData{Title: "运维工作台 · " + host.Name, Nav: "hosts", Data: map[string]any{
 		"Host": host, "Domains": domains, "ResourceRows": []opsVMView{},
-		"HostRows": readableStats(hostStats.NodeInfo), "ResourceSummary": resourceSummary(hostStats.CPUStats, hostStats.MemoryStats),
+		"Tags": map[string][]string{}, "HostRows": readableStats(hostStats.NodeInfo), "ResourceSummary": resourceSummary(hostStats.CPUStats, hostStats.MemoryStats),
 		"CPUStats": readableStats(hostStats.CPUStats), "MemoryStats": readableStats(hostStats.MemoryStats), "Warnings": warnings,
 	}}
 	if domainsErr != nil {
@@ -56,7 +56,24 @@ func (s *Server) hostOpsPage(w http.ResponseWriter, r *http.Request) {
 			page.Flash = "宿主机状态已加载，但虚拟机资源统计暂不可用。"
 			page.FlashType = "warn"
 		}
-		page.Data.(map[string]any)["ResourceRows"] = buildOpsVMRows(domains, stats)
+		rows := buildOpsVMRows(domains, stats)
+		tags, tagErr := s.db.ListVMTags(r.Context(), host.ID)
+		if tagErr == nil {
+			page.Data.(map[string]any)["Tags"] = tags
+			if wanted := strings.TrimSpace(r.URL.Query().Get("tag")); wanted != "" {
+				matched := rows[:0]
+				for _, row := range rows {
+					for _, tag := range tags[row.Name] {
+						if tag == wanted {
+							matched = append(matched, row)
+						}
+					}
+				}
+				rows = matched
+				page.Data.(map[string]any)["ActiveTag"] = wanted
+			}
+		}
+		page.Data.(map[string]any)["ResourceRows"] = rows
 	}
 	page.Data.(map[string]any)["Warnings"] = warnings
 	s.render(w, r, "ops", page)
@@ -140,6 +157,8 @@ func formatCPUTime(nanos uint64) string {
 
 var batchVMActionLabels = map[string]string{
 	"start":         "启动",
+	"snapshot":      "快照",
+	"migrate":       "迁移",
 	"shutdown":      "正常关机",
 	"reboot":        "重启",
 	"suspend":       "挂起",
@@ -185,7 +204,7 @@ func batchActionCompatible(action, state string) bool {
 		return state == "running"
 	case "resume":
 		return state == "paused"
-	case "autostart-on", "autostart-off":
+	case "autostart-on", "autostart-off", "snapshot", "migrate":
 		return true
 	default:
 		return false
@@ -194,7 +213,7 @@ func batchActionCompatible(action, state string) bool {
 
 func batchNeedsConfirmation(action string) bool {
 	switch action {
-	case "shutdown", "reboot", "suspend":
+	case "shutdown", "reboot", "suspend", "migrate":
 		return true
 	default:
 		return false
@@ -247,7 +266,7 @@ func (s *Server) vmBatchAction(w http.ResponseWriter, r *http.Request) {
 	jobIDs := make([]string, 0, len(names))
 	failures := 0
 	for _, name := range names {
-		args, _, err := actionArgs(action, name, "")
+		args, _, err := batchArgs(action, name, r.Form.Get("snapshot"), r.Form.Get("target"))
 		if err != nil {
 			failures++
 			continue
@@ -486,4 +505,23 @@ func statBytesPresent(values map[string]string, key string) (uint64, bool) {
 		return 0, false
 	}
 	return uint64(number * 1024), true
+}
+
+func batchArgs(action, name, snapshot, target string) ([]string, bool, error) {
+	switch action {
+	case "snapshot":
+		snapshot = strings.TrimSpace(snapshot)
+		if snapshot == "" {
+			snapshot = "batch"
+		}
+		return actionArgs("snapshot-create", name, snapshot)
+	case "migrate":
+		target = strings.TrimSpace(target)
+		if target == "" {
+			return nil, true, fmt.Errorf("迁移目标不能为空")
+		}
+		return []string{"migrate", name, "--live", target}, true, nil
+	default:
+		return actionArgs(action, name, "")
+	}
 }

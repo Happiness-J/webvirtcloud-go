@@ -9,7 +9,9 @@
   <section class="panel"><h2>节点实时资源</h2><dl class="kv">{{range .Data.ResourceSummary}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl><details><summary>查看原始分类统计</summary><dl class="kv">{{range .Data.CPUStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}{{range .Data.MemoryStats}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></details></section>
 </div>
 <section class="panel">
-  <div class="panel-head"><h2>虚拟机资源与批量操作</h2><a href="/hosts/{{.Data.Host.ID}}/vms">打开详情页</a></div>
+  <form method="get" action="/hosts/{{.Data.Host.ID}}/ops" class="inline-form"><label>按标签筛选<input name="tag" value="{{.Data.ActiveTag}}" maxlength="32" placeholder="production"></label><button class="btn small">筛选</button>{{if .Data.ActiveTag}}<a class="btn small" href="/hosts/{{.Data.Host.ID}}/ops">清除</a>{{end}}</form>
+<form method="post" action="/hosts/{{.Data.Host.ID}}/tags" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><label>虚拟机<input name="vm" required maxlength="128"></label><label>标签<input name="tag" required maxlength="32"></label><button class="btn small">添加标签</button></form>
+<div class="panel-head"><h2>虚拟机资源与批量操作</h2><a href="/hosts/{{.Data.Host.ID}}/vms">打开详情页</a></div>
   {{if .Data.ResourceRows}}
   {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
   <form id="vm-batch-form" method="post" action="/hosts/{{.Data.Host.ID}}/batch" class="inline-form batch-bar">
@@ -18,14 +20,17 @@
       <option value="start">启动</option><option value="shutdown">正常关机</option><option value="reboot">重启</option>
       <option value="suspend">挂起</option><option value="resume">恢复</option>
       <option value="autostart-on">启用自启动</option><option value="autostart-off">取消自启动</option>
+      <option value="snapshot">创建快照</option><option value="migrate">热迁移</option>
     </select></label>
+    <label>快照名<input name="snapshot" placeholder="batch" maxlength="64"></label>
+    <label>迁移目标<input name="target" placeholder="qemu+ssh://迁移目标/system" maxlength="256"></label>
     <label class="confirm"><input type="checkbox" name="confirm" value="yes">关机、重启或挂起时勾选确认</label>
     <button class="btn primary" data-confirm="将对已勾选的虚拟机批量提交任务。关机、重启和挂起会影响业务可用性，确定继续吗？">执行批量任务</button>
     <span class="hint">单次最多 50 台。启动和自启动可以直接提交；关机、重启、挂起必须勾选确认。状态不匹配时整批不会提交。</span>
   </form>
   {{end}}
-  <div class="table-wrap"><table class="ops-table"><thead><tr><th><input type="checkbox" data-select-all="vm-batch" aria-label="全选虚拟机"></th><th>名称</th><th>ID</th><th>状态</th><th>自启动</th><th>vCPU</th><th>内存实际占用</th><th>内存上限</th><th>累计 CPU 时间</th></tr></thead><tbody>
-  {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{statusName .State}}</span></td><td>{{flagName .Autostart}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
+  <div class="table-wrap"><table class="ops-table"><thead><tr><th><input type="checkbox" data-select-all="vm-batch" aria-label="全选虚拟机"></th><th>名称</th><th>标签</th><th>ID</th><th>状态</th><th>自启动</th><th>vCPU</th><th>内存实际占用</th><th>内存上限</th><th>累计 CPU 时间</th></tr></thead><tbody>
+  {{range .Data.ResourceRows}}<tr><td><input type="checkbox" data-select-group="vm-batch" name="vm" value="{{.Name}}" form="vm-batch-form" {{if eq $.User.Role "viewer"}}disabled{{end}}></td><td><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></td><td class="muted">{{range index $.Data.Tags .Name}}<span class="badge">{{.}}</span> {{end}}</td><td>{{.ID}}</td><td><span class="pill {{statusClass .State}}">{{statusName .State}}</span></td><td>{{flagName .Autostart}}</td><td>{{.VCPU}}</td><td>{{.MemoryCurrent}}</td><td>{{.MemoryMaximum}}</td><td>{{.CPUTime}}</td></tr>{{end}}
   </tbody></table></div>
   <p class="hint">资源数据来自 <code>virsh domstats</code>。内存实际占用只使用客户机报告的已用内存；没有 guest agent 或 balloon 统计时显示“未报告实际占用”，不会把分配容量当成已使用。“累计 CPU 时间”是虚拟机自启动以来的累计消耗，不是瞬时利用率。</p>
   {{else}}<div class="empty-state"><strong>没有可操作的虚拟机</strong><span>先创建虚拟机，或检查主机连接是否正常。</span></div>{{end}}
