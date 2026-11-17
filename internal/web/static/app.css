@@ -262,3 +262,12 @@ details summary { cursor: pointer; color: var(--brand); }
 .help-tip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:6px;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--brand);font-size:12px;font-weight:750;vertical-align:middle;position:relative}
 .help-tip[data-tip]::after{content:attr(data-tip);position:absolute;left:24px;top:-8px;z-index:8;width:min(280px,70vw);padding:10px 12px;border-radius:12px;background:var(--ink);color:#fff;font-size:13px;font-weight:450;line-height:1.45;white-space:normal;box-shadow:var(--shadow);opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .16s ease,transform .16s ease}
 .help-tip:hover::after,.help-tip:focus::after{opacity:1;transform:none}
+.req{color:var(--bad);font-weight:750}
+.opt{color:var(--muted);font-size:12px;font-weight:550}
+.advanced-group{border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:0 14px}
+.advanced-group summary{display:flex;align-items:center;gap:8px;min-height:48px;font-weight:750}
+.advanced-body{display:grid;gap:14px;padding-bottom:14px}
+.advanced-group[open] .advanced-body{animation:reveal .18s ease}
+@keyframes reveal{from{opacity:.4;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.field-error{outline:2px solid #efc3c3;border-color:var(--bad)}
+.form-error{color:var(--bad);font-weight:650}
