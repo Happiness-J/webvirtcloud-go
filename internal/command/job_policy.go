@@ -150,6 +150,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", err
 		}
 		return RoleOperator, nil
+	case "host-power":
+		if err := validateHostPowerArgs(tool, args); err != nil {
+			return "", err
+		}
+		return RoleAdmin, nil
 	case "disk-action":
 		if err := validateDiskActionArgs(tool, args); err != nil {
 			return "", err
@@ -1132,6 +1137,34 @@ func validateOVAArgs(args []string) error {
 	}
 	if !validManagedImagePath(args[2]) || !strings.HasSuffix(strings.ToLower(args[2]), ".ova") || !validManagedImagePath(args[6]) {
 		return fmt.Errorf("OVA 路径无效")
+	}
+	return nil
+}
+
+func validateHostPowerArgs(tool string, args []string) error {
+	switch tool {
+	case "smartctl":
+		if len(args) != 2 || args[0] != "-H" || !strings.HasPrefix(args[1], "/dev/") || strings.Contains(args[1], "..") {
+			return fmt.Errorf("磁盘健康参数不正确")
+		}
+	case "sensors":
+		if len(args) != 1 || args[0] != "-u" {
+			return fmt.Errorf("传感器参数不正确")
+		}
+	case "apt-get":
+		if len(args) != 2 || args[0] != "-s" || args[1] != "upgrade" {
+			return fmt.Errorf("更新检查参数不正确")
+		}
+	case "systemctl":
+		if len(args) != 1 || (args[0] != "reboot" && args[0] != "poweroff") {
+			return fmt.Errorf("电源操作参数不正确")
+		}
+	case "etherwake":
+		if len(args) != 1 || !validMACArg(args[0]) {
+			return fmt.Errorf("唤醒地址无效")
+		}
+	default:
+		return fmt.Errorf("不支持的宿主机健康工具 %q", tool)
 	}
 	return nil
 }

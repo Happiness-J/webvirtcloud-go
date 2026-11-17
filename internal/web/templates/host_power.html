@@ -1,0 +1,38 @@
+{{define "content"}}
+<div class="page-head"><div><p class="page-kicker">宿主机</p><h1>{{.Data.Host.Name}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="健康检查只读取状态。重启、关机和网络唤醒会立即作用于宿主机，需要管理员确认。">?</button><p class="muted">查看磁盘、温度和可用更新，或在确认后重启、关机、网络唤醒。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}/ops">返回运维</a></div>
+<section class="panel">
+  <h2>健康</h2>
+  <div class="grid two">
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/power" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="smart">
+      <label>磁盘<input name="value" value="/dev/sda" required></label>
+      <button class="btn">SMART 健康</button>
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/power" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="sensors">
+      <p class="hint">读取温度和风扇传感器。</p>
+      <button class="btn">读取传感器</button>
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/power" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="updates">
+      <p class="hint">只模拟升级，不安装软件包。</p>
+      <button class="btn">检查可用更新</button>
+    </form>
+  </div>
+</section>
+<section class="panel">
+  <h2>电源</h2>
+  <div class="grid two">
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/power" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="wol">
+      <label>网卡 MAC<input name="value" required placeholder="00:11:22:33:44:55"></label>
+      <button class="btn">网络唤醒</button>
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/power" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="confirm" value="yes">
+      <label>操作<select name="action"><option value="reboot">重启宿主机</option><option value="poweroff">关闭宿主机</option></select></label>
+      <button class="btn danger" data-confirm="这会立即重启或关闭宿主机上的所有虚拟机。确定继续吗？">执行电源操作</button>
+    </form>
+  </div>
+</section>
+{{end}}
