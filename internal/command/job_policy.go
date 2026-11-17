@@ -450,6 +450,15 @@ func validateHostTestArgs(tool string, args []string) error {
 	}
 }
 
+func validHAXML(value string) bool {
+	const prefix = "/var/lib/libvirt/images/ha/"
+	if !strings.HasPrefix(value, prefix) || !strings.HasSuffix(value, ".xml") || strings.Contains(value, "..") {
+		return false
+	}
+	name := strings.TrimSuffix(strings.TrimPrefix(value, prefix), ".xml")
+	return validateActionOperand(name) == nil
+}
+
 func validHypervisorType(value string) bool {
 	switch value {
 	case "qemu", "lxc", "xen", "bhyve", "vmx", "test":
@@ -503,6 +512,9 @@ func validateVMActionArgs(args []string) error {
 			return fmt.Errorf("虚拟机操作 %s 的参数数量不正确", args[0])
 		}
 	case "start":
+		if len(args) == 4 && args[2] == "--file" && validHAXML(args[3]) {
+			return nil
+		}
 		if !(len(args) == 2 || (len(args) == 3 && (args[2] == "--managed" || args[2] == "--paused"))) {
 			return fmt.Errorf("虚拟机启动参数不正确")
 		}

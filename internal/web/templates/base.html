@@ -16,6 +16,7 @@
     <a {{if eq .Nav "dashboard"}}class="active"{{end}} href="/">概览</a>
     <a {{if eq .Nav "vms"}}class="active"{{end}} href="/vms">虚拟机</a>
     <a {{if eq .Nav "hosts"}}class="active"{{end}} href="/hosts">主机</a>
+    {{if eq .User.Role "admin"}}<a {{if eq .Nav "cluster"}}class="active"{{end}} href="/cluster">集群调度</a>{{end}}
     <a href="/images">镜像库</a>
     <a {{if eq .Nav "jobs"}}class="active"{{end}} href="/jobs">任务</a>
     {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a {{if eq .Nav "audit"}}class="active"{{end}} href="/audit">审计</a>{{end}}

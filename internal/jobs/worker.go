@@ -78,6 +78,7 @@ func (w *Worker) Run(ctx context.Context) {
 				w.publishHeartbeat(ctx)
 				w.enqueueDueBackups(ctx)
 				w.enqueueDueVMSchedules(ctx)
+				w.reconcileCluster(ctx)
 				if _, err := w.store.PurgeWorkerHeartbeats(ctx, 10*time.Minute); err != nil && ctx.Err() == nil {
 					w.log.Warn("purge worker heartbeats", "error", err)
 				}

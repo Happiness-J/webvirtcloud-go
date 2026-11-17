@@ -125,3 +125,12 @@ func TestValidateHostdevXML(t *testing.T) {
 		t.Fatal("unexpected device accepted")
 	}
 }
+
+func TestFailoverStartPath(t *testing.T) {
+	if _, err := JobMinimumRole("vm-action", "virsh", []string{"start", "web", "--file", "/var/lib/libvirt/images/ha/web.xml"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := JobMinimumRole("vm-action", "virsh", []string{"start", "web", "--file", "/tmp/web.xml"}); err == nil {
+		t.Fatal("path outside shared ha directory accepted")
+	}
+}
