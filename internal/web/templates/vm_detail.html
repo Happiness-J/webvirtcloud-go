@@ -314,6 +314,21 @@
     <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
   </div>
 </section>
+<section class="panel"><h2>定时快照与电源</h2><button type="button" class="help-tip" aria-label="说明" data-tip="到期后自动创建静默快照或执行开机、关机。保留数量用于限制自动快照。">?</button>
+<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/schedule" class="inline-form">
+  <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="snapshot">
+  <label>快照周期小时<input name="interval_hours" type="number" min="1" max="168" value="24" required></label>
+  <label>保留数量<input name="retain_count" type="number" min="1" max="100" value="7" required></label>
+  <button class="btn">保存定时快照</button>
+</form>
+<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/schedule" class="inline-form">
+  <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="power">
+  <label>电源周期小时<input name="interval_hours" type="number" min="1" max="168" value="24" required></label>
+  <label>动作<select name="power_action"><option value="start">开机</option><option value="shutdown">关机</option></select></label>
+  <button class="btn">保存定时电源</button>
+</form>
+{{if .Data.Schedules}}<table><thead><tr><th>类型</th><th>周期</th><th>下次</th></tr></thead><tbody>{{range .Data.Schedules}}<tr><td>{{if eq .Kind "snapshot"}}快照 · 保留 {{.RetainCount}}{{else}}电源 · {{.PowerAction}}{{end}}</td><td>{{.IntervalHours}} 小时</td><td class="muted">{{date .NextRunAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有定时快照或电源动作。</p>{{end}}
+</section>
 <section class="panel">
   <h2>增量备份检查点</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">

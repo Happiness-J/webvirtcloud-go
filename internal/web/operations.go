@@ -734,3 +734,37 @@ func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
 	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "backup.drill", HostID: host.ID, VMName: vmName, RemoteIP: s.clientIP(r), Detail: map[string]any{"result": drill.Result, "target": kind}})
 	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "恢复演练记录已保存", "ok"), http.StatusSeeOther)
 }
+
+func (s *Server) vmScheduleSave(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	vmName := r.PathValue("vm")
+	if err := libvirt.ValidateName(vmName); err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "虚拟机名称无效")
+		return
+	}
+	interval, err := strconv.Atoi(r.Form.Get("interval_hours"))
+	if err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "周期无效")
+		return
+	}
+	retain, _ := strconv.Atoi(defaultString(r.Form.Get("retain_count"), "7"))
+	kind := strings.TrimSpace(r.Form.Get("kind"))
+	action := strings.TrimSpace(r.Form.Get("power_action"))
+	err = s.db.SaveVMSchedule(r.Context(), store.VMSchedule{HostID: host.ID, VMName: vmName, Kind: kind, IntervalHours: interval, RetainCount: retain, PowerAction: action, Enabled: true, NextRunAt: time.Now().Add(time.Duration(interval) * time.Hour)})
+	if err != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+		return
+	}
+	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "定时任务已保存", "ok"), http.StatusSeeOther)
+}
+
+func defaultString(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
+}
