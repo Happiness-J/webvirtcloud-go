@@ -290,7 +290,7 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 		targetFormat := strings.ToLower(strings.TrimSpace(r.Form.Get("format")))
 		args, err = imageConvertArgs(source, sourceFormat, name, targetFormat)
 		if err != nil {
-			s.redirectError(w, r, storageRedirect(host.ID, pool), err.Error())
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "镜像转换参数无效")
 			return
 		}
 		jobID, err := s.enqueueCommand(r, sess.User, host.ID, "disk-action", fmt.Sprintf("转换镜像 %s -> %s", volume, name), "qemu-img", args, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600))
