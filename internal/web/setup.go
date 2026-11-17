@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"webvirtcloud-go/internal/command"
 	"webvirtcloud-go/internal/libvirt"
@@ -81,7 +82,10 @@ func (s *Server) setupApply(w http.ResponseWriter, r *http.Request) {
 		{"启动默认存储池", []string{"pool-start", "default"}, ""},
 		{"默认存储池开机自启", []string{"pool-autostart", "default"}, ""},
 	}
-	for _, step := range poolSteps {
+	for i, step := range poolSteps {
+		if i > 0 {
+			time.Sleep(2 * time.Millisecond)
+		}
 		if _, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", step.label, "virsh", step.args, step.stdin, 120); err != nil {
 			s.redirectError(w, r, "/setup", "无法初始化默认存储池")
 			return
@@ -102,7 +106,10 @@ func (s *Server) setupApply(w http.ResponseWriter, r *http.Request) {
 		{"启动默认网络", []string{"net-start", "default"}, ""},
 		{"默认网络开机自启", []string{"net-autostart", "default"}, ""},
 	}
-	for _, step := range netSteps {
+	for i, step := range netSteps {
+		if i > 0 {
+			time.Sleep(2 * time.Millisecond)
+		}
 		id, err := s.enqueueCommand(r, sess.User, host.ID, "network-action", step.label, "virsh", step.args, step.stdin, 120)
 		if err != nil {
 			s.redirectError(w, r, "/setup", "无法初始化默认网络")
