@@ -47,11 +47,7 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 		name = strings.TrimSpace(r.Form.Get("name"))
 		xmlText, err := command.StoragePoolXML(strings.TrimSpace(r.Form.Get("pool_type")), name, strings.TrimSpace(r.Form.Get("source")), strings.TrimSpace(r.Form.Get("target")))
 		if err != nil || command.ValidateStoragePoolXML(xmlText) != nil {
-			message := "存储池参数无效"
-			if err != nil {
-				message = err.Error()
-			}
-			s.redirectError(w, r, "/hosts/"+host.ID+"/storage", message)
+			s.redirectError(w, r, "/hosts/"+host.ID+"/storage", "存储池参数无效")
 			return
 		}
 		jobID, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", "定义存储池 "+name, "virsh", []string{"pool-define", "/dev/stdin"}, xmlText, boundedOperationTimeout(s.cfg.MaxTimeout, 120))
