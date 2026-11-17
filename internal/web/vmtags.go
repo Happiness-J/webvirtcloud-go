@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"webvirtcloud-go/internal/libvirt"
@@ -20,5 +21,5 @@ func (s *Server) vmTagSave(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+hostID+"/ops", err.Error())
 		return
 	}
-	http.Redirect(w, r, "/hosts/"+hostID+"/ops?tag="+tag, http.StatusSeeOther)
+	http.Redirect(w, r, "/hosts/"+hostID+"/ops?tag="+url.QueryEscape(tag), http.StatusSeeOther)
 }
