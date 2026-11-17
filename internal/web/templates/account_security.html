@@ -56,7 +56,7 @@
   {{range .Data.Sessions}}<tr>
     <td>{{date .LastSeen}}{{if .Current}} <span class="badge">当前</span>{{end}}</td>
     <td class="muted">{{.RemoteIP}}</td>
-    <td class="muted">{{truncate .UserAgent 72}}</td>
+    <td class="muted">{{short .UserAgent}}</td>
     <td><form method="post" action="/account/security/sessions/{{.ID}}/revoke" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><button class="btn small danger">退出此会话</button></form></td>
   </tr>{{end}}</tbody></table>{{else}}<p class="empty">没有其他有效会话。</p>{{end}}
 </section>
