@@ -250,11 +250,11 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 				converted := strings.TrimSuffix(source, filepath.Ext(source)) + ".vmdk"
 				convertArgs, convErr := imageConvertArgs(source, format, filepath.Base(converted), "vmdk")
 				if convErr != nil {
-					s.redirectError(w, r, storageRedirect(host.ID, pool), convErr.Error())
+					s.redirectError(w, r, storageRedirect(host.ID, pool), "镜像转换参数无效")
 					return
 				}
 				if _, err := s.enqueueCommand(r, sess.User, host.ID, "disk-action", "转换为 VMDK "+filepath.Base(converted), "qemu-img", convertArgs, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600)); err != nil {
-					s.redirectError(w, r, storageRedirect(host.ID, pool), err.Error())
+					s.redirectError(w, r, storageRedirect(host.ID, pool), "无法提交镜像转换")
 					return
 				}
 				source = converted
