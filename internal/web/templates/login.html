@@ -9,6 +9,7 @@
     <input type="hidden" name="next" value="{{.Data.Next}}">
     <label>用户名<input name="username" autocomplete="username" required autofocus></label>
     <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
+    <label>验证码<span class="hint">已启用验证器时填写 6 位数字</span><input name="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="未启用可留空"></label>
     <button class="btn primary wide">登录</button>
   </form>
   <p class="hint">首次启动的管理员密码只保存在主密钥目录的一次性文件中。登录后请立即修改密码并删除该文件。</p>

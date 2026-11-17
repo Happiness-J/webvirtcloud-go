@@ -1,0 +1,63 @@
+{{define "content"}}
+<div class="page-head"><div><p class="page-kicker">账号安全</p><h1>登录与令牌</h1><button type="button" class="help-tip" aria-label="说明" data-tip="验证器用于登录二次确认。API 令牌只在创建时显示一次，可随时吊销。会话列表只展示摘要，不包含登录密钥。">?</button><p class="muted">管理双因素认证、个人 API 令牌和当前登录会话。令牌权限不会高于本账号。</p></div><a class="btn" href="/account/password">修改密码</a></div>
+
+<section class="panel">
+  <h2>双因素认证</h2>
+  {{if .Data.TOTPEnabled}}
+    <p><span class="pill ok">已启用</span> 登录时需要验证器中的 6 位验证码。</p>
+    <form method="post" action="/account/security/totp/disable" class="inline-form">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <label>当前验证码<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+      <button class="btn danger">关闭验证器</button>
+    </form>
+  {{else}}
+    <p><span class="pill">未启用</span> 启用后，密码正确仍需验证器验证码才能登录。</p>
+    {{if .Data.Pending}}
+      <p>验证器密钥：<code>{{.Data.Pending}}</code></p>
+      <p class="hint">在验证器中手动添加该密钥，账户名使用当前用户名，类型选择基于时间的一次性密码。确认成功前不会生效。</p>
+      <form method="post" action="/account/security/totp/confirm" class="inline-form">
+        <input type="hidden" name="_csrf" value="{{.CSRF}}">
+        <label>验证码<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+        <button class="btn primary">确认启用</button>
+      </form>
+    {{else}}
+      <form method="post" action="/account/security/totp/start" class="inline-form">
+        <input type="hidden" name="_csrf" value="{{.CSRF}}">
+        <label>当前密码<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn primary">生成验证器密钥</button>
+      </form>
+    {{end}}
+  {{end}}
+</section>
+
+<section class="panel">
+  <h2>API 令牌</h2>
+  <form method="post" action="/account/security/tokens" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <label>名称<input name="name" maxlength="64" required placeholder="自动化脚本"></label>
+    <label>权限<select name="role">{{range .Data.Roles}}<option value="{{.}}">{{roleName .}}</option>{{end}}</select></label>
+    <label>有效期<select name="ttl"><option value="30">30 天</option><option value="90">90 天</option><option value="never">不过期</option></select></label>
+    {{if .Data.TOTPEnabled}}<label>验证码<input name="code" inputmode="numeric" maxlength="6" required></label>{{end}}
+    <button class="btn primary">创建令牌</button>
+  </form>
+  <p class="hint">创建成功后令牌只出现在页面提示中一次。请求时使用 Authorization: Bearer。</p>
+  {{if .Data.Tokens}}<table><thead><tr><th>名称</th><th>权限</th><th>状态</th><th>创建</th><th></th></tr></thead><tbody>
+  {{range .Data.Tokens}}<tr>
+    <td>{{.Name}}</td><td>{{roleName .Role}}</td>
+    <td>{{if .Active}}<span class="pill ok">有效</span>{{else}}<span class="pill bad">已失效</span>{{end}}</td>
+    <td class="muted">{{date .CreatedAt}}</td>
+    <td>{{if not .RevokedAt}}<form method="post" action="/account/security/tokens/{{.ID}}/revoke" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><button class="btn small danger">吊销</button></form>{{end}}</td>
+  </tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有个人 API 令牌。</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>登录会话</h2>
+  {{if .Data.Sessions}}<table><thead><tr><th>最近活动</th><th>来源</th><th>客户端</th><th></th></tr></thead><tbody>
+  {{range .Data.Sessions}}<tr>
+    <td>{{date .LastSeen}}{{if .Current}} <span class="badge">当前</span>{{end}}</td>
+    <td class="muted">{{.RemoteIP}}</td>
+    <td class="muted">{{truncate .UserAgent 72}}</td>
+    <td><form method="post" action="/account/security/sessions/{{.ID}}/revoke" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><button class="btn small danger">退出此会话</button></form></td>
+  </tr>{{end}}</tbody></table>{{else}}<p class="empty">没有其他有效会话。</p>{{end}}
+</section>
+{{end}}

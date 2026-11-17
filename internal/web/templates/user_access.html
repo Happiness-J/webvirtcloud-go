@@ -1,18 +1,28 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">桌面授权</p><h1>{{.Data.Target.Username}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="这里只授予打开指定虚拟机控制台的权限，不授予开关机、磁盘或主机管理权限。">?</button><p class="muted">仅桌面用户可获得指定虚拟机的 VNC 控制台权限，不包含电源、磁盘和主机管理权限。</p></div><a class="btn" href="/users">返回用户</a></div>
+<div class="page-head"><div><p class="page-kicker">授权范围</p><h1>{{.Data.Target.Username}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="主机授权限制账号能看到哪些主机。未分配任何主机时保持原有范围。桌面用户还可以再限定能打开的虚拟机控制台。">?</button><p class="muted">主机授权为空表示不额外收窄。分配后，该账号的概览、主机和虚拟机只显示这些主机。桌面用户的控制台仍需单独授权。</p></div><a class="btn" href="/users">返回用户</a></div>
 <section class="panel">
-  <h2>新增授权</h2>
+  <h2>主机授权</h2>
+  {{if eq .Data.Target.Role "admin"}}<p class="empty">管理员始终可以访问全部主机。</p>{{else}}
+  <form method="post" action="/users/{{.Data.Target.ID}}/access" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="grant_host">
+    <label>主机<select name="host_id" required>{{range .Data.Hosts}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+    <button class="btn primary">授权主机</button>
+  </form>
+  {{if .Data.HostAccess}}<table><thead><tr><th>主机</th><th>操作</th></tr></thead><tbody>{{range .Data.HostAccess}}<tr><td>{{.HostName}}</td><td>
+    <form method="post" action="/users/{{$.Data.Target.ID}}/access" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="revoke_host"><input type="hidden" name="host_id" value="{{.HostID}}"><button class="btn small danger">撤销</button></form>
+  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">尚未限制主机。账号仍按角色看到全部主机。</p>{{end}}{{end}}
+</section>
+<section class="panel">
+  <h2>虚拟机控制台</h2>
+  {{if ne .Data.Target.Role "desktop"}}<p class="empty">只有桌面用户需要逐台虚拟机的控制台授权。</p>{{else}}
   <form method="post" action="/users/{{.Data.Target.ID}}/access" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="grant">
     <label>主机<select name="host_id" required>{{range .Data.Hosts}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
     <label>虚拟机名称<input name="vm_name" required maxlength="256" placeholder="windows-desktop"></label>
     <button class="btn primary">授权控制台</button>
   </form>
-</section>
-<section class="panel">
-  <h2>已授权虚拟机</h2>
   {{if .Data.Access}}<table><thead><tr><th>主机</th><th>虚拟机</th><th>操作</th></tr></thead><tbody>{{range .Data.Access}}<tr><td>{{.HostName}}</td><td>{{.VMName}}</td><td>
     <form method="post" action="/users/{{$.Data.Target.ID}}/access" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="revoke"><input type="hidden" name="host_id" value="{{.HostID}}"><input type="hidden" name="vm_name" value="{{.VMName}}"><button class="btn small danger">撤销</button></form>
-  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">尚未授权任何虚拟机。</p>{{end}}
+  </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">尚未授权任何虚拟机。</p>{{end}}{{end}}
 </section>
 {{end}}

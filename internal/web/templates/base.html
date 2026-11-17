@@ -22,7 +22,7 @@
     {{if eq .User.Role "admin"}}<a {{if eq .Nav "users"}}class="active"{{end}} href="/users">用户 / LDAP</a>{{end}}<a href="/api/v1">OpenAPI</a>
   </nav>
   <div class="account">
-    <a href="/account/password" title="修改密码">{{.User.Username}}</a><span class="badge">{{roleName .User.Role}}</span>
+    <a href="/account/security" title="账号安全">{{.User.Username}}</a><span class="badge">{{roleName .User.Role}}</span>
     <form method="post" action="/logout" class="inline">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
       <button class="link">退出</button>
