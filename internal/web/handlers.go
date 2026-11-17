@@ -1528,7 +1528,8 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 			inactive = append(inactive, network.Name)
 		}
 	}
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles()}})
+	disks, _ := listImportableDisks(s.cfg.ImageDir)
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles(), "Disks": disks}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
@@ -1598,8 +1599,28 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", busErr.Error())
 			return
 		}
+		importDisk := strings.TrimSpace(r.Form.Get("import_disk"))
+		if importDisk != "" {
+			if !validLibraryDisk(s.cfg.ImageDir, filepath.Join(s.cfg.ImageDir, filepath.Base(importDisk))) {
+				s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "只能导入镜像库中的磁盘")
+				return
+			}
+			format := "qcow2"
+			lower := strings.ToLower(importDisk)
+			switch {
+			case strings.HasSuffix(lower, ".raw"):
+				format = "raw"
+			case strings.HasSuffix(lower, ".vmdk"):
+				format = "vmdk"
+			}
+			for i := range args {
+				if args[i] == "--disk" && i+1 < len(args) {
+					args[i+1] = "path=" + filepath.Join(s.cfg.ImageDir, filepath.Base(importDisk)) + ",format=" + format
+				}
+			}
+		}
 		for i := range args {
-			if args[i] == "--disk" && i+1 < len(args) {
+			if args[i] == "--disk" && i+1 < len(args) && strings.HasPrefix(args[i+1], "size=") {
 				args[i+1] += ",bus=" + bus
 			}
 			if args[i] == "--network" && i+1 < len(args) && !strings.Contains(args[i+1], "model=") {
