@@ -315,6 +315,11 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 			return "failed", "", "虚拟网络定义无效"
 		}
 	}
+	if len(args) > 0 && args[0] == "nodedev-define" {
+		if err := command.ValidateMDEVDefine(job.Stdin); err != nil {
+			return "failed", "", "mediated device definition rejected"
+		}
+	}
 	if len(args) > 0 && args[0] == "pool-define" {
 		if err := command.ValidateStoragePoolXML(job.Stdin); err != nil {
 			return "failed", "", "存储池定义无效"
