@@ -341,7 +341,11 @@
 {{end}}
 <div class="grid two">
   <section class="panel"><h2>摘要</h2><dl class="kv">{{range .Data.InfoRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
-  <section class="panel"><h2>客户机 IP</h2>
+  <section class="panel"><h2>客户机信息</h2><button type="button" class="help-tip" aria-label="说明" data-tip="通过 guest agent 查看操作系统、磁盘使用和在线状态。没有 agent 时，可以挂载工具 ISO 后在客户机内安装。">?</button>
+<p class="hint">{{if .Data.Detail.GuestAgent}}代理在线。{{else}}代理未响应。Windows 安装 QEMU Guest Agent，Linux 安装并启动 qemu-guest-agent。{{end}}</p>
+<h3>操作系统</h3><pre class="output">{{.Data.GuestOS}}</pre><h3>内部磁盘</h3><pre class="output">{{.Data.GuestFilesystems}}</pre>
+{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cdrom-change"><input name="snapshot" placeholder="光驱目标，例如 sda" required><input name="media" placeholder="工具 ISO 路径" required><button class="btn">挂载工具 ISO</button></form>{{end}}
+<h2>客户机 IP</h2>
     {{if .Data.Detail.Addresses}}<table><thead><tr><th>接口</th><th>协议</th><th>地址</th><th>来源</th></tr></thead><tbody>{{range .Data.Detail.Addresses}}<tr><td>{{.Interface}}</td><td>{{.Protocol}}</td><td><code>{{.Address}}/{{.Prefix}}</code></td><td>{{.Source}}</td></tr>{{end}}</tbody></table>
     {{else}}<p class="empty">尚未获得客户机 IP。Windows 和 Linux 安装并启动 QEMU Guest Agent 后可直接读取；没有 agent 时会尝试 libvirt DHCP 租约。</p>{{end}}
     <h2>块设备</h2><pre class="output">{{.Data.Detail.BlockDevs}}</pre><h2>网络接口</h2><pre class="output">{{.Data.Detail.Ifaces}}</pre></section>
