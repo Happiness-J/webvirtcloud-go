@@ -720,7 +720,12 @@ func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
 		Result: strings.TrimSpace(r.Form.Get("result")), Note: note, ActorName: sess.User.Username,
 	}
 	if err := s.db.AddBackupDrill(r.Context(), drill); err != nil {
-		s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
+		message := "无法保存恢复演练"
+		switch err.Error() {
+		case "演练结果无效", "校验值必须是 64 位十六进制摘要":
+			message = err.Error()
+		}
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), message)
 		return
 	}
 	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "backup.drill", HostID: host.ID, VMName: vmName, RemoteIP: s.clientIP(r), Detail: map[string]any{"result": drill.Result, "target": kind}})
