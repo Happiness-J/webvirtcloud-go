@@ -260,6 +260,22 @@ func (s *Service) MemoryStats(ctx context.Context, hostID, name string) (string,
 	return formatMemoryStats(res.Stdout), nil
 }
 
+func (s *Service) GuestOSInfo(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"guestinfo", name, "--os"}, 10*time.Second)
+	return strings.TrimSpace(res.Stdout), err
+}
+
+func (s *Service) GuestFilesystems(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"domfsinfo", name}, 10*time.Second)
+	return strings.TrimSpace(res.Stdout), err
+}
+
 func (s *Service) GuestAgentInfo(ctx context.Context, hostID, name string) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err
