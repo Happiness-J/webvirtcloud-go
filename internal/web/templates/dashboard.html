@@ -1,4 +1,5 @@
 {{define "content"}}
+{{if eq .Data.HostCount 0}}<section class="panel"><div class="empty-state"><strong>开始首次运行</strong><span>检测本机虚拟化，添加主机，并初始化默认存储池和网络。</span><a class="btn primary" href="/setup">打开向导</a></div></section>{{end}}
 <div class="page-head">
   <div><p class="page-kicker">总览</p><h1>基础设施概览</h1><p class="muted">虚拟机操作进入任务队列，主机和用户变更会写入审计。</p></div>
   <div class="actions"><a class="btn" href="/vms">查看虚拟机</a>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a class="btn primary" href="/vms">创建 / 管理虚拟机</a>{{end}}{{if eq .User.Role "admin"}}<a class="btn" href="/hosts/new">添加主机</a>{{end}}</div>
