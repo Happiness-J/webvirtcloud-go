@@ -365,6 +365,8 @@ func validateDiskActionArgs(tool string, args []string) error {
 			return fmt.Errorf("在线磁盘容量无效")
 		}
 		return nil
+	case "virt-v2v":
+		return validateOVAArgs(args)
 	case "qemu-img":
 		if len(args) == 3 && args[0] == "resize" {
 			return validateDiskResizePathAndAmount(args[1], args[2], false)
@@ -1120,4 +1122,16 @@ func validNICAdvancedArgs(args []string) bool {
 		}
 	}
 	return true
+}
+
+func validateOVAArgs(args []string) error {
+	importOK := len(args) == 7 && args[0] == "-i" && args[1] == "ova" && args[3] == "-o" && args[4] == "local" && args[5] == "-os"
+	exportOK := len(args) == 7 && args[0] == "-i" && args[1] == "disk" && args[3] == "-o" && args[4] == "local" && args[5] == "-os"
+	if !importOK && !exportOK {
+		return fmt.Errorf("OVA 参数不正确")
+	}
+	if !validManagedImagePath(args[2]) || !strings.HasSuffix(strings.ToLower(args[2]), ".ova") || !validManagedImagePath(args[6]) {
+		return fmt.Errorf("OVA 路径无效")
+	}
+	return nil
 }
