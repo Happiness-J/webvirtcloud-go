@@ -514,6 +514,9 @@ func validateVMActionArgs(args []string) error {
 		return fmt.Errorf("虚拟机自启动操作参数不正确")
 	}
 	if args[0] == "define" {
+		if len(args) == 3 && args[2] == "--start" && validHAXML(args[1]) {
+			return nil
+		}
 		if len(args) != 2 || (!validHAXML(args[1]) && !validImportedXML(args[1])) {
 			return fmt.Errorf("导入参数不正确")
 		}
