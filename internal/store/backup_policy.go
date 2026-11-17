@@ -16,6 +16,8 @@ type BackupPolicy struct {
 	RetainCount   int
 	Enabled       bool
 	NextRunAt     time.Time
+	TargetKind    string
+	TargetRef     string
 }
 
 func (db *Store) SaveBackupPolicy(ctx context.Context, policy BackupPolicy) error {
@@ -26,15 +28,15 @@ func (db *Store) SaveBackupPolicy(ctx context.Context, policy BackupPolicy) erro
 		return fmt.Errorf("备份策略参数超出范围")
 	}
 	_, err := db.pool.Exec(ctx, `
-		INSERT INTO backup_policies(id, host_id, vm_name, interval_hours, retain_count, enabled, next_run_at)
-		VALUES($1,$2,$3,$4,$5,$6,$7)
-		ON CONFLICT (host_id, vm_name) DO UPDATE SET interval_hours=EXCLUDED.interval_hours, retain_count=EXCLUDED.retain_count, enabled=EXCLUDED.enabled, next_run_at=EXCLUDED.next_run_at`,
-		policy.ID, policy.HostID, policy.VMName, policy.IntervalHours, policy.RetainCount, policy.Enabled, policy.NextRunAt)
+		INSERT INTO backup_policies(id, host_id, vm_name, interval_hours, retain_count, enabled, next_run_at, target_kind, target_ref)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		ON CONFLICT (host_id, vm_name) DO UPDATE SET interval_hours=EXCLUDED.interval_hours, retain_count=EXCLUDED.retain_count, enabled=EXCLUDED.enabled, next_run_at=EXCLUDED.next_run_at, target_kind=EXCLUDED.target_kind, target_ref=EXCLUDED.target_ref`,
+		policy.ID, policy.HostID, policy.VMName, policy.IntervalHours, policy.RetainCount, policy.Enabled, policy.NextRunAt, defaultKind(policy.TargetKind), policy.TargetRef)
 	return err
 }
 
 func (db *Store) ListDueBackupPolicies(ctx context.Context, now time.Time) ([]BackupPolicy, error) {
-	rows, err := db.pool.Query(ctx, `SELECT id, host_id, vm_name, interval_hours, retain_count, enabled, next_run_at FROM backup_policies WHERE enabled AND next_run_at<=$1 ORDER BY next_run_at`, now)
+	rows, err := db.pool.Query(ctx, `SELECT id, host_id, vm_name, interval_hours, retain_count, enabled, next_run_at, target_kind, target_ref FROM backup_policies WHERE enabled AND next_run_at<=$1 ORDER BY next_run_at`, now)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +44,7 @@ func (db *Store) ListDueBackupPolicies(ctx context.Context, now time.Time) ([]Ba
 	var out []BackupPolicy
 	for rows.Next() {
 		var policy BackupPolicy
-		if err := rows.Scan(&policy.ID, &policy.HostID, &policy.VMName, &policy.IntervalHours, &policy.RetainCount, &policy.Enabled, &policy.NextRunAt); err != nil {
+		if err := rows.Scan(&policy.ID, &policy.HostID, &policy.VMName, &policy.IntervalHours, &policy.RetainCount, &policy.Enabled, &policy.NextRunAt, &policy.TargetKind, &policy.TargetRef); err != nil {
 			return nil, err
 		}
 		out = append(out, policy)
@@ -53,4 +55,11 @@ func (db *Store) ListDueBackupPolicies(ctx context.Context, now time.Time) ([]Ba
 func (db *Store) MarkBackupPolicyRun(ctx context.Context, id string, next time.Time) error {
 	_, err := db.pool.Exec(ctx, `UPDATE backup_policies SET next_run_at=$2 WHERE id=$1`, id, next)
 	return err
+}
+
+func defaultKind(kind string) string {
+	if kind == "" {
+		return "local"
+	}
+	return kind
 }

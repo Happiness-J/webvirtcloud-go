@@ -2438,7 +2438,7 @@ func validUserRole(role string) bool {
 func validJobKind(kind string) bool {
 	switch kind {
 	case "command", "vm-create", "vm-clone", "vm-action", "host-test", "filesystem-inspect",
-		"storage-action", "network-action", "disk-action", "vm-resource":
+		"storage-action", "network-action", "disk-action", "vm-resource", "backup-policy":
 		return true
 	default:
 		return false

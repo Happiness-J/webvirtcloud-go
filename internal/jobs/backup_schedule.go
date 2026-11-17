@@ -19,7 +19,7 @@ func (w *Worker) enqueueDueBackups(ctx context.Context) {
 	for _, policy := range policies {
 		name := fmt.Sprintf("auto-%s", time.Now().UTC().Format("20060102-150405"))
 		args, _ := json.Marshal([]string{"checkpoint-create-as", policy.VMName, "--name", name, "--retain", fmt.Sprintf("%d", policy.RetainCount)})
-		job := store.Job{ID: id.New("job"), UserID: "system:backup", HostID: policy.HostID, Kind: "backup-policy", Label: "定时检查点 " + policy.VMName, Tool: "virsh", ArgsJSON: string(args), TimeoutSeconds: 1800}
+		job := store.Job{ID: id.New("job"), UserID: "system:backup", HostID: policy.HostID, Kind: "backup-policy", Label: "定时检查点 " + policy.VMName + backupTargetLabel(policy.TargetKind), Tool: "virsh", ArgsJSON: string(args), TimeoutSeconds: 1800}
 		if err := w.store.EnqueueJob(ctx, job); err != nil {
 			w.log.Warn("enqueue scheduled backup", "policy", policy.ID, "error", err)
 			continue
@@ -27,5 +27,16 @@ func (w *Worker) enqueueDueBackups(ctx context.Context) {
 		if err := w.store.MarkBackupPolicyRun(ctx, policy.ID, time.Now().Add(time.Duration(policy.IntervalHours)*time.Hour)); err != nil {
 			w.log.Warn("advance backup policy", "policy", policy.ID, "error", err)
 		}
+	}
+}
+
+func backupTargetLabel(kind string) string {
+	switch kind {
+	case "nfs":
+		return " · NFS"
+	case "s3":
+		return " · 对象存储"
+	default:
+		return ""
 	}
 }
