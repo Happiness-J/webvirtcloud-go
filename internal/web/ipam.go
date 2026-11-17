@@ -39,7 +39,7 @@ func (s *Server) ipAllocate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ipRelease(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
 	if err := s.db.ReleaseIP(r.Context(), r.Form.Get("pool_id"), strings.TrimSpace(r.Form.Get("address"))); err != nil {
-		s.redirectError(w, r, "/hosts/"+hostID+"/networks", err.Error())
+		s.redirectError(w, r, "/hosts/"+hostID+"/networks", "无法释放地址")
 		return
 	}
 	http.Redirect(w, r, flashURL("/hosts/"+hostID+"/networks", "地址已释放", "ok"), http.StatusSeeOther)
