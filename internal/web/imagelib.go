@@ -189,3 +189,18 @@ func libraryChecksum(dir, name string) (string, error) {
 	}
 	return librarySHA256(dir, name)
 }
+
+func listImportableDisks(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, entry := range entries {
+		if entry.IsDir() || !validLibraryDisk(dir, filepath.Join(dir, entry.Name())) {
+			continue
+		}
+		out = append(out, entry.Name())
+	}
+	return out, nil
+}

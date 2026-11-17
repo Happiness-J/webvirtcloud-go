@@ -750,21 +750,27 @@ func validateVMCreateArgs(args []string) error {
 	if err != nil || memory < 256 || memory > 1048576 {
 		return fmt.Errorf("内存参数无效")
 	}
-	diskValue := strings.TrimPrefix(args[7], "size=")
-	diskValue = strings.TrimSuffix(diskValue, ",bus=virtio")
-	diskValue = strings.TrimSuffix(diskValue, ",bus=sata")
-	diskValue = strings.TrimSuffix(diskValue, ",bus=scsi")
-	if strings.Contains(diskValue, ",bus=nvme,queues=") {
-		parts := strings.Split(diskValue, ",bus=nvme,queues=")
-		if len(parts) != 2 || !validQueueArg(parts[1]) {
-			return fmt.Errorf("磁盘控制器参数无效")
+	if strings.HasPrefix(args[7], "path=") {
+		if err := validateImportedDiskArg(args); err != nil {
+			return err
 		}
-		diskValue = parts[0]
-	}
-	diskSize, diskFormat, ok := strings.Cut(diskValue, ",format=")
-	diskGB, diskErr := strconv.Atoi(diskSize)
-	if !strings.HasPrefix(args[7], "size=") || !ok || diskFormat != "qcow2" || diskErr != nil || diskGB < 1 || diskGB > 10000 {
-		return fmt.Errorf("磁盘参数无效")
+	} else {
+		diskValue := strings.TrimPrefix(args[7], "size=")
+		diskValue = strings.TrimSuffix(diskValue, ",bus=virtio")
+		diskValue = strings.TrimSuffix(diskValue, ",bus=sata")
+		diskValue = strings.TrimSuffix(diskValue, ",bus=scsi")
+		if strings.Contains(diskValue, ",bus=nvme,queues=") {
+			parts := strings.Split(diskValue, ",bus=nvme,queues=")
+			if len(parts) != 2 || !validQueueArg(parts[1]) {
+				return fmt.Errorf("磁盘控制器参数无效")
+			}
+			diskValue = parts[0]
+		}
+		diskSize, diskFormat, ok := strings.Cut(diskValue, ",format=")
+		diskGB, diskErr := strconv.Atoi(diskSize)
+		if !strings.HasPrefix(args[7], "size=") || !ok || diskFormat != "qcow2" || diskErr != nil || diskGB < 1 || diskGB > 10000 {
+			return fmt.Errorf("磁盘参数无效")
+		}
 	}
 	osVariant := args[9]
 	if len(osVariant) == 0 || len(osVariant) > 128 || strings.IndexFunc(osVariant, func(r rune) bool {
@@ -1205,6 +1211,29 @@ func ValidateMDEVDefine(value string) error {
 	pattern := regexp.MustCompile(`^<device><name>mdev_[0-9a-f]{8}</name><parent>[A-Za-z0-9_.:-]{1,80}</parent><capability type='mdev'><type id='[A-Za-z0-9_-]{1,40}'/></capability></device>$`)
 	if !pattern.MatchString(value) || strings.Contains(value, "..") {
 		return fmt.Errorf("介导设备定义无效")
+	}
+	return nil
+}
+
+func validateImportedDiskArg(args []string) error {
+	value := strings.TrimPrefix(args[7], "path=")
+	path, format, ok := strings.Cut(value, ",format=")
+	if !ok {
+		return fmt.Errorf("导入磁盘参数无效")
+	}
+	format, _, _ = strings.Cut(format, ",bus=")
+	if format != "qcow2" && format != "raw" && format != "vmdk" {
+		return fmt.Errorf("导入磁盘格式无效")
+	}
+	if !validManagedImagePath(path) || strings.Contains(path, "..") {
+		return fmt.Errorf("导入磁盘路径无效")
+	}
+	return nil
+}
+
+func validateVMCreateTail(args []string, index int) error {
+	if index >= len(args) || args[index] != "--import" {
+		return fmt.Errorf("导入磁盘必须使用导入模式")
 	}
 	return nil
 }
