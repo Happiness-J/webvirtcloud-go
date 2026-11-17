@@ -21,6 +21,7 @@ type HostDevice struct {
 	AssignedTo  string
 	Assignable  bool
 	Reason      string
+	SRIOV       bool
 }
 
 // AssignedDevice is a host device already present in a domain definition.
@@ -224,7 +225,12 @@ func parseNodeDevice(name, capability, xmlText string) (HostDevice, bool) {
 				continue
 			}
 			source := fmt.Sprintf("%s:%s:%s.%s", cap.Address.Domain, cap.Address.Bus, cap.Address.Slot, cap.Address.Function)
-			return HostDevice{Name: name, Kind: "pci", Description: "PCI " + source, Source: source}, true
+			sriov := strings.Contains(xmlText, "virt_functions") || strings.Contains(name, "_virtfn")
+			label := "PCI " + source
+			if sriov {
+				label = "SR-IOV VF " + source
+			}
+			return HostDevice{Name: name, Kind: "pci", Description: label, Source: source, SRIOV: sriov}, true
 		case "mdev":
 			if cap.Type != "mdev" || cap.UUID == "" {
 				continue
