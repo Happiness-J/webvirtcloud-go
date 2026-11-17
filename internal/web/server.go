@@ -369,6 +369,9 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /logout", s.protect("viewer", s.logout))
 
 	mux.Handle("GET /hosts", s.protect("viewer", s.hostsPage))
+	mux.Handle("GET /cluster", s.protect("admin", s.clusterPage))
+	mux.Handle("POST /cluster/policy", s.protect("admin", s.clusterPolicySave))
+	mux.Handle("POST /cluster/protect", s.protect("admin", s.clusterProtect))
 	mux.Handle("GET /hosts/new", s.protect("admin", s.hostNewPage))
 	mux.Handle("POST /hosts/new", s.protect("admin", s.hostCreate))
 	mux.Handle("GET /hosts/{id}", s.protect("viewer", s.hostDetail))

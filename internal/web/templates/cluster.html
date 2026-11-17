@@ -1,0 +1,56 @@
+{{define "content"}}
+<div class="page-head">
+  <div>
+    <p class="page-kicker">集群</p>
+    <h1>高可用与调度</h1>
+    <button type="button" class="help-tip" aria-label="说明" data-tip="开启后，面板会周期检查主机。连续失败达到设定次数时，受保护且使用共享存储的虚拟机会在另一台存活主机上重新启动。">?</button>
+    <p class="muted">主机连续失联后，受保护的虚拟机会在负载合适的存活主机上按共享存储定义重新启动。</p>
+  </div>
+</div>
+<div class="grid two">
+  <section class="panel">
+    <h2>放置策略 <button type="button" class="help-tip" aria-label="说明" data-tip="均衡看 CPU 和内存余量；分散尽量不把虚拟机堆在同一台主机；紧凑先填已有负载的主机。维护中、禁用或失联的主机不会被选中。">?</button></h2>
+    <form method="post" action="/cluster/policy" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <label>策略<select name="policy">
+        <option value="balanced" {{if eq .Data.Policy.Policy "balanced"}}selected{{end}}>均衡</option>
+        <option value="spread" {{if eq .Data.Policy.Policy "spread"}}selected{{end}}>分散</option>
+        <option value="pack" {{if eq .Data.Policy.Policy "pack"}}selected{{end}}>紧凑</option>
+      </select></label>
+      <label>连续失败次数<input name="fail_after" type="number" min="2" max="10" value="{{.Data.Policy.FailAfter}}" required></label>
+      <label class="confirm"><input type="checkbox" name="enabled" value="1" {{if .Data.Policy.Enabled}}checked{{end}}>启用自动故障重启</label>
+      <button class="btn primary">保存策略</button>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>保护一台虚拟机 <button type="button" class="help-tip" aria-label="说明" data-tip="只有勾选保护的虚拟机会自动重启。磁盘和定义文件必须位于各主机都能访问的共享存储，本地磁盘不会被搬走。">?</button></h2>
+    <form method="post" action="/cluster/protect" class="stack">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <label>主机<select name="host_id" required>{{range .Data.Hosts}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+      <label>虚拟机名称<input name="vm" required maxlength="128"></label>
+      <label class="confirm"><input type="checkbox" name="protected" value="1" checked>纳入高可用</label>
+      <button class="btn">保存</button>
+    </form>
+  </section>
+</div>
+<section class="panel">
+  <h2>主机负载</h2>
+  {{if .Data.Hosts}}
+  <table><thead><tr><th>主机</th><th>状态</th><th>探活</th><th>CPU</th><th>内存</th><th>运行中虚拟机</th></tr></thead><tbody>
+  {{range .Data.Hosts}}{{$health := index $.Data.Health .ID}}<tr>
+    <td><a href="/hosts/{{.ID}}">{{.Name}}</a></td>
+    <td>{{if .Maintenance}}<span class="pill warn">维护</span>{{else if .Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</td>
+    <td>{{if $health.CheckedAt.IsZero}}<span class="pill muted">未检查</span>{{else if $health.Reachable}}<span class="pill ok">可达</span>{{else}}<span class="pill bad">失联 {{$health.Failures}}</span>{{end}}</td>
+    <td>{{printf "%.0f" $health.CPUPercent}}%</td>
+    <td>{{printf "%.0f" $health.MemPercent}}%</td>
+    <td>{{$health.RunningVMs}}</td>
+  </tr>{{end}}</tbody></table>
+  {{else}}<div class="empty-state"><strong>还没有主机</strong><span>先添加至少两台可迁移的计算主机。</span></div>{{end}}
+</section>
+<section class="panel">
+  <h2>受保护的虚拟机</h2>
+  {{if .Data.Protected}}<table><thead><tr><th>主机</th><th>虚拟机</th><th>更新时间</th></tr></thead><tbody>
+  {{range .Data.Protected}}<tr><td><code>{{.HostID}}</code></td><td>{{.VMName}}</td><td class="muted">{{date .UpdatedAt}}</td></tr>{{end}}
+  </tbody></table>{{else}}<div class="empty-state"><strong>还没有受保护的虚拟机</strong><span>只有加入这里的虚拟机会在主机故障后自动重启。</span></div>{{end}}
+</section>
+{{end}}
