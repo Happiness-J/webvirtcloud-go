@@ -789,7 +789,11 @@ func validateVMCreateArgs(args []string) error {
 			return fmt.Errorf("网络参数无效")
 		}
 		network, ok := strings.CutPrefix(args[index+1], "network=")
-		if !ok || validateActionOperand(network) != nil {
+		if !ok {
+			return fmt.Errorf("网络参数无效")
+		}
+		network, _, _ = strings.Cut(network, ",model=")
+		if validateActionOperand(network) != nil {
 			return fmt.Errorf("网络参数无效")
 		}
 		index += 2

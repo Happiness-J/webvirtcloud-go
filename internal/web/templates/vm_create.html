@@ -4,6 +4,7 @@
 <input type="hidden" name="_csrf" value="{{.CSRF}}">
 <section class="create-basic">
   <div class="panel-head"><h2>常用配置</h2></div>
+  <label>操作系统 <span class="opt">可选</span><select name="os_profile">{{range .Data.OSProfiles}}<option value="{{.ID}}">{{.Label}} · {{.DiskBus}} / {{.NIC}}</option>{{end}}</select><span class="hint">按发行版推荐磁盘总线、网卡和固件，仍可在高级区改。</span></label>
   <label>名称 <span class="req">*</span> <button type="button" class="help-tip" aria-label="名称说明" data-tip="虚拟机在列表中的名字。用字母、数字和短横线即可，例如 web-01。">?</button><input name="name" required maxlength="64" placeholder="web-01" data-label="名称"></label>
   <label>vCPU <span class="req">*</span> <button type="button" class="help-tip" aria-label="vCPU 说明" data-tip="分配给虚拟机的处理器数量。普通网站或测试机填 2 就够。">?</button><input name="vcpus" value="2" required pattern="[1-9][0-9]*" data-label="vCPU"></label>
   <label>内存 <span class="req">*</span> <button type="button" class="help-tip" aria-label="内存说明" data-tip="单位是 GB。普通虚拟机填 4。范围是 1 到 1024。">?</button><input name="memory" value="4" required pattern="[1-9][0-9]*" data-label="内存"><span class="hint">单位 GB</span></label>
