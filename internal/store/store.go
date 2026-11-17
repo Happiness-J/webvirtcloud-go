@@ -157,6 +157,11 @@ type DuplicateJobError struct{ ExistingID string }
 
 func (e *DuplicateJobError) Error() string { return "an equivalent job is already active" }
 
+func IsDuplicateJob(err error) bool {
+	var duplicate *DuplicateJobError
+	return errors.As(err, &duplicate)
+}
+
 var (
 	ErrHostHasActiveJobs = errors.New("host has active jobs")
 	ErrHostChanged       = errors.New("host connection changed while enqueueing job")
