@@ -2,8 +2,24 @@
 <div class="page-head"><div><p class="page-kicker">存储</p><h1>{{.Data.Host.Name}}</h1><p class="muted">查看存储池容量、分配量和可用空间。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}">返回主机</a></div>
 <section class="panel">
   <h2>存储池</h2><button type="button" class="help-tip" aria-label="说明" data-tip="存储池保存虚拟机磁盘。停止池会影响正在使用其中磁盘的虚拟机。">?</button>
-  {{if .Data.Pools}}<table><thead><tr><th>名称</th><th>状态</th><th>容量</th><th>已分配</th><th>可用</th><th>自启动</th><th>持久</th><th>操作</th></tr></thead><tbody>{{range .Data.Pools}}<tr><td><a href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">{{.Name}}</a></td><td><span class="pill {{statusClass .State}}">{{poolStateName .State}}</span></td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Available}}{{.Available}}{{else}}-{{end}}</td><td>{{flagName .Autostart}}</td><td>{{flagName .Persistent}}</td><td class="actions"><a class="btn small" href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">卷</a>{{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-refresh"><button class="btn small">刷新</button></form>{{if and (ne .State "running") (ne .State "active")}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-start"><button class="btn small">启动</button></form>{{end}}{{if eq .Autostart "yes"}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-autostart-off"><button class="btn small">取消自启</button></form>{{else}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-autostart-on"><button class="btn small">设为自启</button></form>{{end}}{{end}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>没有存储池</strong><span>检查 libvirt 存储配置后再刷新。</span></div>{{end}}
+  {{if .Data.Pools}}<table><thead><tr><th>名称</th><th>状态</th><th>容量</th><th>已分配</th><th>可用</th><th>自启动</th><th>持久</th><th>操作</th></tr></thead><tbody>{{range .Data.Pools}}<tr><td><a href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">{{.Name}}</a></td><td><span class="pill {{statusClass .State}}">{{poolStateName .State}}</span></td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Available}}{{.Available}}{{else}}-{{end}}</td><td>{{flagName .Autostart}}</td><td>{{flagName .Persistent}}</td><td class="actions"><a class="btn small" href="/hosts/{{$.Data.Host.ID}}/storage?pool={{.Name}}">卷</a>{{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-refresh"><button class="btn small">刷新</button></form>{{if and (ne .State "running") (ne .State "active")}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-start"><button class="btn small">启动</button></form><form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-delete"><input type="hidden" name="confirm" value="yes"><button class="btn small danger" data-confirm="删除只移除存储池定义，不会删除卷数据。确定继续吗？">删除</button></form>{{else}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-stop"><input type="hidden" name="confirm" value="yes"><button class="btn small danger" data-confirm="停止存储池会中断使用它的虚拟机磁盘。确定继续吗？">停止</button></form>{{end}}{{if eq .Autostart "yes"}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-autostart-off"><button class="btn small">取消自启</button></form>{{else}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/storage/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool" value="{{.Name}}"><input type="hidden" name="action" value="pool-autostart-on"><button class="btn small">设为自启</button></form>{{end}}{{end}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有存储池</strong><span>先定义一个目录、NFS、iSCSI 或 LVM 存储池。</span></div>{{end}}
 </section>
+{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
+<section class="panel">
+  <div class="panel-head"><h2>创建存储池</h2></div>
+  <p class="hint">支持目录、NFS、iSCSI 和 LVM。目录与 NFS 需要目标路径；NFS 来源填写“地址:导出路径”，iSCSI 填写“地址/iqn”，LVM 填写卷组名。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="pool-define">
+    <div class="grid two compact">
+      <label>名称<input name="name" required maxlength="128" placeholder="images"></label>
+      <label>类型<select name="pool_type"><option value="dir">目录</option><option value="netfs">NFS</option><option value="iscsi">iSCSI</option><option value="logical">LVM</option></select></label>
+      <label>来源<input name="source" required placeholder="/var/lib/libvirt/images"></label>
+      <label>目标路径<input name="target" placeholder="/var/lib/libvirt/images"></label>
+    </div>
+    <button class="btn primary">定义存储池</button>
+  </form>
+</section>
+{{end}}
 {{if .Data.SelectedPool}}
 <section class="panel">
   <h2>存储池 {{.Data.SelectedPool}}</h2>
@@ -28,6 +44,15 @@
       <label>源卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
       <label>新卷名称<input name="name" required maxlength="128"></label>
       <button class="btn" {{if not .Data.Volumes}}disabled{{end}}>克隆卷</button>
+    </form>
+    <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+      <h3>移动到其他存储池</h3>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-move">
+      <label>源卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
+      <label>目标存储池<select name="target_pool" required>{{range .Data.Pools}}{{if ne .Name $.Data.SelectedPool}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{end}}</select></label>
+      <label>目标卷名称<input name="name" required maxlength="128"></label>
+      <p class="hint">先导出再导入。源卷保留，确认目标卷可用后再手动删除源卷。</p>
+      <button class="btn" {{if not .Data.Volumes}}disabled{{end}}>开始移动</button>
     </form>
   </div>
   <div class="grid two">
