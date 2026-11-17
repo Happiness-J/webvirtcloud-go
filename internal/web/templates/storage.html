@@ -27,6 +27,23 @@
   {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>容器格式</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Filesystem}}{{.Filesystem}}{{else}}-{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
 </section>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
+<section class="panel"><h2>OVA / OVF</h2><button type="button" class="help-tip" aria-label="说明" data-tip="用于和 VMware、VirtualBox 交换虚拟机。导入读取镜像库中的 OVA，导出前会把 qcow2 或 raw 自动转换为 VMDK。">?</button>
+<p class="hint">包文件放在镜像库目录中，文件名以 .ova 结尾。导出 qcow2 或 raw 时会先自动转换成 VMDK，再交给 OVA 导出任务。</p>
+<div class="grid two">
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+    <h3>导入 OVA</h3>
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="ova-import">
+    <label>镜像库中的 OVA<input name="name" required maxlength="180" placeholder="guest.ova"></label>
+    <button class="btn primary">导入</button>
+  </form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
+    <h3>导出 OVA</h3>
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="ova-export">
+    <label>源卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
+    <label>OVA 文件名<input name="name" required maxlength="180" placeholder="guest.ova"></label>
+    <button class="btn" {{if not .Data.Volumes}}disabled{{end}}>导出</button>
+  </form>
+</div></section>
 <section class="panel">
   <h2>存储运维</h2><button type="button" class="help-tip" aria-label="说明" data-tip="创建、克隆和扩容不会删除原数据。删除卷会永久删除数据，缩容前必须确认。">?</button>
   <div class="grid two">
