@@ -37,8 +37,63 @@ type User struct {
 	PasswordHash string
 	Role         string
 	Disabled     bool
+	TOTPSecret   string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+// TOTPEnabled reports whether the account must present a second factor.
+// The shared secret itself is not copied into request sessions.
+func (u User) TOTPEnabled() bool { return u.TOTPSecret != "" }
+
+// SessionUser returns the account fields that may travel with a request.
+func (u User) SessionUser() User {
+	u.PasswordHash = ""
+	u.TOTPSecret = ""
+	return u
+}
+
+// HostAccess grants a non-admin account a host.
+type HostAccess struct {
+	UserID    string
+	HostID    string
+	HostName  string
+	CreatedAt time.Time
+}
+
+// APIToken is a revocable personal bearer credential.
+// TokenHash is never returned to templates.
+type APIToken struct {
+	ID         string
+	UserID     string
+	Name       string
+	TokenHash  string
+	Role       string
+	ExpiresAt  *time.Time
+	RevokedAt  *time.Time
+	LastUsedAt *time.Time
+	CreatedAt  time.Time
+}
+
+func (t APIToken) Active() bool {
+	if t.RevokedAt != nil {
+		return false
+	}
+	if t.ExpiresAt != nil && !t.ExpiresAt.After(time.Now()) {
+		return false
+	}
+	return true
+}
+
+// SessionInfo is a login session without its secret hash.
+type SessionInfo struct {
+	ID        string
+	CreatedAt time.Time
+	LastSeen  time.Time
+	ExpiresAt time.Time
+	RemoteIP  string
+	UserAgent string
+	Current   bool
 }
 
 type Session struct {
@@ -694,12 +749,12 @@ func (s *Store) EnsureInitialAdmin(ctx context.Context, u User) (bool, error) {
 }
 
 func (s *Store) GetUserByUsername(ctx context.Context, username string) (User, error) {
-	return s.scanUser(s.pool.QueryRow(ctx, `SELECT id, username, password_hash, role, disabled, created_at, updated_at
+	return s.scanUser(s.pool.QueryRow(ctx, `SELECT id, username, password_hash, role, disabled, totp_secret, created_at, updated_at
 		FROM users WHERE username=$1`, username))
 }
 
 func (s *Store) GetUserByID(ctx context.Context, id string) (User, error) {
-	return s.scanUser(s.pool.QueryRow(ctx, `SELECT id, username, password_hash, role, disabled, created_at, updated_at
+	return s.scanUser(s.pool.QueryRow(ctx, `SELECT id, username, password_hash, role, disabled, totp_secret, created_at, updated_at
 		FROM users WHERE id=$1`, id))
 }
 
@@ -709,7 +764,11 @@ type rowScanner interface {
 
 func (s *Store) scanUser(row rowScanner) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.Disabled, &u.CreatedAt, &u.UpdatedAt)
+	var secret *string
+	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.Disabled, &secret, &u.CreatedAt, &u.UpdatedAt)
+	if secret != nil {
+		u.TOTPSecret = *secret
+	}
 	return u, err
 }
 
@@ -724,7 +783,7 @@ func (s *Store) ListUsersPage(ctx context.Context, offset, limit int) ([]User, e
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := s.pool.Query(ctx, `SELECT id, username, '' AS password_hash, role, disabled, created_at, updated_at
+	rows, err := s.pool.Query(ctx, `SELECT id, username, '' AS password_hash, role, disabled, '' AS totp_secret, created_at, updated_at
 		FROM users WHERE id NOT LIKE 'system:%' ORDER BY username LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, err
@@ -907,19 +966,206 @@ func (s *Store) CreateSession(ctx context.Context, tokenHash, userID, passwordHa
 
 func (s *Store) GetSession(ctx context.Context, tokenHash string) (Session, error) {
 	var sess Session
+	var secret *string
 	err := s.pool.QueryRow(ctx, `SELECT s.token_hash,s.csrf_token,s.expires_at,s.last_seen,
-		u.id,u.username,u.password_hash,u.role,u.disabled,u.created_at,u.updated_at
+		u.id,u.username,u.password_hash,u.role,u.disabled,u.totp_secret,u.created_at,u.updated_at
 		FROM sessions s JOIN users u ON u.id=s.user_id
 		WHERE s.token_hash=$1 AND s.expires_at > now() AND u.disabled=false`, tokenHash).
 		Scan(&sess.TokenHash, &sess.CSRFToken, &sess.ExpiresAt, &sess.LastSeen,
 			&sess.User.ID, &sess.User.Username, &sess.User.PasswordHash, &sess.User.Role,
-			&sess.User.Disabled, &sess.User.CreatedAt, &sess.User.UpdatedAt)
+			&sess.User.Disabled, &secret, &sess.User.CreatedAt, &sess.User.UpdatedAt)
 	if err == nil {
-		// The password hash is only needed during credential verification and
-		// must never travel with an authenticated request context.
+		// Password hashes and TOTP secrets stay out of the request context.
+		// The secret is reduced to a presence flag so handlers can tell that
+		// a second factor is enrolled without holding the key.
+		if secret != nil && *secret != "" {
+			sess.User.TOTPSecret = "enrolled"
+		}
 		sess.User.PasswordHash = ""
 	}
 	return sess, err
+}
+
+func (s *Store) UserCanAccessHost(ctx context.Context, userID, hostID string) (bool, error) {
+	var ok bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_host_access WHERE user_id=$1 AND host_id=$2)`, userID, hostID).Scan(&ok)
+	return ok, err
+}
+
+func (s *Store) GrantHostAccess(ctx context.Context, userID, hostID string) error {
+	_, err := s.pool.Exec(ctx, `INSERT INTO user_host_access(user_id, host_id) VALUES($1,$2)
+		ON CONFLICT DO NOTHING`, userID, hostID)
+	return err
+}
+
+func (s *Store) RevokeHostAccess(ctx context.Context, userID, hostID string) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM user_host_access WHERE user_id=$1 AND host_id=$2`, userID, hostID)
+	return err
+}
+
+func (s *Store) ListHostAccess(ctx context.Context, userID string) ([]HostAccess, error) {
+	rows, err := s.pool.Query(ctx, `SELECT a.user_id, a.host_id, h.name, a.created_at
+		FROM user_host_access a JOIN hosts h ON h.id=a.host_id
+		WHERE a.user_id=$1 ORDER BY h.name`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []HostAccess
+	for rows.Next() {
+		var item HostAccess
+		if err := rows.Scan(&item.UserID, &item.HostID, &item.HostName, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) SetTOTPSecret(ctx context.Context, userID, secret string) error {
+	tag, err := s.pool.Exec(ctx, `UPDATE users SET totp_secret=$2, updated_at=now() WHERE id=$1`, userID, secret)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) CreateAPIToken(ctx context.Context, token APIToken) error {
+	_, err := s.pool.Exec(ctx, `INSERT INTO api_tokens(id,user_id,name,token_hash,role,expires_at)
+		VALUES($1,$2,$3,$4,$5,$6)`, token.ID, token.UserID, token.Name, token.TokenHash, token.Role, token.ExpiresAt)
+	return err
+}
+
+func (s *Store) ListAPITokens(ctx context.Context, userID string) ([]APIToken, error) {
+	rows, err := s.pool.Query(ctx, `SELECT id,user_id,name,role,expires_at,revoked_at,last_used_at,created_at
+		FROM api_tokens WHERE user_id=$1 ORDER BY created_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []APIToken
+	for rows.Next() {
+		var item APIToken
+		if err := rows.Scan(&item.ID, &item.UserID, &item.Name, &item.Role, &item.ExpiresAt, &item.RevokedAt, &item.LastUsedAt, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) RevokeAPIToken(ctx context.Context, userID, tokenID string) error {
+	tag, err := s.pool.Exec(ctx, `UPDATE api_tokens SET revoked_at=now()
+		WHERE id=$1 AND user_id=$2 AND revoked_at IS NULL`, tokenID, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) LookupAPIToken(ctx context.Context, tokenHash string) (APIToken, User, error) {
+	var token APIToken
+	var user User
+	err := s.pool.QueryRow(ctx, `UPDATE api_tokens AS t SET last_used_at=now()
+		FROM users AS u
+		WHERE t.token_hash=$1 AND u.id=t.user_id AND u.disabled=false
+		  AND t.revoked_at IS NULL AND (t.expires_at IS NULL OR t.expires_at > now())
+		RETURNING t.id, t.user_id, t.name, t.role, t.expires_at, t.created_at,
+		          u.id, u.username, u.role, u.disabled`, tokenHash).
+		Scan(&token.ID, &token.UserID, &token.Name, &token.Role, &token.ExpiresAt, &token.CreatedAt,
+			&user.ID, &user.Username, &user.Role, &user.Disabled)
+	if err != nil {
+		return APIToken{}, User{}, err
+	}
+	if rankOf(token.Role) > rankOf(user.Role) {
+		token.Role = user.Role
+	}
+	user.Role = token.Role
+	return token, user, nil
+}
+
+func rankOf(role string) int {
+	switch role {
+	case "admin":
+		return 3
+	case "operator":
+		return 2
+	case "desktop":
+		return 1
+	case "viewer":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func (s *Store) ListSessions(ctx context.Context, userID, currentHash string) ([]SessionInfo, error) {
+	rows, err := s.pool.Query(ctx, `SELECT token_hash, created_at, last_seen, expires_at, remote_ip, user_agent
+		FROM sessions WHERE user_id=$1 AND expires_at > now()
+		ORDER BY last_seen DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SessionInfo
+	for rows.Next() {
+		var hash string
+		var item SessionInfo
+		if err := rows.Scan(&hash, &item.CreatedAt, &item.LastSeen, &item.ExpiresAt, &item.RemoteIP, &item.UserAgent); err != nil {
+			return nil, err
+		}
+		sum := sha256.Sum256([]byte(hash))
+		item.ID = hexPrefix(sum[:])
+		item.Current = hash == currentHash
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func hexPrefix(b []byte) string {
+	const hexdigits = "0123456789abcdef"
+	out := make([]byte, 12)
+	for i := 0; i < 6; i++ {
+		out[i*2] = hexdigits[b[i]>>4]
+		out[i*2+1] = hexdigits[b[i]&0x0f]
+	}
+	return string(out)
+}
+
+func (s *Store) DeleteUserSession(ctx context.Context, userID, publicID, currentHash string) (bool, error) {
+	rows, err := s.pool.Query(ctx, `SELECT token_hash FROM sessions WHERE user_id=$1 AND expires_at > now()`, userID)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	var match string
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			return false, err
+		}
+		sum := sha256.Sum256([]byte(hash))
+		if hexPrefix(sum[:]) == publicID {
+			match = hash
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	if match == "" {
+		return false, pgx.ErrNoRows
+	}
+	if _, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE token_hash=$1 AND user_id=$2`, match, userID); err != nil {
+		return false, err
+	}
+	return match == currentHash, nil
 }
 
 func (s *Store) TouchSession(ctx context.Context, tokenHash, ip, ua string) error {

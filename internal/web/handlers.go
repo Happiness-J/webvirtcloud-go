@@ -58,7 +58,7 @@ type dashboardVMLive struct {
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
-	hosts, err := s.db.ListHosts(r.Context())
+	hosts, err := s.visibleHosts(r)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -118,7 +118,7 @@ func (s *Server) dashboardLive(ctx context.Context, hosts []store.Host) []dashbo
 }
 
 func (s *Server) hostsPage(w http.ResponseWriter, r *http.Request) {
-	hosts, err := s.db.ListHosts(r.Context())
+	hosts, err := s.visibleHosts(r)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -186,6 +186,13 @@ func (s *Server) hostDetail(w http.ResponseWriter, r *http.Request) {
 	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.hostLookupError(w, r, err)
+		return
+	}
+	if err := s.ensureHostVisible(r, host.ID); errors.Is(err, errHostForbidden) {
+		s.renderError(w, r, http.StatusForbidden, "权限不足", "当前账号没有该主机的授权。")
+		return
+	} else if err != nil {
+		s.serverError(w, r, err)
 		return
 	}
 	uri, decryptErr := libvirt.DecryptURI(s.cipher, host)
@@ -847,8 +854,13 @@ func (s *Server) userAccessPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	s.render(w, r, "user_access", pageData{Title: "桌面授权 · " + target.Username, Nav: "users", Data: map[string]any{
-		"Target": target, "Hosts": hosts, "Access": access,
+	hostAccess, err := s.db.ListHostAccess(r.Context(), target.ID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.render(w, r, "user_access", pageData{Title: "授权 · " + target.Username, Nav: "users", Data: map[string]any{
+		"Target": target, "Hosts": hosts, "Access": access, "HostAccess": hostAccess,
 	}})
 }
 
@@ -862,12 +874,36 @@ func (s *Server) userAccessUpdate(w http.ResponseWriter, r *http.Request) {
 		s.userLookupError(w, r, err)
 		return
 	}
+	hostID := strings.TrimSpace(r.Form.Get("host_id"))
+	vmName := strings.TrimSpace(r.Form.Get("vm_name"))
+	action := r.Form.Get("action")
+	if action == "grant_host" || action == "revoke_host" {
+		if target.Role == "admin" {
+			s.redirectError(w, r, "/users/"+target.ID+"/access", "管理员始终可以访问全部主机")
+			return
+		}
+		if _, err := s.db.GetHost(r.Context(), hostID); err != nil {
+			s.redirectError(w, r, "/users/"+target.ID+"/access", "主机不存在")
+			return
+		}
+		if action == "grant_host" {
+			err = s.db.GrantHostAccess(r.Context(), target.ID, hostID)
+		} else {
+			err = s.db.RevokeHostAccess(r.Context(), target.ID, hostID)
+		}
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		sess, _ := sessionFrom(r.Context())
+		s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.host_access." + action, RemoteIP: s.clientIP(r), HostID: hostID, Detail: map[string]any{"user_id": target.ID}})
+		http.Redirect(w, r, flashURL("/users/"+target.ID+"/access", "主机授权已更新", "ok"), http.StatusSeeOther)
+		return
+	}
 	if target.Role != "desktop" {
 		s.redirectError(w, r, "/users/"+target.ID+"/access", "只有桌面用户可以分配虚拟机控制台")
 		return
 	}
-	hostID := strings.TrimSpace(r.Form.Get("host_id"))
-	vmName := strings.TrimSpace(r.Form.Get("vm_name"))
 	if _, err := s.db.GetHost(r.Context(), hostID); err != nil {
 		s.redirectError(w, r, "/users/"+target.ID+"/access", "主机不存在")
 		return
@@ -876,7 +912,6 @@ func (s *Server) userAccessUpdate(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/users/"+target.ID+"/access", "虚拟机名称无效")
 		return
 	}
-	action := r.Form.Get("action")
 	switch action {
 	case "grant":
 		err = s.db.GrantVMAccess(r.Context(), target.ID, hostID, vmName)
@@ -1201,7 +1236,7 @@ func (s *Server) canReadVM(r *http.Request, hostID, vmName string) (bool, error)
 }
 
 func (s *Server) apiHosts(w http.ResponseWriter, r *http.Request) {
-	hosts, err := s.db.ListHosts(r.Context())
+	hosts, err := s.visibleHosts(r)
 	if err != nil {
 		s.logRequestError(r, "list API hosts", err)
 		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not list hosts")
@@ -1219,6 +1254,55 @@ func (s *Server) apiHosts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"hosts": out})
 }
 
+func (s *Server) visibleHosts(r *http.Request) ([]store.Host, error) {
+	hosts, err := s.db.ListHosts(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	sess, _ := sessionFrom(r.Context())
+	if sess.User.Role == "admin" || strings.HasPrefix(sess.User.ID, store.SystemUserIDPrefix) {
+		return hosts, nil
+	}
+	granted, err := s.db.ListHostAccess(r.Context(), sess.User.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(granted) == 0 {
+		return hosts, nil
+	}
+	allowed := map[string]bool{}
+	for _, item := range granted {
+		allowed[item.HostID] = true
+	}
+	filtered := hosts[:0]
+	for _, host := range hosts {
+		if allowed[host.ID] {
+			filtered = append(filtered, host)
+		}
+	}
+	return filtered, nil
+}
+
+func (s *Server) ensureHostVisible(r *http.Request, hostID string) error {
+	sess, _ := sessionFrom(r.Context())
+	if sess.User.Role == "admin" || strings.HasPrefix(sess.User.ID, store.SystemUserIDPrefix) {
+		return nil
+	}
+	granted, err := s.db.ListHostAccess(r.Context(), sess.User.ID)
+	if err != nil {
+		return err
+	}
+	if len(granted) == 0 {
+		return nil
+	}
+	for _, item := range granted {
+		if item.HostID == hostID {
+			return nil
+		}
+	}
+	return errHostForbidden
+}
+
 func (s *Server) apiHostVMs(w http.ResponseWriter, r *http.Request) {
 	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -1228,6 +1312,10 @@ func (s *Server) apiHostVMs(w http.ResponseWriter, r *http.Request) {
 			s.logRequestError(r, "load API host for VM list", err)
 			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the host")
 		}
+		return
+	}
+	if err := s.ensureHostVisible(r, host.ID); err != nil {
+		writeAPIError(w, r, http.StatusForbidden, "host_forbidden", "This account is not granted this host")
 		return
 	}
 	domains, err := s.libvirt.ListDomains(r.Context(), host.ID)

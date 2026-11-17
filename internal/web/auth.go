@@ -216,7 +216,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err == nil:
 		verified := auth.VerifyPasswordContext(r.Context(), password, user.PasswordHash)
-		if user.Disabled || !verified {
+		if user.Disabled || !verified || !s.acceptTOTP(user, r.Form.Get("totp")) {
 			s.audit.Record(r.Context(), store.Audit{Action: "auth.login_failed", ActorID: user.ID, ActorName: user.Username, RemoteIP: ip})
 			s.renderLoginFailure(w, r)
 			return

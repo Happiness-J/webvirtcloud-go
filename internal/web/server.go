@@ -431,6 +431,13 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /users/{id}/access", s.protect("admin", s.userAccessUpdate))
 	mux.Handle("GET /account/password", s.protect("viewer", s.accountPasswordPage))
 	mux.Handle("POST /account/password", s.protect("viewer", s.accountPassword))
+	mux.Handle("GET /account/security", s.protect("viewer", s.accountSecurityPage))
+	mux.Handle("POST /account/security/totp/start", s.protect("viewer", s.accountTOTPStart))
+	mux.Handle("POST /account/security/totp/confirm", s.protect("viewer", s.accountTOTPConfirm))
+	mux.Handle("POST /account/security/totp/disable", s.protect("viewer", s.accountTOTPDisable))
+	mux.Handle("POST /account/security/sessions/{id}/revoke", s.protect("viewer", s.accountSessionRevoke))
+	mux.Handle("POST /account/security/tokens", s.protect("viewer", s.accountTokenCreate))
+	mux.Handle("POST /account/security/tokens/{id}/revoke", s.protect("viewer", s.accountTokenRevoke))
 	mux.Handle("GET /console/{host}/{vm}", s.protect("viewer", s.consolePage))
 	mux.Handle("GET /serial/{host}/{vm}", s.protect("viewer", s.serialPage))
 	mux.Handle("GET /serial/{host}/{vm}/ws", s.protect("viewer", s.serialWS))
@@ -986,7 +993,14 @@ func (s *Server) apiTokenIdentity(r *http.Request) (store.User, bool) {
 			return candidate.user, true
 		}
 	}
-	return store.User{}, false
+	if s.db == nil {
+		return store.User{}, false
+	}
+	_, user, err := s.db.LookupAPIToken(r.Context(), string(providedHash))
+	if err != nil {
+		return store.User{}, false
+	}
+	return user.SessionUser(), true
 }
 
 func flagName(value string) string {
