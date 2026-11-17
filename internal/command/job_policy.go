@@ -813,8 +813,14 @@ func validateVMCreateArgs(args []string) error {
 		index += 2
 	}
 	if index < len(args) && args[index] == "--boot" {
-		if index+1 >= len(args) || !validBootOrder(args[index+1]) {
+		if index+1 >= len(args) || !validFirmwareBoot(args[index+1]) {
 			return fmt.Errorf("启动顺序参数无效")
+		}
+		index += 2
+	}
+	if index < len(args) && args[index] == "--tpm" {
+		if index+1 >= len(args) || args[index+1] != "backend.type=emulator,model=tpm-crb,version=2.0" {
+			return fmt.Errorf("vTPM 参数无效")
 		}
 		index += 2
 	}
@@ -921,6 +927,21 @@ func validateBootEditArgs(args []string) error {
 		return fmt.Errorf("启动配置参数无效")
 	}
 	return nil
+}
+
+func validFirmwareBoot(value string) bool {
+	order, suffix, ok := strings.Cut(value, ",menu=")
+	if !ok {
+		return false
+	}
+	menu, extra, hasExtra := strings.Cut(suffix, ",")
+	if menu != "on" && menu != "off" {
+		return false
+	}
+	if hasExtra && extra != "uefi" && extra != "uefi,secure=on" {
+		return false
+	}
+	return validBootOrder(order + ",menu=" + menu)
 }
 
 func validBootOrder(value string) bool {

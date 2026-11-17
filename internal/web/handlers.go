@@ -1590,12 +1590,15 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		boot, bootErr := bootOrderArg(strings.TrimSpace(r.Form.Get("boot_order")), r.Form.Get("boot_menu"))
+		boot, bootErr := firmwareBoot(strings.TrimSpace(r.Form.Get("boot_order")), r.Form.Get("boot_menu"), strings.TrimSpace(r.Form.Get("firmware")), r.Form.Get("secure_boot"))
 		if bootErr != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", bootErr.Error())
 			return
 		}
 		args = append(args, "--boot", boot)
+		if r.Form.Get("vtpm") == "yes" {
+			args = append(args, "--tpm", "backend.type=emulator,model=tpm-crb,version=2.0")
+		}
 		if r.Form.Get("rng") == "yes" {
 			args = append(args, "--rng", "/dev/urandom")
 		}

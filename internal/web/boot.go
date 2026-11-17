@@ -3,6 +3,8 @@ package web
 import (
 	"fmt"
 	"strings"
+
+	"webvirtcloud-go/internal/libvirt"
 )
 
 func bootOrderArg(order, menu string) (string, error) {
@@ -30,6 +32,39 @@ func bootOrderArg(order, menu string) (string, error) {
 func bootEditArgs(vm, order, menu string) ([]string, error) {
 	value, err := bootOrderArg(order, menu)
 	if err != nil {
+		return nil, err
+	}
+	return []string{vm, "--edit", "--boot", value}, nil
+}
+
+func firmwareBoot(order, menu, firmware, secure string) (string, error) {
+	value, err := bootOrderArg(order, menu)
+	if err != nil {
+		return "", err
+	}
+	switch firmware {
+	case "", "bios":
+		if secure == "yes" {
+			return "", fmt.Errorf("安全启动需要 UEFI")
+		}
+	case "uefi":
+		if secure == "yes" {
+			value += ",uefi,secure=on"
+		} else {
+			value += ",uefi"
+		}
+	default:
+		return "", fmt.Errorf("固件类型无效")
+	}
+	return value, nil
+}
+
+func firmwareEditArgs(vm, order, menu, firmware, secure string) ([]string, error) {
+	value, err := firmwareBoot(order, menu, firmware, secure)
+	if err != nil {
+		return nil, err
+	}
+	if err := libvirt.ValidateName(vm); err != nil {
 		return nil, err
 	}
 	return []string{vm, "--edit", "--boot", value}, nil

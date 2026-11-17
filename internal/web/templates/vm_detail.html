@@ -139,7 +139,7 @@
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="boot-order">
     <select name="snapshot"><option value="hd">硬盘</option><option value="cdrom,hd">光驱，然后硬盘</option><option value="network,hd">PXE 网络，然后硬盘</option><option value="network,cdrom,hd">PXE、光驱、硬盘</option></select>
-    <label class="confirm"><input type="checkbox" name="menu" value="on">显示启动菜单</label>
+    <label>固件<select name="firmware"><option value="bios">BIOS</option><option value="uefi">UEFI</option></select></label><label class="confirm"><input type="checkbox" name="secure_boot" value="yes">Secure Boot</label><label class="confirm"><input type="checkbox" name="menu" value="on">显示启动菜单</label>
     <button class="btn">保存启动配置</button>
   </form>
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改启动顺序或 PXE。</span></div>{{end}}
