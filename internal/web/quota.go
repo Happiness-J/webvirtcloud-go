@@ -22,7 +22,11 @@ func (s *Server) userQuotaSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.db.SaveUserQuota(r.Context(), store.UserQuota{UserID: target.ID, MaxVMs: vms, MaxVCPUs: cpus, MaxMemoryGB: memory, MaxDiskGB: disk}); err != nil {
-		s.redirectError(w, r, "/users/"+target.ID+"/access", err.Error())
+		message := "无法保存资源配额"
+		if err.Error() == "配额不能为负数" {
+			message = err.Error()
+		}
+		s.redirectError(w, r, "/users/"+target.ID+"/access", message)
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
