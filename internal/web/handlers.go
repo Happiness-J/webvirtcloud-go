@@ -769,7 +769,7 @@ func (s *Server) userCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	password := r.Form.Get("password")
 	if err := validateNewPassword(password); err != nil {
-		s.redirectError(w, r, "/users/new", err.Error())
+		s.redirectError(w, r, "/users/new", "密码至少需要 10 个字符")
 		return
 	}
 	hash, err := auth.HashPasswordContext(r.Context(), password)
