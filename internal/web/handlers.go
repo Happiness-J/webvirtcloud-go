@@ -1005,7 +1005,7 @@ func (s *Server) accountPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := validateNewPassword(password); err != nil {
-		s.redirectError(w, r, "/account/password", err.Error())
+		s.redirectError(w, r, "/account/password", "密码至少需要 10 个字符")
 		return
 	}
 	user, err := s.db.GetUserByID(r.Context(), sess.User.ID)
