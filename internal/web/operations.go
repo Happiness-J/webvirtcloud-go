@@ -678,7 +678,7 @@ func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
 	newName := strings.TrimSpace(r.Form.Get("new_name"))
 	args, err := renameArgs(oldName, newName)
 	if err != nil {
-		s.redirectError(w, r, vmRedirect(host.ID, oldName), err.Error())
+		s.redirectError(w, r, vmRedirect(host.ID, oldName), "虚拟机名称无效")
 		return
 	}
 	if err := s.db.RenameVMReferences(r.Context(), host.ID, oldName, newName); err != nil {
