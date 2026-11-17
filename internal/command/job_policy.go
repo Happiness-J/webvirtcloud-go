@@ -150,6 +150,11 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", err
 		}
 		return RoleOperator, nil
+	case "host-mdev":
+		if tool != "virsh" || len(args) != 2 || args[0] != "nodedev-define" || args[1] != "/dev/stdin" {
+			return "", fmt.Errorf("介导设备参数不正确")
+		}
+		return RoleAdmin, nil
 	case "host-power":
 		if err := validateHostPowerArgs(tool, args); err != nil {
 			return "", err
@@ -673,9 +678,11 @@ func ValidateHostdevXML(value string) error {
 	if len(value) == 0 || len(value) > 1024 || strings.ContainsAny(value, "\n\r\x00") {
 		return fmt.Errorf("主机设备描述无效")
 	}
+	pci := regexp.MustCompile(`^<hostdev mode='subsystem' type='pci' managed='yes'><source><address domain='0x[0-9a-f]{4}' bus='0x[0-9a-f]{2}' slot='0x[0-9a-f]{2}' function='0x[0-9a-f]'/></source></hostdev>$`)
+	mdev := regexp.MustCompile(`^<hostdev mode='subsystem' type='mdev' model='vfio-pci' managed='yes'><source><address uuid='[0-9a-f-]{36}'/></source></hostdev>$`)
 	usb := regexp.MustCompile(`^<hostdev mode='subsystem' type='usb' managed='yes'><source><vendor id='0x[0-9a-f]{4}'/><product id='0x[0-9a-f]{4}'/></source></hostdev>$`)
 	block := regexp.MustCompile(`^<disk type='block' device='lun'><driver name='qemu' type='raw' cache='none' io='native'/><source dev='/dev/[A-Za-z0-9_./-]{1,200}'/><target dev='sd[a-z]{1,4}' bus='scsi'/></disk>$`)
-	if usb.MatchString(value) {
+	if usb.MatchString(value) || pci.MatchString(value) || mdev.MatchString(value) {
 		return nil
 	}
 	if block.MatchString(value) && !strings.Contains(value, "..") && !unsafeHostdevBlock(value) {
@@ -1165,6 +1172,14 @@ func validateHostPowerArgs(tool string, args []string) error {
 		}
 	default:
 		return fmt.Errorf("不支持的宿主机健康工具 %q", tool)
+	}
+	return nil
+}
+
+func ValidateMDEVDefine(value string) error {
+	pattern := regexp.MustCompile(`^<device><name>mdev_[0-9a-f]{8}</name><parent>[A-Za-z0-9_.:-]{1,80}</parent><capability type='mdev'><type id='[A-Za-z0-9_-]{1,40}'/></capability></device>$`)
+	if !pattern.MatchString(value) || strings.Contains(value, "..") {
+		return fmt.Errorf("介导设备定义无效")
 	}
 	return nil
 }
