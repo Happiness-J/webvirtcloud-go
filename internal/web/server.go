@@ -441,6 +441,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /users/{id}/password", s.protect("admin", s.userPassword))
 	mux.Handle("GET /users/{id}/access", s.protect("admin", s.userAccessPage))
 	mux.Handle("POST /users/{id}/access", s.protect("admin", s.userAccessUpdate))
+	mux.Handle("POST /users/{id}/quota", s.protect("admin", s.userQuotaSave))
 	mux.Handle("GET /account/password", s.protect("viewer", s.accountPasswordPage))
 	mux.Handle("POST /account/password", s.protect("viewer", s.accountPassword))
 	mux.Handle("GET /account/security", s.protect("viewer", s.accountSecurityPage))
