@@ -40,6 +40,38 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 	case "pool-capacity":
 		s.renderStorageDiagnostic(w, r, host, pool)
 		return
+	case "pool-define":
+		name = strings.TrimSpace(r.Form.Get("name"))
+		xmlText, err := command.StoragePoolXML(strings.TrimSpace(r.Form.Get("pool_type")), name, strings.TrimSpace(r.Form.Get("source")), strings.TrimSpace(r.Form.Get("target")))
+		if err != nil || command.ValidateStoragePoolXML(xmlText) != nil {
+			message := "存储池参数无效"
+			if err != nil {
+				message = err.Error()
+			}
+			s.redirectError(w, r, "/hosts/"+host.ID+"/storage", message)
+			return
+		}
+		jobID, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", "定义存储池 "+name, "virsh", []string{"pool-define", "/dev/stdin"}, xmlText, boundedOperationTimeout(s.cfg.MaxTimeout, 120))
+		if err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/storage", err.Error())
+			return
+		}
+		http.Redirect(w, r, "/jobs/"+jobID, http.StatusSeeOther)
+		return
+	case "pool-stop":
+		if r.Form.Get("confirm") != "yes" {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/storage", "停止存储池需要显式确认")
+			return
+		}
+		args = []string{"pool-destroy", pool}
+		label = "停止存储池 " + pool
+	case "pool-delete":
+		if r.Form.Get("confirm") != "yes" {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/storage", "删除存储池需要显式确认")
+			return
+		}
+		args = []string{"pool-undefine", pool}
+		label = "删除存储池 " + pool
 	case "pool-refresh":
 		args = []string{"pool-refresh", pool}
 		label = "刷新存储池 " + pool
@@ -68,6 +100,50 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 		}
 		args = []string{"vol-create-as", pool, name, capacity, "--format", format}
 		label = fmt.Sprintf("创建卷 %s/%s", pool, name)
+	case "volume-move":
+		targetPool := strings.TrimSpace(r.Form.Get("target_pool"))
+		if err := libvirt.ValidateName(volume); err != nil || libvirt.ValidateName(targetPool) != nil || targetPool == pool {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标存储池无效")
+			return
+		}
+		if err := libvirt.ValidateName(name); err != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标卷名称无效")
+			return
+		}
+		volumes, volErr := s.libvirt.ListVolumes(r.Context(), host.ID, pool)
+		if volErr != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法读取存储卷")
+			return
+		}
+		path := ""
+		for _, item := range volumes {
+			if item.Name == volume {
+				path = item.Path
+				break
+			}
+		}
+		if path == "" || !strings.HasPrefix(path, "/") || strings.Contains(path, "..") {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "该卷没有可移动的文件路径")
+			return
+		}
+		dest := strings.TrimRight(path[:strings.LastIndex(path, "/")], "/") + "/.wvc-move-" + name
+		if strings.Contains(dest, "..") {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "临时路径无效")
+			return
+		}
+		download := []string{"vol-download", volume, dest, "--pool", pool}
+		upload := []string{"vol-upload", name, dest, "--pool", targetPool}
+		first, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", fmt.Sprintf("导出卷 %s/%s", pool, volume), "virsh", download, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600))
+		if err != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), err.Error())
+			return
+		}
+		if _, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", fmt.Sprintf("导入卷到 %s/%s", targetPool, name), "virsh", upload, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600)); err != nil {
+			s.redirectError(w, r, "/jobs/"+first, err.Error())
+			return
+		}
+		http.Redirect(w, r, "/jobs/"+first, http.StatusSeeOther)
+		return
 	case "volume-clone":
 		if err := libvirt.ValidateName(volume); err != nil {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "源卷名称无效")

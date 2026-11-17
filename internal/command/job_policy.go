@@ -222,6 +222,16 @@ func validateStorageActionArgs(args []string) error {
 			return fmt.Errorf("存储池诊断参数数量不正确")
 		}
 		return validateActionOperand(args[1])
+	case "pool-define":
+		if len(args) != 2 || args[1] != "/dev/stdin" {
+			return fmt.Errorf("存储池定义参数不正确")
+		}
+		return nil
+	case "pool-destroy", "pool-undefine":
+		if len(args) != 2 {
+			return fmt.Errorf("存储池删除参数不正确")
+		}
+		return validateActionOperand(args[1])
 	case "pool-refresh", "pool-start":
 		if len(args) != 2 {
 			return fmt.Errorf("存储池操作参数数量不正确")
@@ -284,6 +294,17 @@ func validateStorageActionArgs(args []string) error {
 			return err
 		}
 		return validateActionOperand(args[3])
+	case "vol-download", "vol-upload":
+		if len(args) != 5 || args[3] != "--pool" {
+			return fmt.Errorf("跨池移动参数不正确")
+		}
+		if err := validateActionOperand(args[1]); err != nil || validateActionOperand(args[4]) != nil {
+			return fmt.Errorf("跨池移动参数不正确")
+		}
+		if !strings.HasPrefix(args[2], "/") || strings.Contains(args[2], "..") || strings.ContainsAny(args[2], " \t\r\n") {
+			return fmt.Errorf("跨池移动路径无效")
+		}
+		return nil
 	default:
 		return fmt.Errorf("不支持的存储操作 %q", args[0])
 	}

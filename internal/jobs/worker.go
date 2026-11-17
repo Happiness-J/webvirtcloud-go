@@ -315,6 +315,11 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 			return "failed", "", "虚拟网络定义无效"
 		}
 	}
+	if len(args) > 0 && args[0] == "pool-define" {
+		if err := command.ValidateStoragePoolXML(job.Stdin); err != nil {
+			return "failed", "", "存储池定义无效"
+		}
+	}
 	if strings.TrimSpace(job.HostID) == "" {
 		return "failed", "", "任务缺少主机配置；为避免误在本机执行，已拒绝运行"
 	}
