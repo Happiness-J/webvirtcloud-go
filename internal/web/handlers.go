@@ -706,7 +706,18 @@ func (s *Server) networksPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	networks, err := s.libvirt.ListNetworks(r.Context(), host.ID)
-	page := pageData{Title: "网络", Nav: "hosts", Data: map[string]any{"Host": host, "Networks": networks}}
+	pools, poolErr := s.db.ListIPPools(r.Context(), host.ID)
+	if poolErr != nil {
+		s.logRequestError(r, "load ip pools", poolErr)
+	}
+	allocations := map[string][]store.IPAllocation{}
+	for _, pool := range pools {
+		items, listErr := s.db.ListIPAllocations(r.Context(), pool.ID)
+		if listErr == nil {
+			allocations[pool.ID] = items
+		}
+	}
+	page := pageData{Title: "网络", Nav: "hosts", Data: map[string]any{"Host": host, "Networks": networks, "IPPools": pools, "Allocations": allocations}}
 	if err != nil {
 		s.logRequestError(r, "load networks", err)
 		page.Flash, page.FlashType = "无法读取虚拟网络，请检查主机连接或查看服务日志。", "error"
