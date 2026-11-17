@@ -18,7 +18,11 @@ func (s *Server) vmTagSave(w http.ResponseWriter, r *http.Request) {
 	}
 	enabled := r.Form.Get("enabled") != "0"
 	if err := s.db.SetVMTag(r.Context(), hostID, vmName, tag, enabled); err != nil {
-		s.redirectError(w, r, "/hosts/"+hostID+"/ops", err.Error())
+		message := "无法保存标签"
+		if err.Error() == "标签需要 1 到 32 个字符，不能含空格" {
+			message = err.Error()
+		}
+		s.redirectError(w, r, "/hosts/"+hostID+"/ops", message)
 		return
 	}
 	http.Redirect(w, r, "/hosts/"+hostID+"/ops?tag="+url.QueryEscape(tag), http.StatusSeeOther)
