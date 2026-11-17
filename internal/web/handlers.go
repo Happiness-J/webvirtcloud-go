@@ -144,7 +144,7 @@ func (s *Server) hostCreate(w http.ResponseWriter, r *http.Request) {
 	uri := strings.TrimSpace(r.Form.Get("uri"))
 	description := strings.TrimSpace(r.Form.Get("description"))
 	if err := validateDisplayText(name, 128, "主机名称"); err != nil {
-		s.redirectError(w, r, "/hosts/new", err.Error())
+		s.redirectError(w, r, "/hosts/new", "主机名称无效")
 		return
 	}
 	if name == "" {
@@ -152,7 +152,7 @@ func (s *Server) hostCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := validateDisplayText(description, 2000, "主机描述"); err != nil {
-		s.redirectError(w, r, "/hosts/new", err.Error())
+		s.redirectError(w, r, "/hosts/new", "主机描述无效")
 		return
 	}
 	if err := command.ValidateURI(uri); err != nil || uri == "" {
