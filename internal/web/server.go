@@ -372,6 +372,8 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /hosts/new", s.protect("admin", s.hostNewPage))
 	mux.Handle("POST /hosts/new", s.protect("admin", s.hostCreate))
 	mux.Handle("GET /hosts/{id}", s.protect("viewer", s.hostDetail))
+	mux.Handle("GET /setup", s.protect("admin", s.setupPage))
+	mux.Handle("POST /setup", s.protect("admin", s.setupApply))
 	mux.Handle("GET /hosts/{id}/ops", s.protect("viewer", s.hostOpsPage))
 	mux.Handle("POST /hosts/{id}/tags", s.protect("operator", s.vmTagSave))
 	mux.Handle("GET /hosts/{id}/power", s.protect("admin", s.hostPowerPage))
