@@ -1529,7 +1529,7 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	disks, _ := listImportableDisks(s.cfg.ImageDir)
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles(), "Disks": disks}})
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles(), "Sizes": vmSizes(), "Disks": disks}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
@@ -1543,9 +1543,23 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimSpace(r.Form.Get("name"))
-	vcpus := strings.TrimSpace(r.Form.Get("vcpus"))
-	memory := strings.TrimSpace(r.Form.Get("memory"))
-	disk := strings.TrimSpace(r.Form.Get("disk"))
+	profile, profileErr := osProfileByID(defaultForm(r, "os_profile", "generic"))
+	if profileErr != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", profileErr.Error())
+		return
+	}
+	size, sizeErr := vmSizeByID(defaultForm(r, "size", "medium"))
+	if sizeErr != nil {
+		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", sizeErr.Error())
+		return
+	}
+	vcpus := defaultForm(r, "vcpus", strconv.Itoa(size.VCPUs))
+	memory := defaultForm(r, "memory", strconv.Itoa(size.MemoryGB))
+	diskDefault := size.DiskGB
+	if strings.TrimSpace(r.Form.Get("size")) == "" {
+		diskDefault = profile.DiskGB
+	}
+	disk := defaultForm(r, "disk", strconv.Itoa(diskDefault))
 	vcpuCount, cpuErr := strconv.Atoi(vcpus)
 	sockets, socketErr := strconv.Atoi(defaultForm(r, "sockets", "1"))
 	cores, coreErr := strconv.Atoi(defaultForm(r, "cores", strconv.Itoa(vcpuCount)))
@@ -1572,11 +1586,6 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	cpu, err := cpuModelArg(strings.TrimSpace(r.Form.Get("cpu_mode")), strings.TrimSpace(r.Form.Get("cpu_model")), r.Form.Get("nested") == "yes")
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
-		return
-	}
-	profile, profileErr := osProfileByID(defaultForm(r, "os_profile", "generic"))
-	if profileErr != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", profileErr.Error())
 		return
 	}
 	if strings.TrimSpace(r.Form.Get("disk_bus")) == "" {
