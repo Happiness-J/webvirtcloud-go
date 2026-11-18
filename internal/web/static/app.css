@@ -37,6 +37,8 @@ a:hover { text-decoration: underline; }
 footer { text-align: center; color: #98a2b3; font-size: 12px; padding: 20px; }
 h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.5px; }
 h2 { font-size: 17px; margin: 0 0 14px; }
+h1, h2, h3 { display: flex; align-items: center; flex-wrap: nowrap; gap: 2px; }
+h1 > .help-tip, h2 > .help-tip, h3 > .help-tip { flex: 0 0 auto; }
 p { line-height: 1.6; }
 .muted { color: var(--muted); }
 .tiny { font-size: 12px; }
@@ -81,6 +83,10 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .empty { padding: 24px; text-align: center; color: var(--muted); background: #fafbfc; border-radius: 10px; }
 .stack { display: grid; gap: 15px; }
 label { display: grid; gap: 7px; font-weight: 600; font-size: 14px; }
+label > .help-tip { justify-self: start; margin-left: 0; }
+label:has(> .help-tip) { display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 7px; }
+label:has(> .help-tip) > :not(.help-tip):not(.req):not(.opt) { flex: 1 0 100%; }
+label:has(> .help-tip) > .req, label:has(> .help-tip) > .opt, label:has(> .help-tip) > .help-tip { flex: 0 0 auto; }
 input, select, textarea { width: 100%; border: 1px solid #cfd6e0; border-radius: 8px; padding: 10px 12px; font: inherit; color: var(--ink); background: #fff; }
 input:focus, select:focus, textarea:focus { outline: 2px solid #b9d0fb; border-color: var(--brand); }
 textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
