@@ -12,7 +12,7 @@
   <div class="preview-meta"><span id="preview-size">正在读取画面尺寸</span><button id="preview-refresh" class="btn small" type="button">刷新画面</button></div>
 </section>{{end}}
 {{if .Data.Actions}}<section class="panel">
-  <h2>电源与生命周期</h2><button type="button" class="help-tip" aria-label="说明" data-tip="优先使用正常关机。强制关闭和删除可能造成数据丢失，删除默认仍保留磁盘。">?</button>
+  <h2>电源与生命周期<button type="button" class="help-tip" aria-label="说明" data-tip="优先使用正常关机。强制关闭和删除可能造成数据丢失，删除默认仍保留磁盘。">?</button></h2>
   <div class="action-row">
   {{range .Data.Actions}}
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline action-form">
@@ -120,7 +120,7 @@
   {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>主机设备、PCI 与 vGPU</h2><button type="button" class="help-tip" aria-label="说明" data-tip="设备交给虚拟机后，宿主机不能同时使用它。移除前先在客户机内卸载。">?</button><span class="pill muted">分配前检查占用</span></div>
+  <div class="panel-head"><h2>主机设备、PCI 与 vGPU<button type="button" class="help-tip" aria-label="说明" data-tip="设备交给虚拟机后，宿主机不能同时使用它。移除前先在客户机内卸载。">?</button></h2><span class="pill muted">分配前检查占用</span></div>
   <p class="hint">可以把宿主机上的 USB 设备或独立块设备分配给这台虚拟机。系统盘、已被其他虚拟机占用的设备不会出现在可选项中。移除前请先在客户机内卸载。</p>
   {{if .Data.HostDeviceError}}<div class="empty-state"><strong>暂时无法读取宿主机设备</strong><span>请检查主机连接后再试。已有虚拟机信息不受影响。</span></div>{{else}}
   {{if eq .User.Role "admin"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/mdev" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><label>物理设备<input name="parent" required placeholder="pci_0000_00_02_0"></label><label>切分类型<input name="mdev_type" required placeholder="nvidia-300"></label><button class="btn">切分 vGPU</button></form><p class="hint">切分后刷新本页，把新的介导设备分配给虚拟机。SR-IOV 虚拟功能会标成 SR-IOV，和普通 PCI 一起分配。</p>{{end}}
@@ -249,7 +249,7 @@
   </div>
 </section>
 {{if eq .User.Role "admin"}}<section class="panel danger-zone">
-  <div class="panel-head"><h2>GDB 调试</h2><button type="button" class="help-tip" aria-label="说明" data-tip="只在维护时使用。开启后虚拟机会暂停并等待调试器，默认关闭。">?</button><span class="pill bad">默认关闭</span></div>
+  <div class="panel-head"><h2>GDB 调试<button type="button" class="help-tip" aria-label="说明" data-tip="只在维护时使用。开启后虚拟机会暂停并等待调试器，默认关闭。">?</button></h2><span class="pill bad">默认关闭</span></div>
   <p class="hint bad-text">开启后，虚拟机会在本机回环地址等待调试器。这会暂停客户机并暴露低级调试接口，只应在受控维护时使用。</p>
   {{if .Data.GDB.Enabled}}<p class="hint">当前已配置：<code>127.0.0.1:{{.Data.GDB.Port}}</code>。调试器需在宿主机本机连接。</p>{{else}}<div class="empty-state"><strong>GDB 未开启</strong><span>需要时再设置端口并暂停启动。</span></div>{{end}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
@@ -262,8 +262,8 @@
     <button class="btn" data-confirm="虚拟机会暂停启动并等待调试器，确定继续吗？">暂停启动</button>
   </form>
 </section>{{end}}
-<section class="panel"><div class="panel-head"><h2>网卡高级配置</h2><button type="button" class="help-tip" aria-label="说明" data-tip="配置 VLAN、MTU、MAC 和链路状态。留空的项目保持不变；断开链路会中断这张网卡的通信。">?</button></div><p class="hint">这些设置在关机后保存，并作用于所选虚拟网络网卡。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="nic-advanced"><div class="grid two compact"><label>网卡<select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select></label><label>VLAN 模式<select name="vlan_mode"><option value="access">access</option><option value="trunk">trunk</option></select></label><label>VLAN<input name="vlan" placeholder="1-4094，可留空"></label><label>MTU<input name="mtu" placeholder="576-9000，可留空"></label><label>新 MAC<input name="new_mac" placeholder="可留空"></label><label>链路<select name="link"><option value="">保持不变</option><option value="up">接通</option><option value="down">断开</option></select></label></div><button class="btn">保存网卡配置</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改 VLAN、MTU、MAC 或链路状态。</span></div>{{end}}</section>
-<section class="panel"><div class="panel-head"><h2>网卡防火墙</h2><button type="button" class="help-tip" aria-label="说明" data-tip="为单块网卡限制进入或离开虚拟机的流量。防欺骗会拒绝与网卡地址不符的 IP 和 MAC。">?</button></div><p class="hint">规则在关机后保存。选择方向、协议和端口；ICMP 不使用端口。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="firewall-apply"><select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select><select name="direction"><option value="in">入站</option><option value="out">出站</option></select><select name="protocol"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="icmp">ICMP</option></select><input name="port" placeholder="端口，例如 22"><label class="confirm"><input type="checkbox" name="antispoof" value="yes" checked>防 IP/MAC 欺骗</label><button class="btn">保存规则</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改网卡防火墙。</span></div>{{end}}</section>
+<section class="panel"><div class="panel-head"><h2>网卡高级配置<button type="button" class="help-tip" aria-label="说明" data-tip="配置 VLAN、MTU、MAC 和链路状态。留空的项目保持不变；断开链路会中断这张网卡的通信。">?</button></h2></div><p class="hint">这些设置在关机后保存，并作用于所选虚拟网络网卡。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="nic-advanced"><div class="grid two compact"><label>网卡<select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select></label><label>VLAN 模式<select name="vlan_mode"><option value="access">access</option><option value="trunk">trunk</option></select></label><label>VLAN<input name="vlan" placeholder="1-4094，可留空"></label><label>MTU<input name="mtu" placeholder="576-9000，可留空"></label><label>新 MAC<input name="new_mac" placeholder="可留空"></label><label>链路<select name="link"><option value="">保持不变</option><option value="up">接通</option><option value="down">断开</option></select></label></div><button class="btn">保存网卡配置</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改 VLAN、MTU、MAC 或链路状态。</span></div>{{end}}</section>
+<section class="panel"><div class="panel-head"><h2>网卡防火墙<button type="button" class="help-tip" aria-label="说明" data-tip="为单块网卡限制进入或离开虚拟机的流量。防欺骗会拒绝与网卡地址不符的 IP 和 MAC。">?</button></h2></div><p class="hint">规则在关机后保存。选择方向、协议和端口；ICMP 不使用端口。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="firewall-apply"><select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select><select name="direction"><option value="in">入站</option><option value="out">出站</option></select><select name="protocol"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="icmp">ICMP</option></select><input name="port" placeholder="端口，例如 22"><label class="confirm"><input type="checkbox" name="antispoof" value="yes" checked>防 IP/MAC 欺骗</label><button class="btn">保存规则</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改网卡防火墙。</span></div>{{end}}</section>
 <section class="panel">
   <h2>NUMA 与 CPU 亲和性</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="numa-bind"><input name="snapshot" placeholder="节点，例如 0 或 0-1" required><button class="btn">绑定 NUMA</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cpu-pin"><input name="snapshot" placeholder="CPU 集合，例如 0-3" required><button class="btn">设置 vCPU 亲和性</button></form><p class="hint">NUMA 绑定限制虚拟机使用的宿主机节点。vCPU 亲和性限制可运行的物理 CPU 集合。</p><h2>CPU 与内存调优</h2>
   <p class="hint">“在线并持久化”会同时更新运行态和下次启动配置，仅适用于运行中或已挂起的虚拟机；增大 vCPU 前需确认当前最大 vCPU 上限。资源变更不会自动修改 guest 内应用配置。</p>
@@ -314,7 +314,7 @@
     <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
   </div>
 </section>
-<section class="panel"><h2>定时快照与电源</h2><button type="button" class="help-tip" aria-label="说明" data-tip="到期后自动创建静默快照或执行开机、关机。保留数量用于限制自动快照。">?</button>
+<section class="panel"><h2>定时快照与电源<button type="button" class="help-tip" aria-label="说明" data-tip="到期后自动创建静默快照或执行开机、关机。保留数量用于限制自动快照。">?</button></h2>
 <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/schedule" class="inline-form">
   <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="snapshot">
   <label>快照周期小时<input name="interval_hours" type="number" min="1" max="168" value="24" required></label>
@@ -376,7 +376,7 @@
 {{end}}
 <div class="grid two">
   <section class="panel"><h2>摘要</h2><dl class="kv">{{range .Data.InfoRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
-  <section class="panel"><h2>客户机信息</h2><button type="button" class="help-tip" aria-label="说明" data-tip="通过 guest agent 查看操作系统、磁盘使用和在线状态。没有 agent 时，可以挂载工具 ISO 后在客户机内安装。">?</button>
+  <section class="panel"><h2>客户机信息<button type="button" class="help-tip" aria-label="说明" data-tip="通过 guest agent 查看操作系统、磁盘使用和在线状态。没有 agent 时，可以挂载工具 ISO 后在客户机内安装。">?</button></h2>
 <p class="hint">{{if .Data.Detail.GuestAgent}}代理在线。{{else}}代理未响应。Windows 安装 QEMU Guest Agent，Linux 安装并启动 qemu-guest-agent。{{end}}</p>
 <h3>操作系统</h3><pre class="output">{{.Data.GuestOS}}</pre><h3>内部磁盘</h3><pre class="output">{{.Data.GuestFilesystems}}</pre>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cdrom-change"><input name="snapshot" placeholder="光驱目标，例如 sda" required><input name="media" placeholder="工具 ISO 路径" required><button class="btn">挂载工具 ISO</button></form>{{end}}
