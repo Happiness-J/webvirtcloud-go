@@ -2,12 +2,15 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
 	"webvirtcloud-go/internal/id"
 )
+
+var ErrQuotaExceeded = errors.New("超出用户资源配额")
 
 type UserQuota struct {
 	UserID      string
@@ -55,7 +58,7 @@ func (db *Store) ReserveVMUsage(ctx context.Context, userID, hostID, vmName stri
 		return err
 	}
 	if usage.VMs+1 > quota.MaxVMs || usage.VCPUs+vcpus > quota.MaxVCPUs || usage.MemoryGB+memoryGB > quota.MaxMemoryGB || usage.DiskGB+diskGB > quota.MaxDiskGB {
-		return fmt.Errorf("超出用户资源配额")
+		return ErrQuotaExceeded
 	}
 	_, err = db.pool.Exec(ctx, `INSERT INTO vm_usage(id,user_id,host_id,vm_name,vcpus,memory_gb,disk_gb)
 		VALUES($1,$2,$3,$4,$5,$6,$7)`, id.New("use"), userID, hostID, vmName, vcpus, memoryGB, diskGB)
