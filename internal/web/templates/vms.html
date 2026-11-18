@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">计算资源</p><h1>虚拟机</h1><button type="button" class="help-tip" aria-label="说明" data-tip="这里汇总你能管理的虚拟机。点名称进入详情；批量操作会同时作用于勾选的机器，强制关闭可能丢失未保存的数据。">?</button><p class="muted">查看每台主机上的虚拟机，打开控制台或进入详情。删除必须在详情页输入完整名称。</p></div>
+<div class="page-head"><div><p class="page-kicker">计算资源</p><h1>虚拟机<button type="button" class="help-tip" aria-label="说明" data-tip="这里汇总你能管理的虚拟机。点名称进入详情；批量操作会同时作用于勾选的机器，强制关闭可能丢失未保存的数据。">?</button></h1><p class="muted">查看每台主机上的虚拟机，打开控制台或进入详情。删除必须在详情页输入完整名称。</p></div>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
   {{if .Data.Groups}}{{with index .Data.Groups 0}}<a class="btn primary" href="/hosts/{{.Host.ID}}/vms/new">创建虚拟机</a>{{end}}{{else}}<a class="btn primary" href="/hosts">先添加主机</a>{{end}}
 {{end}}</div>
