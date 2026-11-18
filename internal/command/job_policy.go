@@ -874,9 +874,7 @@ func validateVMCreateArgs(args []string) error {
 		index += 2
 	}
 	if index < len(args) {
-		if len(args) != index+2 || args[index] != "--memorybacking" || (args[index+1] != "hugepages,page.size=2" && args[index+1] != "hugepages,page.size=1024") {
-			return fmt.Errorf("大页内存参数无效")
-		}
+		return fmt.Errorf("任务参数组合无效")
 	}
 	return nil
 }

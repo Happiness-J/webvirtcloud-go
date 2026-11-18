@@ -456,7 +456,6 @@ func virtXMLOptions() []ParameterSpec {
 		vText("--memtune", "内存调优", "hard_limit=8388608"),
 		vText("--blkiotune", "块 I/O 调优", "weight=500"),
 		vText("--numatune", "NUMA 调优", "nodeset=0"),
-		vText("--memorybacking", "内存后端", "hugepages"),
 		vText("--iothreads", "I/O 线程", "2"),
 		vText("--idmap", "用户命名空间映射", "uid.start=0,uid.target=1000,uid.count=65536"),
 		vText("--keywrap", "密钥封装", "cipher_name=aes"),
