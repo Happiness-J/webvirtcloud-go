@@ -9,6 +9,15 @@ import (
 	"webvirtcloud-go/internal/store"
 )
 
+func (s *Server) clusterHostError(w http.ResponseWriter, r *http.Request, err error) {
+	if store.IsNotFound(err) {
+		s.redirectError(w, r, "/cluster", "主机不存在")
+		return
+	}
+	s.logRequestError(r, "load host for cluster protection", err)
+	s.redirectError(w, r, "/cluster", "读取主机失败，请稍后重试")
+}
+
 func (s *Server) clusterPage(w http.ResponseWriter, r *http.Request) {
 	policy, err := s.db.ClusterPolicy(r.Context())
 	if err != nil {
@@ -51,7 +60,8 @@ func (s *Server) clusterPolicySave(w http.ResponseWriter, r *http.Request) {
 		FailAfter: failAfter,
 	}
 	if err := s.db.SaveClusterPolicy(r.Context(), item); err != nil {
-		s.redirectError(w, r, "/cluster", err.Error())
+		s.logRequestError(r, "save cluster policy", err)
+		s.redirectError(w, r, "/cluster", "保存调度策略失败，请稍后重试")
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
@@ -67,12 +77,13 @@ func (s *Server) clusterProtect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := s.db.GetHost(r.Context(), hostID); err != nil {
-		s.redirectError(w, r, "/cluster", "主机不存在")
+		s.clusterHostError(w, r, err)
 		return
 	}
 	item := store.HAVM{HostID: hostID, VMName: vm, Protected: r.Form.Get("protected") == "1"}
 	if err := s.db.SaveHAVM(r.Context(), item); err != nil {
-		s.redirectError(w, r, "/cluster", err.Error())
+		s.logRequestError(r, "save cluster protection", err)
+		s.redirectError(w, r, "/cluster", "保存虚拟机保护失败，请稍后重试")
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
