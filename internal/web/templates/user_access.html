@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">授权范围</p><h1>{{.Data.Target.Username}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="主机授权限制账号能看到哪些主机。未分配任何主机时保持原有范围。桌面用户还可以再限定能打开的虚拟机控制台。">?</button><p class="muted">主机授权为空表示不额外收窄。分配后，该账号的概览、主机和虚拟机只显示这些主机。桌面用户的控制台仍需单独授权。</p></div><a class="btn" href="/users">返回用户</a></div>
+<div class="page-head"><div><p class="page-kicker">授权范围</p><h1>{{.Data.Target.Username}}<button type="button" class="help-tip" aria-label="说明" data-tip="主机授权限制账号能看到哪些主机。未分配任何主机时保持原有范围。桌面用户还可以再限定能打开的虚拟机控制台。">?</button></h1><p class="muted">主机授权为空表示不额外收窄。分配后，该账号的概览、主机和虚拟机只显示这些主机。桌面用户的控制台仍需单独授权。</p></div><a class="btn" href="/users">返回用户</a></div>
 <section class="panel"><h2>资源配额</h2>
 <p class="hint">已用 {{.Data.Usage.VMs}} 台、{{.Data.Usage.VCPUs}} vCPU、{{.Data.Usage.MemoryGB}} GB 内存、{{.Data.Usage.DiskGB}} GB 磁盘。管理员创建不受此配额限制。</p>
 <form method="post" action="/users/{{.Data.Target.ID}}/quota" class="inline-form">
