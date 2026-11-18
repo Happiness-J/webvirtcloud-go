@@ -64,6 +64,7 @@ func TestJobMinimumRole(t *testing.T) {
 		{name: "vm rejects extra arguments", kind: "vm-action", tool: "virsh", args: []string{"destroy", "vm", "--graceful"}, wantErr: true},
 		{name: "vm delete rejects unsafe storage selector", kind: "vm-action", tool: "virsh", args: []string{"undefine", "vm", "--storage", "vda"}, wantErr: true},
 		{name: "USB detach rejects path", kind: "vm-action", tool: "virsh", args: []string{"detach-disk", "vm", "/dev/sdb", "--live"}, wantErr: true},
+		{name: "vm create rejects hugepages", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "generic", "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole", "--import", "--memorybacking", "hugepages,page.size=2"}, wantErr: true},
 		{name: "vm create rejects alternate graphics", kind: "vm-create", tool: "virt-install", args: []string{"--name", "vm", "--vcpus", "2", "--memory", "4096", "--disk", "size=40,format=qcow2", "--osinfo", "generic", "--graphics", "vnc,listen=0.0.0.0", "--noautoconsole", "--import"}, wantErr: true},
 		{name: "host test rejects other commands", kind: "host-test", tool: "virsh", args: []string{"nodeinfo"}, wantErr: true},
 		{name: "host health rejects unsupported hypervisor", kind: "host-test", tool: "virt-host-validate", args: []string{"qemu", "--help"}, wantErr: true},
