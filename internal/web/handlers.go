@@ -1564,6 +1564,9 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	sockets, socketErr := strconv.Atoi(defaultForm(r, "sockets", "1"))
 	cores, coreErr := strconv.Atoi(defaultForm(r, "cores", strconv.Itoa(vcpuCount)))
 	threads, threadErr := strconv.Atoi(defaultForm(r, "threads", "1"))
+	if strings.TrimSpace(r.Form.Get("sockets")) == "" && strings.TrimSpace(r.Form.Get("cores")) == "" && strings.TrimSpace(r.Form.Get("threads")) == "" {
+		cores = vcpuCount
+	}
 	memoryCount, memoryErr := strconv.Atoi(memory)
 	diskCount, diskErr := strconv.Atoi(disk)
 	if cpuErr != nil || socketErr != nil || coreErr != nil || threadErr != nil || memoryErr != nil || diskErr != nil {
@@ -1578,7 +1581,7 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
 	}
-	cpu, err := cpuModelArg(strings.TrimSpace(r.Form.Get("cpu_mode")), strings.TrimSpace(r.Form.Get("cpu_model")), r.Form.Get("nested") == "yes")
+	cpu, err := cpuModelArg(defaultForm(r, "cpu_mode", "host-model"), strings.TrimSpace(r.Form.Get("cpu_model")), r.Form.Get("nested") == "yes")
 	if err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
@@ -1596,7 +1599,6 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", videoErr.Error())
 			return
 		}
-		args = append(args, "--video", video)
 		queues, _ := strconv.Atoi(defaultForm(r, "disk_queues", "1"))
 		bus, busErr := diskBusArg(strings.TrimSpace(r.Form.Get("disk_bus")), queues)
 		if busErr != nil {
@@ -1646,7 +1648,7 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		boot, bootErr := firmwareBoot(strings.TrimSpace(r.Form.Get("boot_order")), r.Form.Get("boot_menu"), strings.TrimSpace(r.Form.Get("firmware")), r.Form.Get("secure_boot"))
+		boot, bootErr := firmwareBoot(defaultForm(r, "boot_order", "hd"), r.Form.Get("boot_menu"), strings.TrimSpace(r.Form.Get("firmware")), r.Form.Get("secure_boot"))
 		if bootErr != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", bootErr.Error())
 			return
@@ -1666,6 +1668,7 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 			args = append(args, "--watchdog", "i6300esb,action="+action)
 		}
 		args = appendCPU(args, cpu)
+		args = append(args, "--video", video)
 		for i := range args {
 			if args[i] == "--vcpus" && i+1 < len(args) {
 				args[i+1] = topology

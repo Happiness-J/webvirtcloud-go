@@ -277,7 +277,9 @@ if (createForm) {
     createForm.disk.value = source.dataset.disk;
     if (os?.dataset.bus) createForm.disk_bus.value = os.dataset.bus;
     if (os?.dataset.firmware) createForm.firmware.value = os.dataset.firmware;
+    createForm.sockets.value = "1";
     createForm.cores.value = source.dataset.vcpus;
+    createForm.threads.value = "1";
   };
   createForm.querySelector('#os-profile')?.addEventListener('change', applyPreset);
   createForm.querySelector('#vm-size')?.addEventListener('change', applyPreset);
