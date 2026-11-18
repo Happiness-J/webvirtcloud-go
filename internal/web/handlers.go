@@ -1687,7 +1687,12 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
 	if sess.User.Role != "admin" {
 		if err := s.db.ReserveVMUsage(r.Context(), sess.User.ID, host.ID, name, vcpuCount, memoryCount, diskCount); err != nil {
-			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
+			if errors.Is(err, store.ErrQuotaExceeded) {
+				s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "超出用户资源配额")
+				return
+			}
+			s.logRequestError(r, "reserve VM usage", err)
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", "暂时无法核对该账号的资源配额，请稍后重试")
 			return
 		}
 	}
