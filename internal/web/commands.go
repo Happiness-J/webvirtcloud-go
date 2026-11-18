@@ -21,6 +21,13 @@ import (
 	"webvirtcloud-go/internal/webhook"
 )
 
+func enqueueFailureMessage(err error) (string, bool) {
+	if errors.Is(err, store.ErrJobQuotaExceeded) {
+		return "排队或运行中的任务已达上限，请稍后重试", true
+	}
+	return "", false
+}
+
 func (s *Server) enqueueCommand(r *http.Request, user store.User, hostID, kind, label, tool string, args []string, stdin string, timeoutSeconds int) (string, error) {
 	host, target, err := s.commandTarget(r.Context(), hostID)
 	if err != nil {
@@ -67,11 +74,14 @@ func (s *Server) enqueueCommand(r *http.Request, user store.User, hostID, kind, 
 		ExpectedHostURICiphertext: host.URICiphertext,
 	}
 	if err := s.db.EnqueueJob(r.Context(), job); err != nil {
+		if message, ok := enqueueFailureMessage(err); ok {
+			if errors.Is(err, store.ErrJobQuotaExceeded) {
+				s.logRequestError(r, "enqueue job quota", err)
+			}
+			return "", fmt.Errorf("%s", message)
+		}
 		if errors.Is(err, store.ErrHostChanged) {
 			return "", fmt.Errorf("主机连接配置在提交期间发生变化，请重新提交")
-		}
-		if errors.Is(err, store.ErrJobQuotaExceeded) {
-			return "", err
 		}
 		var duplicate *store.DuplicateJobError
 		if errors.As(err, &duplicate) {
