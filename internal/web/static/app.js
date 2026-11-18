@@ -267,6 +267,21 @@ document.querySelectorAll('.help-tip').forEach((tip) => {
 });
 const createForm = document.querySelector('#vm-create-form');
 if (createForm) {
+  const applyPreset = () => {
+    const os = createForm.querySelector('#os-profile')?.selectedOptions[0];
+    const size = createForm.querySelector('#vm-size')?.selectedOptions[0];
+    const source = size?.dataset.vcpus ? size : os;
+    if (!source) return;
+    createForm.vcpus.value = source.dataset.vcpus;
+    createForm.memory.value = source.dataset.memory;
+    createForm.disk.value = source.dataset.disk;
+    if (os?.dataset.bus) createForm.disk_bus.value = os.dataset.bus;
+    if (os?.dataset.firmware) createForm.firmware.value = os.dataset.firmware;
+    createForm.cores.value = source.dataset.vcpus;
+  };
+  createForm.querySelector('#os-profile')?.addEventListener('change', applyPreset);
+  createForm.querySelector('#vm-size')?.addEventListener('change', applyPreset);
+  applyPreset();
   createForm.addEventListener('submit', (event) => {
     const error = document.querySelector('#create-error');
     let first = null;
