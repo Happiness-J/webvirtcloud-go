@@ -8,6 +8,9 @@ import (
 )
 
 func bootOrderArg(order, menu string) (string, error) {
+	if strings.TrimSpace(order) == "" {
+		order = "hd"
+	}
 	allowed := map[string]bool{"hd": true, "cdrom": true, "network": true}
 	parts := strings.Split(order, ",")
 	if len(parts) == 0 || len(parts) > 3 {
