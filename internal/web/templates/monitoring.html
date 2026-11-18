@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="page-head"><div><p class="page-kicker">监控对接</p><h1>{{.Data.Host.Name}}</h1><button type="button" class="help-tip" aria-label="说明" data-tip="Prometheus 抓取受令牌保护的指标端点。Grafana 模板随安装包提供，页面不保存令牌。">?</button><p class="muted">把宿主机和虚拟机指标交给 Prometheus 与 Grafana，站内趋势图和阈值告警保持不变。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}/ops">返回运维</a></div>
+<div class="page-head"><div><p class="page-kicker">监控对接</p><h1>{{.Data.Host.Name}}<button type="button" class="help-tip" aria-label="说明" data-tip="Prometheus 抓取受令牌保护的指标端点。Grafana 模板随安装包提供，页面不保存令牌。">?</button></h1><p class="muted">把宿主机和虚拟机指标交给 Prometheus 与 Grafana，站内趋势图和阈值告警保持不变。</p></div><a class="btn" href="/hosts/{{.Data.Host.ID}}/ops">返回运维</a></div>
 <section class="panel">
   <h2>Prometheus</h2>
   {{if .Data.Enabled}}<p><span class="pill ok">端点已启用</span> 抓取地址为 <code>/metrics</code>，请求头使用 Bearer 令牌。</p>{{else}}<p><span class="pill">端点未启用</span> 设置指标令牌并重启服务后，Prometheus 才能抓取。</p>{{end}}
