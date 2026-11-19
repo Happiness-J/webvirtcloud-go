@@ -37,6 +37,12 @@ func (db *Store) CreateIPPool(ctx context.Context, pool IPPool) error {
 	return err
 }
 
+func (db *Store) IPPoolOnHost(ctx context.Context, hostID, poolID string) (bool, error) {
+	var ok bool
+	err := db.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM ip_pools WHERE host_id=$1 AND id=$2)`, hostID, poolID).Scan(&ok)
+	return ok, err
+}
+
 func (db *Store) ListIPPools(ctx context.Context, hostID string) ([]IPPool, error) {
 	rows, err := db.pool.Query(ctx, `SELECT id,host_id,name,cidr,floating FROM ip_pools WHERE host_id=$1 ORDER BY name`, hostID)
 	if err != nil {

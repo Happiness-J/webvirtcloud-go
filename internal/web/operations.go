@@ -334,6 +334,9 @@ func (s *Server) networkAction(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	action := strings.TrimSpace(r.Form.Get("action"))
 	networkName := strings.TrimSpace(r.Form.Get("network"))
 	if action == "net-define" {
