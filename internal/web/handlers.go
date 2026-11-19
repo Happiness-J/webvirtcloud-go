@@ -1322,6 +1322,37 @@ func domainsWithVMAccess(hostID string, domains []libvirt.Domain, access []store
 	return filtered
 }
 
+func vmGrantCovers(hostID, vmName string, access []store.VMAccess) bool {
+	assignedHost := false
+	for _, item := range access {
+		if item.HostID != hostID {
+			continue
+		}
+		assignedHost = true
+		if item.VMName == vmName {
+			return true
+		}
+	}
+	return !assignedHost
+}
+
+func (s *Server) vmVisibleOrDeny(w http.ResponseWriter, r *http.Request, hostID, vmName string) bool {
+	sess, ok := sessionFrom(r.Context())
+	if !ok || sess.User.Role == "admin" || strings.HasPrefix(sess.User.ID, store.SystemUserIDPrefix) {
+		return true
+	}
+	access, err := s.db.ListVMAccess(r.Context(), sess.User.ID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return false
+	}
+	if vmGrantCovers(hostID, vmName, access) {
+		return true
+	}
+	s.renderError(w, r, http.StatusForbidden, "权限不足", "当前账号没有该虚拟机的授权。")
+	return false
+}
+
 func (s *Server) canReadVM(r *http.Request, hostID, vmName string) (bool, error) {
 	sess, _ := sessionFrom(r.Context())
 	switch sess.User.Role {

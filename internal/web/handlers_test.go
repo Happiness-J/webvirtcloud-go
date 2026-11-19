@@ -161,3 +161,19 @@ func TestAccountSecurityShowsFullCreatedToken(t *testing.T) {
 		t.Fatal("created token was truncated or omitted")
 	}
 }
+
+func TestVMGrantCoversAssignedHostOnly(t *testing.T) {
+	access := []store.VMAccess{{HostID: "host-a", VMName: "desk"}}
+	if !vmGrantCovers("host-a", "desk", access) {
+		t.Fatal("assigned VM was rejected")
+	}
+	if vmGrantCovers("host-a", "other", access) {
+		t.Fatal("unassigned VM on an assigned host was accepted")
+	}
+	if !vmGrantCovers("host-b", "other", access) {
+		t.Fatal("host without VM assignments was rejected")
+	}
+	if !vmGrantCovers("host-a", "other", nil) {
+		t.Fatal("account without VM assignments was rejected")
+	}
+}

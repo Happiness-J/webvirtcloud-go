@@ -416,6 +416,9 @@ func (s *Server) vmDiskResize(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms", "虚拟机名称无效")
 		return
 	}
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) {
+		return
+	}
 	target := strings.TrimSpace(r.Form.Get("disk_target"))
 	amount := strings.ToUpper(strings.TrimSpace(r.Form.Get("disk_amount")))
 	mode := strings.ToLower(strings.TrimSpace(r.Form.Get("disk_mode")))
@@ -612,6 +615,9 @@ func (s *Server) backupPolicySave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vmName := r.PathValue("vm")
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) {
+		return
+	}
 	if err := libvirt.ValidateName(vmName); err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms", "虚拟机名称无效")
 		return
@@ -690,6 +696,9 @@ func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	oldName := r.PathValue("vm")
+	if !s.vmVisibleOrDeny(w, r, host.ID, oldName) {
+		return
+	}
 	newName := strings.TrimSpace(r.Form.Get("new_name"))
 	args, err := renameArgs(oldName, newName)
 	if err != nil {
@@ -718,6 +727,9 @@ func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vmName := r.PathValue("vm")
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) {
+		return
+	}
 	if err := libvirt.ValidateName(vmName); err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), "虚拟机名称无效")
 		return
@@ -760,6 +772,9 @@ func (s *Server) vmScheduleSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vmName := r.PathValue("vm")
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) {
+		return
+	}
 	if err := libvirt.ValidateName(vmName); err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), "虚拟机名称无效")
 		return
