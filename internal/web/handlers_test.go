@@ -128,3 +128,16 @@ func TestHostDetailRendersOutsideMaintenance(t *testing.T) {
 		t.Fatal("rendered host detail has no buttons")
 	}
 }
+
+func TestHostGrantCoversRequestedHost(t *testing.T) {
+	granted := []store.HostAccess{{HostID: "host-a"}, {HostID: "host-b"}}
+	if !hostGrantCovers("host-b", granted) {
+		t.Fatal("assigned host was rejected")
+	}
+	if hostGrantCovers("host-c", granted) {
+		t.Fatal("unassigned host was accepted")
+	}
+	if !hostGrantCovers("host-c", nil) {
+		t.Fatal("an account without host grants should keep the default visibility")
+	}
+}

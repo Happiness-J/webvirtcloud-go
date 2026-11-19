@@ -647,6 +647,9 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	pools, err := s.libvirt.ListPools(r.Context(), host.ID)
 	data := map[string]any{"Host": host, "Pools": pools, "SelectedPool": "", "PoolInfo": []kvRow{}, "Volumes": []libvirt.Volume{}, "ResizableVolumes": []libvirt.Volume{}}
 	page := pageData{Title: "存储", Nav: "hosts", Data: data}
@@ -1335,6 +1338,19 @@ func (s *Server) visibleHosts(r *http.Request) ([]store.Host, error) {
 	return filtered, nil
 }
 
+func (s *Server) hostVisibleOrDeny(w http.ResponseWriter, r *http.Request, hostID string) bool {
+	err := s.ensureHostVisible(r, hostID)
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, errHostForbidden) {
+		s.renderError(w, r, http.StatusForbidden, "权限不足", "当前账号没有该主机的授权。")
+		return false
+	}
+	s.serverError(w, r, err)
+	return false
+}
+
 func (s *Server) ensureHostVisible(r *http.Request, hostID string) error {
 	sess, _ := sessionFrom(r.Context())
 	if sess.User.Role == "admin" || strings.HasPrefix(sess.User.ID, store.SystemUserIDPrefix) {
@@ -1344,15 +1360,22 @@ func (s *Server) ensureHostVisible(r *http.Request, hostID string) error {
 	if err != nil {
 		return err
 	}
-	if len(granted) == 0 {
+	if hostGrantCovers(hostID, granted) {
 		return nil
+	}
+	return errHostForbidden
+}
+
+func hostGrantCovers(hostID string, granted []store.HostAccess) bool {
+	if len(granted) == 0 {
+		return true
 	}
 	for _, item := range granted {
 		if item.HostID == hostID {
-			return nil
+			return true
 		}
 	}
-	return errHostForbidden
+	return false
 }
 
 func (s *Server) apiHostVMs(w http.ResponseWriter, r *http.Request) {
