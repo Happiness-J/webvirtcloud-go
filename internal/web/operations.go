@@ -23,6 +23,9 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	sess, _ := sessionFrom(r.Context())
 	pool := strings.TrimSpace(r.Form.Get("pool"))
 	volume := strings.TrimSpace(r.Form.Get("volume"))
