@@ -1825,6 +1825,11 @@ func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-create", "创建虚拟机 "+name, "virt-install", args, "", boundedOperationTimeout(s.cfg.MaxTimeout, 1800))
 	if err != nil {
+		if sess.User.Role != "admin" {
+			if releaseErr := s.db.ReleaseVMUsage(r.Context(), sess.User.ID, host.ID, name); releaseErr != nil {
+				s.logRequestError(r, "release VM usage after enqueue failure", releaseErr)
+			}
+		}
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/new", err.Error())
 		return
 	}

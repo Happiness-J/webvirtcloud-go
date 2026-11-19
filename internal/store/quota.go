@@ -49,20 +49,53 @@ func (db *Store) GetUserQuota(ctx context.Context, userID string) (UserQuota, er
 }
 
 func (db *Store) ReserveVMUsage(ctx context.Context, userID, hostID, vmName string, vcpus, memoryGB, diskGB int) error {
-	quota, err := db.GetUserQuota(ctx, userID)
+	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	usage, err := db.UserUsage(ctx, userID)
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, "vm-usage:"+userID); err != nil {
+		return err
+	}
+	quota, err := quotaInTx(ctx, tx, userID)
+	if err != nil {
+		return err
+	}
+	usage, err := usageInTx(ctx, tx, userID)
 	if err != nil {
 		return err
 	}
 	if usage.VMs+1 > quota.MaxVMs || usage.VCPUs+vcpus > quota.MaxVCPUs || usage.MemoryGB+memoryGB > quota.MaxMemoryGB || usage.DiskGB+diskGB > quota.MaxDiskGB {
 		return ErrQuotaExceeded
 	}
-	_, err = db.pool.Exec(ctx, `INSERT INTO vm_usage(id,user_id,host_id,vm_name,vcpus,memory_gb,disk_gb)
+	_, err = tx.Exec(ctx, `INSERT INTO vm_usage(id,user_id,host_id,vm_name,vcpus,memory_gb,disk_gb)
 		VALUES($1,$2,$3,$4,$5,$6,$7)`, id.New("use"), userID, hostID, vmName, vcpus, memoryGB, diskGB)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (db *Store) ReleaseVMUsage(ctx context.Context, userID, hostID, vmName string) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM vm_usage WHERE user_id=$1 AND host_id=$2 AND vm_name=$3`, userID, hostID, vmName)
 	return err
+}
+
+func quotaInTx(ctx context.Context, tx pgx.Tx, userID string) (UserQuota, error) {
+	var quota UserQuota
+	err := tx.QueryRow(ctx, `SELECT user_id,max_vms,max_vcpus,max_memory_gb,max_disk_gb FROM user_quotas WHERE user_id=$1`, userID).
+		Scan(&quota.UserID, &quota.MaxVMs, &quota.MaxVCPUs, &quota.MaxMemoryGB, &quota.MaxDiskGB)
+	if err == pgx.ErrNoRows {
+		return UserQuota{UserID: userID, MaxVMs: 20, MaxVCPUs: 64, MaxMemoryGB: 256, MaxDiskGB: 2000}, nil
+	}
+	return quota, err
+}
+
+func usageInTx(ctx context.Context, tx pgx.Tx, userID string) (Usage, error) {
+	var usage Usage
+	err := tx.QueryRow(ctx, `SELECT count(*), COALESCE(sum(vcpus),0), COALESCE(sum(memory_gb),0), COALESCE(sum(disk_gb),0)
+		FROM vm_usage WHERE user_id=$1`, userID).Scan(&usage.VMs, &usage.VCPUs, &usage.MemoryGB, &usage.DiskGB)
+	return usage, err
 }
 
 func (db *Store) UserUsage(ctx context.Context, userID string) (Usage, error) {

@@ -155,3 +155,12 @@ func TestRunJobHidesCommandFailureDetails(t *testing.T) {
 		t.Fatal("failure message contains backend details")
 	}
 }
+
+func TestReleaseUsageOnlyAfterUndefine(t *testing.T) {
+	if err := releaseUsageAfterJob(context.Background(), nil, &store.Job{Tool: "qemu-img", ArgsJSON: `["resize","disk"]`}); err != nil {
+		t.Fatal(err)
+	}
+	if err := releaseUsageAfterJob(context.Background(), nil, &store.Job{Tool: "virsh", ArgsJSON: `["start","vm"]`}); err != nil {
+		t.Fatal(err)
+	}
+}
