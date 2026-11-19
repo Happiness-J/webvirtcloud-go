@@ -708,6 +708,9 @@ func (s *Server) networksPage(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	networks, err := s.libvirt.ListNetworks(r.Context(), host.ID)
 	pools, poolErr := s.db.ListIPPools(r.Context(), host.ID)
 	if poolErr != nil {

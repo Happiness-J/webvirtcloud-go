@@ -9,6 +9,9 @@ import (
 
 func (s *Server) ipPoolCreate(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
+	if !s.hostVisibleOrDeny(w, r, hostID) {
+		return
+	}
 	pool := store.IPPool{HostID: hostID, Name: strings.TrimSpace(r.Form.Get("name")), CIDR: strings.TrimSpace(r.Form.Get("cidr")), Floating: r.Form.Get("floating") == "yes"}
 	if err := s.db.CreateIPPool(r.Context(), pool); err != nil {
 		message := "无法创建地址池"
@@ -24,6 +27,12 @@ func (s *Server) ipPoolCreate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) ipAllocate(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
+	if !s.hostVisibleOrDeny(w, r, hostID) {
+		return
+	}
+	if !s.ipPoolOnHostOrDeny(w, r, hostID, r.Form.Get("pool_id")) {
+		return
+	}
 	address, err := s.db.AllocateIP(r.Context(), r.Form.Get("pool_id"), strings.TrimSpace(r.Form.Get("owner")))
 	if err != nil {
 		message := "无法分配地址"
@@ -38,9 +47,28 @@ func (s *Server) ipAllocate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) ipRelease(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
+	if !s.hostVisibleOrDeny(w, r, hostID) {
+		return
+	}
+	if !s.ipPoolOnHostOrDeny(w, r, hostID, r.Form.Get("pool_id")) {
+		return
+	}
 	if err := s.db.ReleaseIP(r.Context(), r.Form.Get("pool_id"), strings.TrimSpace(r.Form.Get("address"))); err != nil {
 		s.redirectError(w, r, "/hosts/"+hostID+"/networks", "无法释放地址")
 		return
 	}
 	http.Redirect(w, r, flashURL("/hosts/"+hostID+"/networks", "地址已释放", "ok"), http.StatusSeeOther)
+}
+
+func (s *Server) ipPoolOnHostOrDeny(w http.ResponseWriter, r *http.Request, hostID, poolID string) bool {
+	ok, err := s.db.IPPoolOnHost(r.Context(), hostID, strings.TrimSpace(poolID))
+	if err != nil {
+		s.serverError(w, r, err)
+		return false
+	}
+	if !ok {
+		s.redirectError(w, r, "/hosts/"+hostID+"/networks", "地址池不属于当前主机")
+		return false
+	}
+	return true
 }
