@@ -354,7 +354,7 @@ func safeNext(raw string) string {
 			return ""
 		}
 	}
-	allowedPrefixes := []string{"/hosts", "/vms", "/jobs", "/audit", "/users", "/account", "/console"}
+	allowedPrefixes := []string{"/hosts", "/vms", "/jobs", "/audit", "/users", "/account", "/console", "/images"}
 	allowed := u.Path == "/"
 	for _, prefix := range allowedPrefixes {
 		if u.Path == prefix || strings.HasPrefix(u.Path, prefix+"/") {
