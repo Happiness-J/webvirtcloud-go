@@ -280,6 +280,22 @@ func (w *Worker) finalize(workerID string, job *store.Job, status, output, errTe
 	}); err != nil {
 		w.log.Error("write job completion audit", "job_id", job.ID, "error", err)
 	}
+	if status == "succeeded" {
+		if err := releaseUsageAfterJob(finishCtx, w.store, job); err != nil {
+			w.log.Error("release VM usage", "job_id", job.ID, "error", err)
+		}
+	}
+}
+
+func releaseUsageAfterJob(ctx context.Context, db *store.Store, job *store.Job) error {
+	if job.Tool != "virsh" {
+		return nil
+	}
+	var args []string
+	if err := json.Unmarshal([]byte(job.ArgsJSON), &args); err != nil || len(args) < 2 || args[0] != "undefine" {
+		return nil
+	}
+	return db.ReleaseVMUsage(ctx, job.UserID, job.HostID, args[1])
 }
 
 func (w *Worker) runJobSafely(ctx context.Context, job *store.Job) (status, output, errText string) {
