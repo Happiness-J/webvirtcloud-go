@@ -26,7 +26,11 @@ func (s *Server) accountSecurityPage(w http.ResponseWriter, r *http.Request) {
 		s.userLookupError(w, r, err)
 		return
 	}
-	sessions, err := s.db.ListSessions(r.Context(), user.ID, sess.TokenHash)
+	s.renderAccountSecurity(w, r, user, sess.TokenHash, "", "")
+}
+
+func (s *Server) renderAccountSecurity(w http.ResponseWriter, r *http.Request, user store.User, currentTokenHash, flash, createdToken string) {
+	sessions, err := s.db.ListSessions(r.Context(), user.ID, currentTokenHash)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -37,12 +41,13 @@ func (s *Server) accountSecurityPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pending, _ := pendingTOTP(r)
-	s.render(w, r, "account_security", pageData{Title: "账号安全", Nav: "account", Data: map[string]any{
-		"TOTPEnabled": user.TOTPEnabled(),
-		"Pending":     pending,
-		"Sessions":    sessions,
-		"Tokens":      tokens,
-		"Roles":       tokenRoles(user.Role),
+	s.render(w, r, "account_security", pageData{Title: "账号安全", Nav: "account", Flash: flash, FlashType: "ok", Data: map[string]any{
+		"TOTPEnabled":  user.TOTPEnabled(),
+		"Pending":      pending,
+		"Sessions":     sessions,
+		"Tokens":       tokens,
+		"Roles":        tokenRoles(user.Role),
+		"CreatedToken": createdToken,
 	}})
 }
 
@@ -186,7 +191,7 @@ func (s *Server) accountTokenCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit.Record(r.Context(), store.Audit{ActorID: user.ID, ActorName: user.Username, Action: "auth.token_created", RemoteIP: s.clientIP(r), Detail: map[string]any{"name": name, "role": role}})
-	http.Redirect(w, r, flashURL("/account/security", "令牌已创建，只显示一次："+raw, "ok"), http.StatusSeeOther)
+	s.renderAccountSecurity(w, r, user, sess.TokenHash, "令牌已创建，只显示一次。", raw)
 }
 
 func allowedTokenRole(userRole, tokenRole string) bool {
