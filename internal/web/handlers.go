@@ -1163,12 +1163,21 @@ func sortedKV(values map[string]string) []kvRow {
 
 func auditActionName(action string) string {
 	labels := map[string]string{
-		"login.success": "登录成功", "login.failure": "登录失败", "logout": "退出登录",
+		"auth.login": "登录成功", "auth.login_failed": "登录失败", "auth.logout": "退出登录",
+		"auth.ldap_provision": "创建目录账号", "auth.totp_enabled": "启用验证器", "auth.totp_disabled": "关闭验证器",
+		"auth.totp_failed": "验证器校验失败", "auth.session_revoked": "吊销会话", "auth.token_created": "创建 API 令牌",
+		"auth.token_revoked": "吊销 API 令牌", "authz.denied": "权限拒绝", "authz.csrf_failed": "表单校验失败",
 		"host.create": "添加主机", "host.update": "修改主机", "host.delete": "删除主机配置",
-		"user.create": "创建用户", "user.update": "修改用户", "user.disable": "禁用用户", "user.enable": "启用用户",
-		"user." + "password": "重置登录口令", "user.role": "修改角色", "user.access": "修改桌面授权",
-		"job.enqueue": "提交任务", "job.enqueue_deduped": "复用已有任务", "job.finished": "任务完成", "job.cancel": "取消任务",
-		"vm.create": "创建虚拟机", "vm.action": "虚拟机操作",
+		"user.create": "创建用户", "user.role": "修改角色", "user.disabled": "修改账号状态",
+		"user.password_reset": "重置登录口令", "user.quota": "修改资源配额",
+		"user.host_access.grant_host": "授权主机", "user.host_access.revoke_host": "撤销主机授权",
+		"user.vm_access.grant": "授权控制台", "user.vm_access.revoke": "撤销控制台授权",
+		"account.password_change": "修改登录口令", "account.password_change_failed": "修改登录口令失败",
+		"job.enqueue": "提交任务", "job.enqueue_deduped": "复用已有任务", "job.cancel": "取消任务",
+		"console.open": "打开控制台", "console.close": "关闭控制台", "console.password_view": "查看控制台口令",
+		"cluster.policy": "修改集群策略", "cluster.protect": "修改虚拟机保护",
+		"setup.defaults": "初始化默认资源", "backup.drill": "记录恢复演练",
+		"platform.export": "导出平台配置", "platform.restore_checked": "校验平台恢复",
 	}
 	if label, ok := labels[action]; ok {
 		return label
