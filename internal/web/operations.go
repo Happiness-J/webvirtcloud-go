@@ -408,6 +408,9 @@ func (s *Server) vmDiskResize(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	vmName := r.PathValue("vm")
 	if err := libvirt.ValidateName(vmName); err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms", "虚拟机名称无效")
@@ -605,6 +608,9 @@ func (s *Server) backupPolicySave(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	vmName := r.PathValue("vm")
 	if err := libvirt.ValidateName(vmName); err != nil {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms", "虚拟机名称无效")
@@ -705,6 +711,9 @@ func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	vmName := r.PathValue("vm")
 	if err := libvirt.ValidateName(vmName); err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), "虚拟机名称无效")
@@ -742,6 +751,9 @@ func (s *Server) vmScheduleSave(w http.ResponseWriter, r *http.Request) {
 	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.hostLookupError(w, r, err)
+		return
+	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
 		return
 	}
 	vmName := r.PathValue("vm")
