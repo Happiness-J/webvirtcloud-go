@@ -1921,7 +1921,7 @@ func (s *Store) RecoverStaleJobs(ctx context.Context, olderThan time.Duration) (
 		if err != nil {
 			return total, err
 		}
-		rows, err := tx.Query(ctx, `SELECT j.id,j.user_id,u.username,COALESCE(j.host_id,''),j.kind,j.tool,j.label,j.sensitive
+		rows, err := tx.Query(ctx, `SELECT j.id,j.user_id,u.username,COALESCE(j.host_id,''),j.kind,j.tool,j.label,j.sensitive,j.cancel_requested
 			FROM jobs j JOIN users u ON u.id=j.user_id
 			WHERE j.status='running' AND COALESCE(j.heartbeat_at,j.started_at) < now() - $1::interval
 			ORDER BY j.created_at FOR UPDATE OF j SKIP LOCKED LIMIT 500`,
@@ -1932,13 +1932,13 @@ func (s *Store) RecoverStaleJobs(ctx context.Context, olderThan time.Duration) (
 		}
 		type staleJob struct {
 			id, userID, userName, hostID, kind, tool, label string
-			sensitive                                       bool
+			sensitive, cancelRequested                      bool
 		}
 		var stale []staleJob
 		for rows.Next() {
 			var job staleJob
 			if err := rows.Scan(&job.id, &job.userID, &job.userName, &job.hostID,
-				&job.kind, &job.tool, &job.label, &job.sensitive); err != nil {
+				&job.kind, &job.tool, &job.label, &job.sensitive, &job.cancelRequested); err != nil {
 				rows.Close()
 				_ = tx.Rollback(ctx)
 				return total, err
@@ -1957,13 +1957,19 @@ func (s *Store) RecoverStaleJobs(ctx context.Context, olderThan time.Duration) (
 			return total, nil
 		}
 		for _, job := range stale {
+			message := message
+			status := "failed"
+			if job.cancelRequested {
+				message = "任务已取消，执行器失联后停止恢复"
+				status = "cancelled"
+			}
 			errorCipher, err := s.cipher.SealFor("job:"+job.id+":error", message)
 			if err != nil {
 				_ = tx.Rollback(ctx)
 				return total, err
 			}
-			tag, err := tx.Exec(ctx, `UPDATE jobs SET status='failed', error='', error_ciphertext=$2,
-				finished_at=now(), heartbeat_at=now() WHERE id=$1 AND status='running'`, job.id, errorCipher)
+			tag, err := tx.Exec(ctx, `UPDATE jobs SET status=$3, error='', error_ciphertext=$2,
+				finished_at=now(), heartbeat_at=now() WHERE id=$1 AND status='running'`, job.id, errorCipher, status)
 			if err != nil {
 				_ = tx.Rollback(ctx)
 				return total, err
@@ -1977,7 +1983,7 @@ func (s *Store) RecoverStaleJobs(ctx context.Context, olderThan time.Duration) (
 			}
 			detail, _ := json.Marshal(map[string]any{
 				"job_id": job.id, "label": label, "tool": job.tool,
-				"status": "failed", "reason": message,
+				"status": status, "reason": message,
 			})
 			if _, err := tx.Exec(ctx, `INSERT INTO audit_outbox(
 				source_id,actor_id,actor_name,action,host_id,detail,created_at)

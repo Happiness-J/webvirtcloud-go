@@ -636,6 +636,42 @@ func TestRecoverStaleJobsAndOwnershipCAS(t *testing.T) {
 	}
 }
 
+func TestRecoverCancelledStaleJobKeepsCancelledStatus(t *testing.T) {
+	db := newTestStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	user := createTestUser(t, db, "operator")
+	host := createTestHost(t, db)
+	jobID := id.New("job")
+	if err := db.EnqueueJob(ctx, Job{
+		ID: jobID, UserID: user.ID, HostID: host.ID, Kind: "vm-action", Label: "start", Tool: "virsh",
+		ArgsJSON: `["start","vm"]`, TimeoutSeconds: 30,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if job, err := db.ClaimJob(ctx, "worker-old"); err != nil || job == nil {
+		t.Fatalf("ClaimJob = %#v, %v", job, err)
+	}
+	active, err := db.RequestCancelJob(ctx, jobID)
+	if err != nil || !active {
+		t.Fatalf("RequestCancelJob = %v, %v", active, err)
+	}
+	if _, err := db.pool.Exec(ctx, `UPDATE jobs SET heartbeat_at=now()-interval '10 minutes' WHERE id=$1`, jobID); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := db.RecoverStaleJobs(ctx, 5*time.Minute)
+	if err != nil || recovered != 1 {
+		t.Fatalf("RecoverStaleJobs = %d, %v", recovered, err)
+	}
+	job, err := db.GetJob(ctx, jobID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.Status != "cancelled" || !strings.Contains(job.Error, "已取消") {
+		t.Fatalf("recovered cancelled job = %#v", job)
+	}
+}
+
 func TestRecoverStaleJobsDoesNotLockJoinedUsers(t *testing.T) {
 	db := newTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
