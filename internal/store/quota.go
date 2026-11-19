@@ -65,7 +65,7 @@ func (db *Store) ReserveVMUsage(ctx context.Context, userID, hostID, vmName stri
 	if err != nil {
 		return err
 	}
-	if usage.VMs+1 > quota.MaxVMs || usage.VCPUs+vcpus > quota.MaxVCPUs || usage.MemoryGB+memoryGB > quota.MaxMemoryGB || usage.DiskGB+diskGB > quota.MaxDiskGB {
+	if quotaExceeded(usage, quota, vcpus, memoryGB, diskGB) {
 		return ErrQuotaExceeded
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO vm_usage(id,user_id,host_id,vm_name,vcpus,memory_gb,disk_gb)
@@ -103,4 +103,8 @@ func (db *Store) UserUsage(ctx context.Context, userID string) (Usage, error) {
 	err := db.pool.QueryRow(ctx, `SELECT count(*), COALESCE(sum(vcpus),0), COALESCE(sum(memory_gb),0), COALESCE(sum(disk_gb),0)
 		FROM vm_usage WHERE user_id=$1`, userID).Scan(&usage.VMs, &usage.VCPUs, &usage.MemoryGB, &usage.DiskGB)
 	return usage, err
+}
+
+func quotaExceeded(usage Usage, quota UserQuota, vcpus, memoryGB, diskGB int) bool {
+	return usage.VMs+1 > quota.MaxVMs || usage.VCPUs+vcpus > quota.MaxVCPUs || usage.MemoryGB+memoryGB > quota.MaxMemoryGB || usage.DiskGB+diskGB > quota.MaxDiskGB
 }

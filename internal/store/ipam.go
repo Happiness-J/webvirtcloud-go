@@ -91,24 +91,57 @@ func (db *Store) AllocateIP(ctx context.Context, poolID, owner string) (string, 
 	if err := rows.Err(); err != nil {
 		return "", err
 	}
-	address := prefix.Addr().Next()
-	for prefix.Contains(address) && address != prefix.Addr() {
-		if !used[address.String()] && address != prefix.Masked().Addr() {
-			if _, err = tx.Exec(ctx, `INSERT INTO ip_allocations(id,pool_id,address,owner) VALUES($1,$2,$3,$4)`, id.New("ip"), poolID, address.String(), owner); err != nil {
-				return "", err
-			}
-			return address.String(), tx.Commit(ctx)
+	address, ok := nextFreeAddress(prefix, used)
+	if !ok {
+		return "", fmt.Errorf("地址池已满")
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO ip_allocations(id,pool_id,address,owner) VALUES($1,$2,$3,$4)`, id.New("ip"), poolID, address.String(), owner); err != nil {
+		return "", err
+	}
+	return address.String(), tx.Commit(ctx)
+}
+
+func nextFreeAddress(prefix netip.Prefix, used map[string]bool) (netip.Addr, bool) {
+	if !prefix.IsValid() {
+		return netip.Addr{}, false
+	}
+	address := prefix.Addr()
+	last := prefixLast(prefix)
+	// Ordinary IPv4 networks reserve the first and last addresses.
+	// /31 and /32 networks use every address.
+	if prefix.Bits() < address.BitLen()-1 {
+		address = address.Next()
+	}
+	for prefix.Contains(address) {
+		reservedLast := address == last && prefix.Bits() < address.BitLen()-1
+		if !reservedLast && !used[address.String()] {
+			return address, true
 		}
 		next := address.Next()
-		if next == address {
+		if next == address || !prefix.Contains(next) {
 			break
 		}
 		address = next
-		if len(used) > 4096 {
-			break
-		}
 	}
-	return "", fmt.Errorf("地址池已满")
+	return netip.Addr{}, false
+}
+
+func prefixLast(prefix netip.Prefix) netip.Addr {
+	raw := prefix.Addr().AsSlice()
+	hostBits := len(raw)*8 - prefix.Bits()
+	for i := len(raw) - 1; i >= 0 && hostBits > 0; i-- {
+		bits := hostBits
+		if bits > 8 {
+			bits = 8
+		}
+		raw[i] |= 0xff >> (8 - bits)
+		hostBits -= bits
+	}
+	addr, ok := netip.AddrFromSlice(raw)
+	if !ok {
+		return prefix.Addr()
+	}
+	return addr
 }
 
 func (db *Store) ReleaseIP(ctx context.Context, poolID, address string) error {
