@@ -1245,6 +1245,36 @@ func (s *Server) canUseConsole(r *http.Request, hostID, vmName string) (bool, er
 	}
 }
 
+// domainsVisibleToSession applies the desktop assignment list to an API
+// inventory. Other roles keep the host-level visibility already checked.
+func (s *Server) domainsVisibleToSession(r *http.Request, hostID string, domains []libvirt.Domain) ([]libvirt.Domain, error) {
+	sess, _ := sessionFrom(r.Context())
+	if sess.User.Role != "desktop" {
+		return domains, nil
+	}
+	access, err := s.db.ListVMAccess(r.Context(), sess.User.ID)
+	if err != nil {
+		return nil, err
+	}
+	return domainsWithVMAccess(hostID, domains, access), nil
+}
+
+func domainsWithVMAccess(hostID string, domains []libvirt.Domain, access []store.VMAccess) []libvirt.Domain {
+	allowed := map[string]bool{}
+	for _, item := range access {
+		if item.HostID == hostID {
+			allowed[item.VMName] = true
+		}
+	}
+	filtered := make([]libvirt.Domain, 0, len(domains))
+	for _, domain := range domains {
+		if allowed[domain.Name] {
+			filtered = append(filtered, domain)
+		}
+	}
+	return filtered
+}
+
 func (s *Server) canReadVM(r *http.Request, hostID, vmName string) (bool, error) {
 	sess, _ := sessionFrom(r.Context())
 	switch sess.User.Role {
@@ -1344,6 +1374,12 @@ func (s *Server) apiHostVMs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logRequestError(r, "list API host virtual machines", err)
 		writeAPIError(w, r, http.StatusBadGateway, "libvirt_unavailable", "Could not query libvirt on the selected host")
+		return
+	}
+	domains, err = s.domainsVisibleToSession(r, host.ID, domains)
+	if err != nil {
+		s.logRequestError(r, "filter API host virtual machines", err)
+		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not list virtual machines")
 		return
 	}
 	vms := make([]apiVMSummary, 0, len(domains))
