@@ -1,6 +1,9 @@
 package web
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"webvirtcloud-go/internal/libvirt"
@@ -53,5 +56,16 @@ func TestValidVolumeFormat(t *testing.T) {
 	}
 	if validVolumeFormat("parallels") {
 		t.Fatal("validVolumeFormat accepted an untested format")
+	}
+}
+
+func TestStorageDefineUsesNameField(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/hosts/host/storage/action", strings.NewReader("action=pool-define&name=nightly-pool&pool="))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if err := request.ParseForm(); err != nil {
+		t.Fatal(err)
+	}
+	if request.Form.Get("action") != "pool-define" || request.Form.Get("name") == "" || request.Form.Get("pool") != "" {
+		t.Fatal("pool creation form shape changed")
 	}
 }

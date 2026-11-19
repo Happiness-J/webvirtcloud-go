@@ -32,9 +32,11 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.Form.Get("name"))
 	capacity := strings.ToUpper(strings.TrimSpace(r.Form.Get("capacity")))
 	action := strings.TrimSpace(r.Form.Get("action"))
-	if err := libvirt.ValidateName(pool); err != nil {
-		s.redirectError(w, r, "/hosts/"+host.ID+"/storage?pool="+url.QueryEscape(pool), "存储池名称无效")
-		return
+	if action != "pool-define" {
+		if err := libvirt.ValidateName(pool); err != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/storage?pool="+url.QueryEscape(pool), "存储池名称无效")
+			return
+		}
 	}
 
 	var args []string
