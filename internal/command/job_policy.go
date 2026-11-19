@@ -861,15 +861,15 @@ func validateVMCreateArgs(args []string) error {
 		}
 		index += 2
 	}
-	if index < len(args) && args[index] == "--video" {
-		if index+1 >= len(args) || !validVideoValue(args[index+1]) {
-			return fmt.Errorf("显卡参数无效")
-		}
-		index += 2
-	}
 	if index < len(args) && args[index] == "--cpu" {
 		if index+1 >= len(args) || !validCPUModelArg(args[index+1]) {
 			return fmt.Errorf("CPU 模型参数无效")
+		}
+		index += 2
+	}
+	if index < len(args) && args[index] == "--video" {
+		if index+1 >= len(args) || !validVideoValue(args[index+1]) {
+			return fmt.Errorf("显卡参数无效")
 		}
 		index += 2
 	}
