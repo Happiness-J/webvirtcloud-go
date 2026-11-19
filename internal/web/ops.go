@@ -29,6 +29,9 @@ func (s *Server) hostOpsPage(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 
 	hostStatsCh := make(chan libvirt.HostResourceStats, 1)
 	go func() {
@@ -224,6 +227,9 @@ func (s *Server) vmBatchAction(w http.ResponseWriter, r *http.Request) {
 	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
 	if err != nil {
 		s.hostLookupError(w, r, err)
+		return
+	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
 		return
 	}
 	opsURL := "/hosts/" + host.ID + "/ops"

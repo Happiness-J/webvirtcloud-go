@@ -10,6 +10,9 @@ import (
 
 func (s *Server) vmTagSave(w http.ResponseWriter, r *http.Request) {
 	hostID := r.PathValue("id")
+	if !s.hostVisibleOrDeny(w, r, hostID) {
+		return
+	}
 	vmName := strings.TrimSpace(r.Form.Get("vm"))
 	tag := strings.TrimSpace(r.Form.Get("tag"))
 	if err := libvirt.ValidateName(vmName); err != nil {

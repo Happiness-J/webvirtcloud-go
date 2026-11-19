@@ -660,6 +660,9 @@ func (s *Server) alertRuleSave(w http.ResponseWriter, r *http.Request) {
 		s.hostLookupError(w, r, err)
 		return
 	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
 	vmName := strings.TrimSpace(r.Form.Get("vm"))
 	if vmName != "" {
 		if err := libvirt.ValidateName(vmName); err != nil {
