@@ -220,6 +220,9 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 	if !s.hostVisibleOrDeny(w, r, host.ID) {
 		return
 	}
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) {
+		return
+	}
 	sess, _ := sessionFrom(r.Context())
 	action := r.Form.Get("action")
 	if sess.User.Role == "desktop" {

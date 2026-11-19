@@ -376,6 +376,9 @@ func (s *Server) vmResourceAction(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms", "虚拟机名称无效")
 		return
 	}
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) {
+		return
+	}
 	info, err := s.libvirt.DomainInfo(r.Context(), host.ID, vmName)
 	if err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), "无法读取虚拟机当前状态")

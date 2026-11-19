@@ -19,6 +19,9 @@ func (s *Server) vmTagSave(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+hostID+"/ops", "虚拟机名称无效")
 		return
 	}
+	if !s.vmVisibleOrDeny(w, r, hostID, vmName) {
+		return
+	}
 	enabled := r.Form.Get("enabled") != "0"
 	if err := s.db.SetVMTag(r.Context(), hostID, vmName, tag, enabled); err != nil {
 		message := "无法保存标签"
