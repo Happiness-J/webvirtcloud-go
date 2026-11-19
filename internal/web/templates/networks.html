@@ -20,9 +20,6 @@
     <button class="btn primary">创建并定义</button>
   </form>
 </section>
-{{end}}
-{{end}}
-
 <section class="panel"><h2>地址池</h2>
 <p class="hint">记录平台分配的地址。浮动池用于可在虚拟机之间移动的地址。这里不改 libvirt DHCP。</p>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
@@ -40,3 +37,7 @@
 {{with index $.Data.Allocations .ID}}<table><thead><tr><th>地址</th><th>使用者</th><th></th></tr></thead><tbody>{{range .}}<tr><td><code>{{.Address}}</code></td><td>{{.Owner}}</td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/ip-releases" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool_id" value="{{.PoolID}}"><input type="hidden" name="address" value="{{.Address}}"><button class="btn small">释放</button></form></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">这个地址池还没有分配。</p>{{end}}
 {{end}}{{else}}<p class="empty">还没有地址池。</p>{{end}}
 </section>
+{{end}}
+{{end}}
+
+

@@ -177,3 +177,20 @@ func TestVMGrantCoversAssignedHostOnly(t *testing.T) {
 		t.Fatal("account without VM assignments was rejected")
 	}
 }
+
+func TestNetworkPageShowsAddressPools(t *testing.T) {
+	templates, err := parseTemplates()
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := pageData{Title: "networks", CSRF: "csrf", User: &store.User{Role: "admin"}, Data: map[string]any{
+		"Host": store.Host{ID: "host-1", Name: "compute"}, "Networks": []libvirt.Network{}, "IPPools": []store.IPPool{}, "Allocations": map[string][]store.IPAllocation{},
+	}}
+	var rendered bytes.Buffer
+	if err := templates["networks"].ExecuteTemplate(&rendered, "base", page); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(rendered.Bytes(), []byte("地址池")) || !bytes.Contains(rendered.Bytes(), []byte("创建地址池")) {
+		t.Fatal("address pool section was not rendered")
+	}
+}
