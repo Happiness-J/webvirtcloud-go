@@ -80,7 +80,7 @@ func TestAuditDetailText(t *testing.T) {
 }
 
 func TestAuditActionName(t *testing.T) {
-	if auditActionName("job.enqueue") != "提交任务" || auditActionName("auth.login") != "登录成功" || auditActionName("user.password_reset") != "重置登录口令" || auditActionName("custom.action") != "custom.action" {
+	if auditActionName("job.enqueue") != "提交任务" || auditActionName("auth.login") != "登录成功" || auditActionName("user.password_reset") != "重置登录密码" || auditActionName("custom.action") != "custom.action" {
 		t.Fatal("unexpected audit action label")
 	}
 }
