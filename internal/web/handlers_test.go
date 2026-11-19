@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -139,5 +140,24 @@ func TestHostGrantCoversRequestedHost(t *testing.T) {
 	}
 	if !hostGrantCovers("host-c", nil) {
 		t.Fatal("an account without host grants should keep the default visibility")
+	}
+}
+
+func TestAccountSecurityShowsFullCreatedToken(t *testing.T) {
+	templates, err := parseTemplates()
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := strings.Repeat("a", 43)
+	page := pageData{Title: "security", CSRF: "csrf", User: &store.User{Role: "operator", Username: "ops"}, Data: map[string]any{
+		"TOTPEnabled": false, "Pending": "", "Sessions": []store.SessionInfo{}, "Tokens": []store.APIToken{},
+		"Roles": []string{"viewer"}, "CreatedToken": token,
+	}}
+	var rendered bytes.Buffer
+	if err := templates["account_security"].ExecuteTemplate(&rendered, "base", page); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(rendered.Bytes(), []byte(token)) {
+		t.Fatal("created token was truncated or omitted")
 	}
 }

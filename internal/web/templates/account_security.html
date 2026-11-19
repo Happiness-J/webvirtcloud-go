@@ -40,7 +40,8 @@
     {{if .Data.TOTPEnabled}}<label>验证码<input name="code" inputmode="numeric" maxlength="6" required></label>{{end}}
     <button class="btn primary">创建令牌</button>
   </form>
-  <p class="hint">创建成功后令牌只出现在页面提示中一次。请求时使用 Authorization: Bearer。</p>
+  <p class="hint">创建成功后令牌只出现在页面上一次。请求时使用 Authorization: Bearer。</p>
+  {{if .Data.CreatedToken}}<p class="flash ok">新令牌：<code>{{.Data.CreatedToken}}</code></p>{{end}}
   {{if .Data.Tokens}}<table><thead><tr><th>名称</th><th>权限</th><th>状态</th><th>创建</th><th></th></tr></thead><tbody>
   {{range .Data.Tokens}}<tr>
     <td>{{.Name}}</td><td>{{roleName .Role}}</td>
