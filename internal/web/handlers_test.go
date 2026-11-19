@@ -1,8 +1,10 @@
 package web
 
 import (
+	"bytes"
 	"slices"
 	"testing"
+	"time"
 
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
@@ -102,5 +104,27 @@ func TestDomainsWithVMAccessKeepsAssignedVMsOnly(t *testing.T) {
 	}
 	if got := domainsWithVMAccess("host-a", domains, nil); len(got) != 0 {
 		t.Fatalf("domains without assignments = %#v, want none", got)
+	}
+}
+
+func TestHostDetailRendersOutsideMaintenance(t *testing.T) {
+	templates, err := parseTemplates()
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := pageData{Title: "host", CSRF: "csrf", User: &store.User{Role: "admin"}, Data: map[string]any{
+		"Host":     store.Host{ID: "host-1", Name: "compute", Enabled: true, CreatedAt: time.Unix(1, 0)},
+		"Redacted": "qemu:///system", "Jobs": []store.Job{},
+	}}
+	var rendered bytes.Buffer
+	if err := templates["host_detail"].ExecuteTemplate(&rendered, "base", page); err != nil {
+		t.Fatal(err)
+	}
+	body := rendered.String()
+	if !bytes.Contains(rendered.Bytes(), []byte("进入维护")) || bytes.Contains(rendered.Bytes(), []byte("进入维护</button>{{end}}")) {
+		t.Fatalf("maintenance button was not rendered: %s", body)
+	}
+	if !bytes.Contains(rendered.Bytes(), []byte("</button>")) {
+		t.Fatal("rendered host detail has no buttons")
 	}
 }
