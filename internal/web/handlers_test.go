@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
 )
 
@@ -89,5 +90,17 @@ func TestHostsWithVMAccessKeepsAssignedHostsOnly(t *testing.T) {
 	}
 	if got := hostsWithVMAccess(hosts, nil); len(got) != 0 {
 		t.Fatalf("hosts without assignments = %#v, want none", got)
+	}
+}
+
+func TestDomainsWithVMAccessKeepsAssignedVMsOnly(t *testing.T) {
+	domains := []libvirt.Domain{{Name: "web"}, {Name: "desk"}, {Name: "db"}}
+	access := []store.VMAccess{{HostID: "host-a", VMName: "desk"}, {HostID: "host-b", VMName: "web"}}
+	got := domainsWithVMAccess("host-a", domains, access)
+	if len(got) != 1 || got[0].Name != "desk" {
+		t.Fatalf("domains = %#v, want only desk", got)
+	}
+	if got := domainsWithVMAccess("host-a", domains, nil); len(got) != 0 {
+		t.Fatalf("domains without assignments = %#v, want none", got)
 	}
 }
