@@ -1471,6 +1471,10 @@ func (s *Server) apiVMSnapshots(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, r, http.StatusBadRequest, "invalid_vm_name", "Virtual machine name is invalid")
 		return
 	}
+	if err := s.ensureHostVisible(r, host.ID); err != nil {
+		writeAPIError(w, r, http.StatusForbidden, "host_forbidden", "This account is not granted this host")
+		return
+	}
 	allowed, accessErr := s.canReadVM(r, host.ID, name)
 	if accessErr != nil || !allowed {
 		if accessErr != nil {
