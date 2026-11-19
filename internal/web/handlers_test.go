@@ -3,6 +3,8 @@ package web
 import (
 	"slices"
 	"testing"
+
+	"webvirtcloud-go/internal/store"
 )
 
 func actionNames(actions []vmActionView) []string {
@@ -76,5 +78,16 @@ func TestAuditDetailText(t *testing.T) {
 func TestAuditActionName(t *testing.T) {
 	if auditActionName("job.enqueue") != "提交任务" || auditActionName("custom.action") != "custom.action" {
 		t.Fatal("unexpected audit action label")
+	}
+}
+
+func TestHostsWithVMAccessKeepsAssignedHostsOnly(t *testing.T) {
+	hosts := []store.Host{{ID: "host-a", Name: "a"}, {ID: "host-b", Name: "b"}, {ID: "host-c", Name: "c"}}
+	got := hostsWithVMAccess(hosts, []store.VMAccess{{HostID: "host-c", VMName: "desk-1"}, {HostID: "missing", VMName: "gone"}})
+	if len(got) != 1 || got[0].ID != "host-c" {
+		t.Fatalf("hosts = %#v, want only host-c", got)
+	}
+	if got := hostsWithVMAccess(hosts, nil); len(got) != 0 {
+		t.Fatalf("hosts without assignments = %#v, want none", got)
 	}
 }

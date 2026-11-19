@@ -1487,13 +1487,38 @@ func memoryUsagePercent(current, maximum uint64) int {
 }
 
 func (s *Server) apiResources(w http.ResponseWriter, r *http.Request) {
-	hosts, err := s.db.ListHosts(r.Context())
+	hosts, err := s.visibleHosts(r)
 	if err != nil {
 		s.logRequestError(r, "list API resource hosts", err)
 		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not list resource data")
 		return
 	}
+	sess, _ := sessionFrom(r.Context())
+	if sess.User.Role == "desktop" {
+		access, err := s.db.ListVMAccess(r.Context(), sess.User.ID)
+		if err != nil {
+			s.logRequestError(r, "load desktop resource access", err)
+			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not list resource data")
+			return
+		}
+		hosts = hostsWithVMAccess(hosts, access)
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"generated_at": time.Now().UTC().Format(time.RFC3339), "hosts": s.dashboardLive(r.Context(), hosts)})
+}
+
+// hostsWithVMAccess keeps hosts that contain at least one VM assigned to the caller.
+func hostsWithVMAccess(hosts []store.Host, access []store.VMAccess) []store.Host {
+	allowed := map[string]bool{}
+	for _, item := range access {
+		allowed[item.HostID] = true
+	}
+	filtered := make([]store.Host, 0, len(hosts))
+	for _, host := range hosts {
+		if allowed[host.ID] {
+			filtered = append(filtered, host)
+		}
+	}
+	return filtered
 }
 
 func guestMemoryUsedKiB(item libvirt.DomainResourceStats) (uint64, bool) {
