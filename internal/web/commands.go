@@ -42,7 +42,8 @@ func (s *Server) enqueueCommand(r *http.Request, user store.User, hostID, kind, 
 	}
 	readOnly, _ := command.Classify(tool, args)
 	if err := s.runner.Validate(target.Request(tool, args, stdin, readOnly, time.Duration(timeoutSeconds)*time.Second)); err != nil {
-		return "", err
+		s.logRequestError(r, "validate queued command", err)
+		return "", fmt.Errorf("命令参数无效，请检查后重试")
 	}
 	sensitive, sensitiveReason := false, ""
 	if kind == "command" {
