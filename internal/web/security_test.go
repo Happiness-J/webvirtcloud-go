@@ -23,6 +23,7 @@ func TestSafeNext(t *testing.T) {
 		"/users",
 		"/account/password",
 		"/console/host_1/vm_1",
+		"/images?q=win&category=installer",
 	}
 	for _, raw := range valid {
 		if got := safeNext(raw); got == "" {
