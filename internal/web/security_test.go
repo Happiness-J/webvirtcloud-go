@@ -24,6 +24,8 @@ func TestSafeNext(t *testing.T) {
 		"/account/password",
 		"/console/host_1/vm_1",
 		"/images?q=win&category=installer",
+		"/cluster",
+		"/setup",
 	}
 	for _, raw := range valid {
 		if got := safeNext(raw); got == "" {
