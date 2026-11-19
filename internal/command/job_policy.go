@@ -817,6 +817,18 @@ func validateVMCreateArgs(args []string) error {
 	default:
 		return fmt.Errorf("创建方式无效")
 	}
+	if index < len(args) && args[index] == "--boot" {
+		if index+1 >= len(args) || !validFirmwareBoot(args[index+1]) {
+			return fmt.Errorf("启动顺序参数无效")
+		}
+		index += 2
+	}
+	if index < len(args) && args[index] == "--tpm" {
+		if index+1 >= len(args) || args[index+1] != "backend.type=emulator,model=tpm-crb,version=2.0" {
+			return fmt.Errorf("vTPM 参数无效")
+		}
+		index += 2
+	}
 	if index < len(args) && args[index] == "--network" {
 		if index+1 >= len(args) {
 			return fmt.Errorf("网络参数无效")
@@ -846,18 +858,6 @@ func validateVMCreateArgs(args []string) error {
 	if index < len(args) && args[index] == "--watchdog" {
 		if index+1 >= len(args) || (args[index+1] != "i6300esb,action=reset" && args[index+1] != "i6300esb,action=shutdown" && args[index+1] != "i6300esb,action=none") {
 			return fmt.Errorf("看门狗参数无效")
-		}
-		index += 2
-	}
-	if index < len(args) && args[index] == "--boot" {
-		if index+1 >= len(args) || !validFirmwareBoot(args[index+1]) {
-			return fmt.Errorf("启动顺序参数无效")
-		}
-		index += 2
-	}
-	if index < len(args) && args[index] == "--tpm" {
-		if index+1 >= len(args) || args[index+1] != "backend.type=emulator,model=tpm-crb,version=2.0" {
-			return fmt.Errorf("vTPM 参数无效")
 		}
 		index += 2
 	}
