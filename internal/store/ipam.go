@@ -61,32 +61,43 @@ func (db *Store) ListIPPools(ctx context.Context, hostID string) ([]IPPool, erro
 }
 
 func (db *Store) AllocateIP(ctx context.Context, poolID, owner string) (string, error) {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 	var cidr string
-	if err := db.pool.QueryRow(ctx, `SELECT cidr FROM ip_pools WHERE id=$1`, poolID).Scan(&cidr); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT cidr FROM ip_pools WHERE id=$1 FOR UPDATE`, poolID).Scan(&cidr); err != nil {
 		return "", err
 	}
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		return "", err
 	}
-	rows, err := db.pool.Query(ctx, `SELECT address FROM ip_allocations WHERE pool_id=$1`, poolID)
+	rows, err := tx.Query(ctx, `SELECT address FROM ip_allocations WHERE pool_id=$1`, poolID)
 	if err != nil {
 		return "", err
 	}
-	defer rows.Close()
 	used := map[string]bool{}
 	for rows.Next() {
 		var address string
 		if err := rows.Scan(&address); err != nil {
+			rows.Close()
 			return "", err
 		}
 		used[address] = true
 	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
 	address := prefix.Addr().Next()
 	for prefix.Contains(address) && address != prefix.Addr() {
 		if !used[address.String()] && address != prefix.Masked().Addr() {
-			_, err = db.pool.Exec(ctx, `INSERT INTO ip_allocations(id,pool_id,address,owner) VALUES($1,$2,$3,$4)`, id.New("ip"), poolID, address.String(), owner)
-			return address.String(), err
+			if _, err = tx.Exec(ctx, `INSERT INTO ip_allocations(id,pool_id,address,owner) VALUES($1,$2,$3,$4)`, id.New("ip"), poolID, address.String(), owner); err != nil {
+				return "", err
+			}
+			return address.String(), tx.Commit(ctx)
 		}
 		next := address.Next()
 		if next == address {
