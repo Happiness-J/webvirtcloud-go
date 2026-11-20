@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1898,7 +1899,13 @@ func (s *Server) imageLibraryPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) imageLibraryUpload(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(64 << 20); err != nil {
+		s.logRequestError(r, "parse image upload", err)
 		s.redirectError(w, r, "/images", "上传内容无效")
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	if subtle.ConstantTimeCompare([]byte(r.FormValue("_csrf")), []byte(sess.CSRFToken)) != 1 {
+		s.renderError(w, r, http.StatusForbidden, "CSRF 校验失败", "页面已过期，请刷新后重试。")
 		return
 	}
 	file, header, err := r.FormFile("file")
