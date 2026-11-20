@@ -733,7 +733,7 @@ func (s *Server) protect(role string, next http.HandlerFunc) http.Handler {
 			s.renderError(w, r, http.StatusForbidden, "权限不足", "当前账号没有执行此操作的权限。")
 			return
 		}
-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
 			r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024)
 			if err := r.ParseForm(); err != nil {
 				if isAPIV1Path(r.URL.Path) {
