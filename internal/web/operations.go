@@ -108,8 +108,13 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "卷容量格式无效，例如 10G")
 			return
 		}
-		xmlText, err := command.VolumeXML(name, format, bytes, 0o640, 0, -1)
-		if err != nil || command.ValidateVolumeXML(xmlText, name, format, bytes, 0o640, 0, -1) != nil {
+		groupID, err := command.VolumeGroupID("libvirt")
+		if err != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法确定存储卷属组")
+			return
+		}
+		xmlText, err := command.VolumeXML(name, format, bytes, 0o640, 0, groupID)
+		if err != nil || command.ValidateVolumeXML(xmlText, name, format, bytes, 0o640, 0, groupID) != nil {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "卷参数无效")
 			return
 		}
