@@ -261,6 +261,11 @@ func validateStorageActionArgs(args []string) error {
 			return validateActionOperand(args[2])
 		}
 		return fmt.Errorf("存储池自启动参数不正确")
+	case "vol-create":
+		if len(args) != 3 || args[2] != "/dev/stdin" {
+			return fmt.Errorf("创建卷参数不正确")
+		}
+		return validateActionOperand(args[1])
 	case "vol-create-as":
 		if len(args) != 6 || args[4] != "--format" || !validVolumeFormatArg(args[5]) {
 			return fmt.Errorf("创建卷参数不正确")
