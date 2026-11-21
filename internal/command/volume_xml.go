@@ -38,7 +38,7 @@ func VolumeXML(name, format string, capacity uint64, mode, owner, group int) (st
 	if err := validateVolumeIdentity(name, format); err != nil {
 		return "", err
 	}
-	if capacity == 0 || mode < 0 || mode > 0o777 || owner < 0 || group < 0 {
+	if capacity == 0 || mode < 0 || mode > 0o777 || owner < -1 || group < -1 {
 		return "", fmt.Errorf("卷权限参数无效")
 	}
 	value, err := xml.Marshal(storageVolume{
