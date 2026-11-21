@@ -136,6 +136,14 @@ func (s *Server) commandTarget(ctx context.Context, hostID string) (store.Host, 
 	return host, target, nil
 }
 
+func snapshotCreateArgs(vm, snapshot, state string) []string {
+	args := []string{"snapshot-create-as", vm, snapshot}
+	if state == "running" {
+		args = append(args, "--quiesce")
+	}
+	return args
+}
+
 func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 	switch action {
 	case "start":
@@ -175,7 +183,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		}
 		switch action {
 		case "snapshot-create":
-			return []string{"snapshot-create-as", vm, snapshot, "--quiesce"}, false, nil
+			return snapshotCreateArgs(vm, snapshot, ""), false, nil
 		case "snapshot-revert":
 			return []string{"snapshot-revert", vm, snapshot}, true, nil
 		case "snapshot-delete":
@@ -495,6 +503,14 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 		args = []string{"attach-disk", vmName, operand, target, "--targetbus", "usb", "--live"}
 	} else {
 		args, destructive, err = actionArgs(action, vmName, operand)
+		if err == nil && action == "snapshot-create" {
+			detail, detailErr := s.libvirt.Detail(r.Context(), host.ID, vmName, false)
+			if detailErr != nil {
+				s.redirectError(w, r, vmRedirect(host.ID, vmName), "无法确认虚拟机状态")
+				return
+			}
+			args = snapshotCreateArgs(vmName, operand, detail.Domain.State)
+		}
 		if err != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())
 			return
