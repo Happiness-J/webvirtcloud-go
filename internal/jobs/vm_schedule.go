@@ -38,7 +38,7 @@ func scheduleJob(item store.VMSchedule) ([]string, string, string) {
 	switch item.Kind {
 	case "snapshot":
 		name := fmt.Sprintf("auto-%s", time.Now().UTC().Format("20060102-150405"))
-		return []string{"snapshot-create-as", item.VMName, name, "--quiesce"}, fmt.Sprintf("定时快照 %s · 保留 %d", item.VMName, item.RetainCount), "vm-action"
+		return []string{"snapshot-create-as", item.VMName, name}, fmt.Sprintf("定时快照 %s · 保留 %d", item.VMName, item.RetainCount), "vm-action"
 	default:
 		return []string{item.PowerAction, item.VMName}, "定时电源 " + item.VMName, "vm-action"
 	}
