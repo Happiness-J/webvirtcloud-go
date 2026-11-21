@@ -7,7 +7,7 @@
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
   <div class="panel-head"><h2>创建存储池</h2></div>
-  <p class="hint">支持目录、NFS、iSCSI 和 LVM。目录与 NFS 需要目标路径；NFS 来源填写“地址:导出路径”，iSCSI 填写“地址/iqn”，LVM 填写卷组名。</p>
+  <p class="hint">支持目录、NFS、iSCSI 和 LVM。目录与 NFS 需要目标路径；NFS 来源填写“地址:导出路径”，iSCSI 填写“地址/iqn”，LVM 填写卷组名。定义只登记存储池，不会创建目录。目录池的目标路径必须已经存在，否则启动会失败。</p>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/storage/action" class="stack">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="pool-define">
     <div class="grid two compact">
