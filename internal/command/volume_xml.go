@@ -8,10 +8,10 @@ import (
 )
 
 type storageVolume struct {
-	XMLName  xml.Name                `xml:"volume"`
-	Name     string                  `xml:"name"`
-	Capacity storageVolumeSize       `xml:"capacity"`
-	Target   storageVolumeTarget     `xml:"target"`
+	XMLName  xml.Name            `xml:"volume"`
+	Name     string              `xml:"name"`
+	Capacity storageVolumeSize   `xml:"capacity"`
+	Target   storageVolumeTarget `xml:"target"`
 }
 
 type storageVolumeSize struct {
