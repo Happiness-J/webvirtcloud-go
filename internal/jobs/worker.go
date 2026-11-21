@@ -400,9 +400,7 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 	start := time.Now()
 	result, err := w.runner.Run(ctx, req)
 	output := result.Output()
-	if err == nil && ctx.Err() == nil {
-		w.shareLocalCreatedVolume(target, args)
-	}
+
 
 	if ctx.Err() == context.Canceled {
 		return "cancelled", output, "任务已取消"
