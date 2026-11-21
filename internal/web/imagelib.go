@@ -156,7 +156,7 @@ func fetchLibraryURL(dir, name, source, checksum string) error {
 	if !ok || !validLibraryName(name) {
 		return fmt.Errorf("只允许拉取预置镜像")
 	}
-	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	client := &http.Client{Timeout: 30 * time.Second}
 	response, err := client.Get(rawURL)
 	if err != nil || response.StatusCode != http.StatusOK {
 		return fmt.Errorf("无法拉取镜像")
