@@ -161,7 +161,7 @@ func fetchLibraryURL(dir, name, source, checksum string) error {
 	if err != nil || response.StatusCode != http.StatusOK {
 		return fmt.Errorf("无法拉取镜像")
 	}
-	if response.ContentLength > 512<<20 {
+	if response.ContentLength < 0 || response.ContentLength > 512<<20 {
 		if err := response.Body.Close(); err != nil {
 			return fmt.Errorf("无法拉取镜像")
 		}
