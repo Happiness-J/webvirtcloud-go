@@ -8,16 +8,26 @@ import (
 	"webvirtcloud-go/internal/command"
 )
 
-func TestCreatedVolumePath(t *testing.T) {
-	path, ok := createdVolumePath([]string{"vol-create-as", "images", "nightly1122perm", "1M"})
+func TestCreatedVolumeArgs(t *testing.T) {
+	pool, name, ok := createdVolumeArgs([]string{"vol-create-as", "images", "nightly1122perm", "1M"})
+	if !ok || pool != "images" || name != "nightly1122perm" {
+		t.Fatalf("pool = %q, name = %q, ok = %v", pool, name, ok)
+	}
+	if _, _, ok = createdVolumeArgs([]string{"vol-create-as", "images", "../disk"}); ok {
+		t.Fatal("path traversal accepted")
+	}
+	if _, _, ok = createdVolumeArgs([]string{"vol-clone", "images", "disk"}); ok {
+		t.Fatal("non-create command accepted")
+	}
+}
+
+func TestVolumePathFromOutput(t *testing.T) {
+	path, ok := volumePathFromOutput("\n/var/lib/libvirt/images/nightly1122perm\n")
 	if !ok || path != "/var/lib/libvirt/images/nightly1122perm" {
 		t.Fatalf("path = %q, ok = %v", path, ok)
 	}
-	if _, ok = createdVolumePath([]string{"vol-create-as", "images", "../disk"}); ok {
+	if _, ok = volumePathFromOutput("/tmp/../disk"); ok {
 		t.Fatal("path traversal accepted")
-	}
-	if _, ok = createdVolumePath([]string{"vol-clone", "images", "disk"}); ok {
-		t.Fatal("non-create command accepted")
 	}
 }
 
