@@ -401,7 +401,6 @@ func (w *Worker) runJob(ctx context.Context, job *store.Job) (string, string, st
 	result, err := w.runner.Run(ctx, req)
 	output := result.Output()
 
-
 	if ctx.Err() == context.Canceled {
 		return "cancelled", output, "任务已取消"
 	}
