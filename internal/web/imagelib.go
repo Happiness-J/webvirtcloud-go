@@ -157,23 +157,15 @@ func fetchLibraryURL(dir, name, source, checksum string) error {
 		return fmt.Errorf("只允许拉取预置镜像")
 	}
 	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	request, err := http.NewRequest(http.MethodHead, rawURL, nil)
-	if err != nil {
-		return fmt.Errorf("无法拉取镜像")
-	}
-	probe, err := client.Do(request)
-	if err != nil || probe.StatusCode != http.StatusOK {
-		return fmt.Errorf("无法拉取镜像")
-	}
-	if err := probe.Body.Close(); err != nil {
-		return fmt.Errorf("无法拉取镜像")
-	}
-	if probe.ContentLength > 512<<20 {
-		return fmt.Errorf("镜像超过大小限制")
-	}
 	response, err := client.Get(rawURL)
 	if err != nil || response.StatusCode != http.StatusOK {
 		return fmt.Errorf("无法拉取镜像")
+	}
+	if response.ContentLength > 512<<20 {
+		if err := response.Body.Close(); err != nil {
+			return fmt.Errorf("无法拉取镜像")
+		}
+		return fmt.Errorf("镜像超过大小限制")
 	}
 	defer response.Body.Close()
 	if err := saveLibraryUpload(dir, name, response.Body, 512<<20); err != nil {
