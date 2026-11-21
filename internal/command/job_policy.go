@@ -553,7 +553,7 @@ func validateVMActionArgs(args []string) error {
 			seen[flag] = true
 		}
 	case "snapshot-create-as":
-		if len(args) != 4 || args[3] != "--quiesce" {
+		if len(args) != 3 && (len(args) != 4 || args[3] != "--quiesce") {
 			return fmt.Errorf("静默快照参数不正确")
 		}
 	case "snapshot-revert", "snapshot-delete", "checkpoint-delete":
