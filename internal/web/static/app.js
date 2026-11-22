@@ -2,7 +2,12 @@
 
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-confirm]');
-  if (button && !window.confirm(button.dataset.confirm || '确定继续吗？')) {
+  if (!button) return;
+  const form = button.form;
+  if (form && !form.checkValidity()) {
+    return;
+  }
+  if (!window.confirm(button.dataset.confirm || '确定继续吗？')) {
     event.preventDefault();
   }
 });
