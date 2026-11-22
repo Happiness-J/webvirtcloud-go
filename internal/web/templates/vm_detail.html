@@ -18,7 +18,7 @@
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline action-form">
       <input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="{{.Name}}">
       {{if .Destructive}}<label class="confirm" title="{{.Confirm}}"><input type="checkbox" name="confirm" value="yes" required>确认</label>{{end}}
-      <button class="btn {{if .Destructive}}danger{{else if .Primary}}primary{{end}}" {{if not .Destructive}}data-confirm="{{.Confirm}}"{{end}}>{{.Label}}</button>
+      <button class="btn {{if .Destructive}}danger{{else if .Primary}}primary{{end}}" {{if and (not .Destructive) .Confirm}}data-confirm="{{.Confirm}}"{{end}}>{{.Label}}</button>
     </form>
   {{end}}
   </div>
