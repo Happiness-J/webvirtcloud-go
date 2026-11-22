@@ -446,6 +446,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /users/new", s.protect("admin", s.userCreate))
 	mux.Handle("POST /users/{id}/role", s.protect("admin", s.userRole))
 	mux.Handle("POST /users/{id}/disabled", s.protect("admin", s.userDisabled))
+	mux.Handle("POST /users/{id}/delete", s.protect("admin", s.userDelete))
 	mux.Handle("POST /users/{id}/password", s.protect("admin", s.userPassword))
 	mux.Handle("GET /users/{id}/access", s.protect("admin", s.userAccessPage))
 	mux.Handle("POST /users/{id}/access", s.protect("admin", s.userAccessUpdate))
