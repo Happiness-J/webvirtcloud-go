@@ -832,6 +832,32 @@ func (s *Server) vmScheduleSave(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "定时任务已保存", "ok"), http.StatusSeeOther)
 }
 
+func (s *Server) vmScheduleDelete(w http.ResponseWriter, r *http.Request) {
+	host, err := s.db.GetHost(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.hostLookupError(w, r, err)
+		return
+	}
+	if !s.hostVisibleOrDeny(w, r, host.ID) {
+		return
+	}
+	vmName := r.PathValue("vm")
+	if !s.vmVisibleOrDeny(w, r, host.ID, vmName) || libvirt.ValidateName(vmName) != nil {
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), "虚拟机名称无效")
+		return
+	}
+	kind := strings.TrimSpace(r.Form.Get("kind"))
+	if err := s.db.DeleteVMSchedule(r.Context(), host.ID, vmName, kind); err != nil {
+		message := "无法删除定时任务"
+		if err.Error() == "定时任务类型无效" || err.Error() == "定时任务不存在" {
+			message = err.Error()
+		}
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), message)
+		return
+	}
+	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "定时任务已删除", "ok"), http.StatusSeeOther)
+}
+
 func defaultString(value, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback

@@ -327,7 +327,7 @@
   <label>动作<select name="power_action"><option value="start">开机</option><option value="shutdown">关机</option></select></label>
   <button class="btn">保存定时电源</button>
 </form>
-{{if .Data.Schedules}}<table><thead><tr><th>类型</th><th>周期</th><th>下次</th></tr></thead><tbody>{{range .Data.Schedules}}<tr><td>{{if eq .Kind "snapshot"}}快照 · 保留 {{.RetainCount}}{{else}}电源 · {{.PowerAction}}{{end}}</td><td>{{.IntervalHours}} 小时</td><td class="muted">{{date .NextRunAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有定时快照或电源动作。</p>{{end}}
+{{if .Data.Schedules}}<table><thead><tr><th>类型</th><th>周期</th><th>下次</th><th></th></tr></thead><tbody>{{range .Data.Schedules}}<tr><td>{{if eq .Kind "snapshot"}}快照 · 保留 {{.RetainCount}}{{else}}电源 · {{.PowerAction}}{{end}}</td><td>{{.IntervalHours}} 小时</td><td class="muted">{{date .NextRunAt}}</td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/schedule/delete" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="kind" value="{{.Kind}}"><button class="btn danger" data-confirm="确定删除这个定时任务吗？">删除</button></form></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有定时快照或电源动作。</p>{{end}}
 </section>
 <section class="panel">
   <h2>增量备份检查点</h2>

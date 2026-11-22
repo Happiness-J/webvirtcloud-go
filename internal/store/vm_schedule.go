@@ -40,6 +40,20 @@ func (db *Store) SaveVMSchedule(ctx context.Context, item VMSchedule) error {
 	return err
 }
 
+func (db *Store) DeleteVMSchedule(ctx context.Context, hostID, vmName, kind string) error {
+	if kind != "snapshot" && kind != "power" {
+		return fmt.Errorf("定时任务类型无效")
+	}
+	tag, err := db.pool.Exec(ctx, `DELETE FROM vm_schedules WHERE host_id=$1 AND vm_name=$2 AND kind=$3`, hostID, vmName, kind)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("定时任务不存在")
+	}
+	return nil
+}
+
 func (db *Store) ListDueVMSchedules(ctx context.Context, now time.Time) ([]VMSchedule, error) {
 	rows, err := db.pool.Query(ctx, `SELECT id,host_id,vm_name,kind,interval_hours,retain_count,power_action,enabled,next_run_at
 		FROM vm_schedules WHERE enabled AND next_run_at<=$1 ORDER BY next_run_at`, now)
