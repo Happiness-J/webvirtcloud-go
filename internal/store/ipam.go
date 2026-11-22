@@ -60,6 +60,17 @@ func (db *Store) ListIPPools(ctx context.Context, hostID string) ([]IPPool, erro
 	return out, rows.Err()
 }
 
+func (db *Store) DeleteIPPool(ctx context.Context, hostID, poolID string) error {
+	tag, err := db.pool.Exec(ctx, `DELETE FROM ip_pools WHERE host_id=$1 AND id=$2`, hostID, poolID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("地址池不存在")
+	}
+	return nil
+}
+
 func (db *Store) AllocateIP(ctx context.Context, poolID, owner string) (string, error) {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
