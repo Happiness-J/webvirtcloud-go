@@ -402,6 +402,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /hosts/{id}/storage/action", s.protect("operator", s.storageAction))
 	mux.Handle("GET /hosts/{id}/networks", s.protect("viewer", s.networksPage))
 	mux.Handle("POST /hosts/{id}/ip-pools", s.protect("operator", s.ipPoolCreate))
+	mux.Handle("POST /hosts/{id}/ip-pools/delete", s.protect("operator", s.ipPoolDelete))
 	mux.Handle("POST /hosts/{id}/ip-allocations", s.protect("operator", s.ipAllocate))
 	mux.Handle("POST /hosts/{id}/ip-releases", s.protect("operator", s.ipRelease))
 	mux.Handle("POST /hosts/{id}/networks/action", s.protect("operator", s.networkAction))

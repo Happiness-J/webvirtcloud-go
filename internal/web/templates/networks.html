@@ -31,7 +31,7 @@
   <button class="btn primary">创建地址池</button>
 </form>{{end}}
 {{if .Data.IPPools}}{{range .Data.IPPools}}
-<h3>{{.Name}} · {{.CIDR}}{{if .Floating}} · 浮动{{end}}</h3>
+<h3>{{.Name}} · {{.CIDR}}{{if .Floating}} · 浮动{{end}}</h3>{{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}<form method="post" action="/hosts/{{$.Data.Host.ID}}/ip-pools/delete" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool_id" value="{{.ID}}"><button class="btn small danger" data-confirm="确定删除这个地址池及其分配记录吗？">删除地址池</button></form>{{end}}
 {{if or (eq $.User.Role "admin") (eq $.User.Role "operator")}}
 <form method="post" action="/hosts/{{$.Data.Host.ID}}/ip-allocations" class="inline-form"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool_id" value="{{.ID}}"><label>使用者<input name="owner" maxlength="128" placeholder="vm-web"></label><button class="btn small">分配下一个地址</button></form>{{end}}
 {{with index $.Data.Allocations .ID}}<table><thead><tr><th>地址</th><th>使用者</th><th></th></tr></thead><tbody>{{range .}}<tr><td><code>{{.Address}}</code></td><td>{{.Owner}}</td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/ip-releases" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="pool_id" value="{{.PoolID}}"><input type="hidden" name="address" value="{{.Address}}"><button class="btn small">释放</button></form></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">这个地址池还没有分配。</p>{{end}}
