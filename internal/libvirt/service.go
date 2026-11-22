@@ -560,6 +560,25 @@ func (s *Service) PoolInfo(ctx context.Context, hostID, pool string) (map[string
 	return ParseKeyValue(res.Stdout), nil
 }
 
+func (s *Service) PoolTargetPath(ctx context.Context, hostID, pool string) (string, error) {
+	if err := ValidateName(pool); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"pool-dumpxml", pool}, 10*time.Second)
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	var parsed struct {
+		Target struct {
+			Path string `xml:"path"`
+		} `xml:"target"`
+	}
+	if err := xml.Unmarshal([]byte(res.Stdout), &parsed); err != nil {
+		return "", err
+	}
+	return parsed.Target.Path, nil
+}
+
 func (s *Service) ListVolumes(ctx context.Context, hostID, pool string) ([]Volume, error) {
 	if err := ValidateName(pool); err != nil {
 		return nil, err
