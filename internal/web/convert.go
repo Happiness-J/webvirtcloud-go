@@ -63,7 +63,7 @@ func detectImageFormat(path string) string {
 }
 
 func detectImageHeader(path string) string {
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304 -- path comes from a libvirt volume path and only four header bytes are read.
 	if err != nil {
 		return ""
 	}
