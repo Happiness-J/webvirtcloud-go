@@ -249,6 +249,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 		"auditDetail":      auditDetailText,
 		"auditActionName":  auditActionName,
 		"bytes":            formatBytes,
+		"memoryAmount":     memoryAmount,
 	}
 	out := make(map[string]*template.Template)
 	for _, page := range pages {

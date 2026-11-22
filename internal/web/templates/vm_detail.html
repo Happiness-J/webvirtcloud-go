@@ -278,7 +278,7 @@
     <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/resource" class="stack">
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="memory">
       <h3>调整内存</h3>
-      <label>容量<input name="memory_amount" value="4G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]"></label>
+      <label>容量<input name="memory_amount" value="{{memoryAmount (index .Data.Detail.Info "Used memory")}}" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]"></label>
       <label>生效范围<select name="scope"><option value="config">下次启动生效</option><option value="live">在线并持久化</option></select></label>
       <button class="btn" data-confirm="确定调整虚拟机内存吗？">提交内存调整</button>
     </form>
