@@ -1567,7 +1567,9 @@ func TestEnqueueJobRejectsUnknownKind(t *testing.T) {
 func TestValidJobKindIncludesEveryQueuedOperation(t *testing.T) {
 	kinds := []string{
 		"command", "vm-create", "vm-clone", "vm-action", "host-test", "filesystem-inspect",
-		"storage-action", "network-action", "disk-action", "vm-resource",
+		"storage-action", "network-action", "disk-action", "vm-resource", "backup-policy",
+		"vm-nic", "vm-firewall", "vm-debug", "vm-video", "vm-disk-controller", "vm-profile",
+		"vm-device", "vm-performance", "vm-boot",
 	}
 	for _, kind := range kinds {
 		if !validJobKind(kind) {
