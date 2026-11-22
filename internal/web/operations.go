@@ -773,16 +773,22 @@ func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
 		Result: strings.TrimSpace(r.Form.Get("result")), Note: note, ActorName: sess.User.Username,
 	}
 	if err := s.db.AddBackupDrill(r.Context(), drill); err != nil {
-		message := "无法保存恢复演练"
-		switch err.Error() {
-		case "演练结果无效", "校验值必须是 64 位十六进制摘要":
-			message = err.Error()
-		}
-		s.redirectError(w, r, vmRedirect(host.ID, vmName), message)
+		s.redirectError(w, r, vmRedirect(host.ID, vmName), backupDrillError(err))
 		return
 	}
 	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "backup.drill", HostID: host.ID, VMName: vmName, RemoteIP: s.clientIP(r), Detail: map[string]any{"result": drill.Result, "target": kind}})
 	http.Redirect(w, r, flashURL(vmRedirect(host.ID, vmName), "恢复演练记录已保存", "ok"), http.StatusSeeOther)
+}
+
+func backupDrillError(err error) string {
+	switch err.Error() {
+	case "演练结果无效", "校验值必须是 64 位十六进制摘要",
+		"本地目标不需要地址", "NFS 目标必须是主机:/导出路径", "对象存储目标必须是 s3:// 地址",
+		"备份目标类型无效", "备份目标过长":
+		return err.Error()
+	default:
+		return "无法保存恢复演练"
+	}
 }
 
 func (s *Server) vmScheduleSave(w http.ResponseWriter, r *http.Request) {
