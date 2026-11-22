@@ -1177,7 +1177,7 @@ func validNICAdvancedArgs(args []string) bool {
 			if err != nil || id < 1 || id > 4094 {
 				return false
 			}
-		case "mtu":
+		case "mtu.size":
 			mtu, err := strconv.Atoi(value)
 			if err != nil || mtu < 576 || mtu > 9000 {
 				return false
