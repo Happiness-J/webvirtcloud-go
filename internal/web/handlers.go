@@ -1955,6 +1955,17 @@ func (s *Server) imageLibraryUpload(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/images", http.StatusSeeOther)
 }
 
+func (s *Server) imageLibraryDelete(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.Form.Get("name"))
+	if err := deleteLibraryImage(s.cfg.ImageDir, name); err != nil {
+		s.redirectError(w, r, "/images", err.Error())
+		return
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "image.deleted", RemoteIP: s.clientIP(r), Detail: map[string]any{"name": name}})
+	http.Redirect(w, r, flashURL("/images", "镜像已删除", "ok"), http.StatusSeeOther)
+}
+
 func (s *Server) imageLibraryChecksum(w http.ResponseWriter, r *http.Request) {
 	sum, err := libraryChecksum(s.cfg.ImageDir, strings.TrimSpace(r.Form.Get("name")))
 	if err != nil {
