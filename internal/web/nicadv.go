@@ -26,7 +26,7 @@ func nicAdvancedArgs(vm, mac, vlan, vlanMode, mtu, newMAC, link string) ([]strin
 		if err != nil || value < 576 || value > 9000 {
 			return nil, fmt.Errorf("MTU 必须在 576 到 9000 之间")
 		}
-		parts = append(parts, "mtu="+mtu)
+		parts = append(parts, "mtu.size="+mtu)
 	}
 	if newMAC != "" {
 		if !validMAC(newMAC) {
