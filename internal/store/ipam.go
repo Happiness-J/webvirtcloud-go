@@ -60,6 +60,12 @@ func (db *Store) ListIPPools(ctx context.Context, hostID string) ([]IPPool, erro
 	return out, rows.Err()
 }
 
+func (db *Store) IPPoolName(ctx context.Context, hostID, poolID string) (string, error) {
+	var name string
+	err := db.pool.QueryRow(ctx, `SELECT name FROM ip_pools WHERE host_id=$1 AND id=$2`, hostID, poolID).Scan(&name)
+	return name, err
+}
+
 func (db *Store) DeleteIPPool(ctx context.Context, hostID, poolID string) error {
 	tag, err := db.pool.Exec(ctx, `DELETE FROM ip_pools WHERE host_id=$1 AND id=$2`, hostID, poolID)
 	if err != nil {

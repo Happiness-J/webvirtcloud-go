@@ -31,6 +31,7 @@ func (s *Server) ipPoolDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	poolID := strings.TrimSpace(r.Form.Get("pool_id"))
+	poolName, _ := s.db.IPPoolName(r.Context(), hostID, poolID)
 	if err := s.db.DeleteIPPool(r.Context(), hostID, poolID); err != nil {
 		message := "无法删除地址池"
 		if err.Error() == "地址池不存在" {
@@ -40,7 +41,7 @@ func (s *Server) ipPoolDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
-	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "ip_pool.deleted", HostID: hostID, RemoteIP: s.clientIP(r), Detail: map[string]any{"pool_id": poolID}})
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "ip_pool.deleted", HostID: hostID, RemoteIP: s.clientIP(r), Detail: map[string]any{"pool_id": poolID, "name": poolName}})
 	http.Redirect(w, r, flashURL("/hosts/"+hostID+"/networks", "地址池已删除", "ok"), http.StatusSeeOther)
 }
 
