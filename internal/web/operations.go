@@ -733,11 +733,14 @@ func (s *Server) vmRename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess, _ := sessionFrom(r.Context())
-	if _, err := s.enqueueCommand(r, sess.User, host.ID, "vm-action", "重命名 "+oldName, "virsh", args, "", 300); err != nil {
+	jobID, err := s.enqueueCommand(r, sess.User, host.ID, "vm-action", "重命名 "+oldName, "virsh", args, "", 300)
+	if err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, oldName), "无法提交重命名")
 		return
 	}
-	http.Redirect(w, r, "/hosts/"+url.PathEscape(host.ID)+"/vms/"+url.PathEscape(newName), http.StatusSeeOther)
+	// The libvirt rename runs asynchronously. Opening the new name immediately
+	// races the worker and can return a transient not-found error.
+	http.Redirect(w, r, "/jobs/"+url.PathEscape(jobID), http.StatusSeeOther)
 }
 
 func (s *Server) backupDrillSave(w http.ResponseWriter, r *http.Request) {
