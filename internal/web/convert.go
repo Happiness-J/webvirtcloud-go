@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -56,6 +57,25 @@ func detectImageFormat(path string) string {
 	case ".raw", ".img":
 		return "raw"
 	case ".vmdk":
+		return "vmdk"
+	}
+	return detectImageHeader(path)
+}
+
+func detectImageHeader(path string) string {
+	file, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+	header := make([]byte, 4)
+	if _, err := file.Read(header); err != nil {
+		return ""
+	}
+	switch string(header) {
+	case "QFI\xfb":
+		return "qcow2"
+	case "KDMV":
 		return "vmdk"
 	default:
 		return ""
