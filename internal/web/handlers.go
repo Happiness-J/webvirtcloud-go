@@ -861,6 +861,40 @@ func (s *Server) userDisabled(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, flashURL("/users", "账号状态已更新", "ok"), http.StatusSeeOther)
 }
 
+func (s *Server) userDelete(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessionFrom(r.Context())
+	targetID := r.PathValue("id")
+	if store.IsSystemUserID(targetID) {
+		s.redirectError(w, r, "/users", "系统 API 账号由服务配置管理，不能在页面删除")
+		return
+	}
+	target, err := s.db.GetUserByID(r.Context(), targetID)
+	if err != nil {
+		s.userLookupError(w, r, err)
+		return
+	}
+	admins, err := s.db.CountAdmins(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	lastEnabledAdmin := target.Role == "admin" && !target.Disabled && admins <= 1
+	if !userDeleteAllowed(sess.User.ID, target.ID, target.Role, lastEnabledAdmin) {
+		s.redirectError(w, r, "/users", "不能删除当前账号或最后一个管理员")
+		return
+	}
+	if err := s.db.DeleteUser(r.Context(), target.ID); err != nil {
+		if errors.Is(err, store.ErrLastAdmin) {
+			s.redirectError(w, r, "/users", "不能删除当前账号或最后一个管理员")
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "user.deleted", RemoteIP: s.clientIP(r), Detail: map[string]any{"username": target.Username}})
+	http.Redirect(w, r, flashURL("/users", "用户已删除", "ok"), http.StatusSeeOther)
+}
+
 func (s *Server) userAccessPage(w http.ResponseWriter, r *http.Request) {
 	if store.IsSystemUserID(r.PathValue("id")) {
 		s.redirectError(w, r, "/users", "系统 API 账号不支持桌面授权")
