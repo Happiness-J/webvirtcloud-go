@@ -440,6 +440,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /api/v1/jobs/{id}", s.protect("viewer", s.jobAPI))
 	mux.Handle("GET /api/v1/resources", s.protect("viewer", s.apiResources))
 	mux.Handle("GET /audit", s.protect("operator", s.auditPage))
+	mux.Handle("GET /audit/export", s.protect("operator", s.auditExport))
 	mux.Handle("GET /users", s.protect("admin", s.usersPage))
 	mux.Handle("GET /platform", s.protect("admin", s.platformPage))
 	mux.Handle("POST /platform/export", s.protect("admin", s.platformExport))

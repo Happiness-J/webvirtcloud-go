@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,19 @@ import (
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
 )
+
+type auditPageData struct {
+	Audits    []store.Audit
+	HostNames map[string]string
+	Actions   []string
+	Page      int
+	HasNext   bool
+	Query     string
+	Action    string
+	PrevURL   string
+	NextURL   string
+	ExportURL string
+}
 
 type dashboardData struct {
 	Hosts     []store.Host
@@ -1087,9 +1101,13 @@ func (s *Server) accountPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
+	filter, ok := s.auditFilter(w, r)
+	if !ok {
+		return
+	}
 	page := parsePage(r.URL.Query().Get("page"))
 	const pageSize = 100
-	audits, err := s.db.RecentAuditPage(r.Context(), pageSize+1, (page-1)*pageSize)
+	audits, err := s.db.SearchAuditPage(r.Context(), filter, pageSize+1, (page-1)*pageSize)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -1105,7 +1123,92 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 			hostNames[host.ID] = host.Name
 		}
 	}
-	s.render(w, r, "audit", pageData{Title: "审计", Nav: "audit", Data: map[string]any{"Audits": audits, "HostNames": hostNames, "Page": page, "HasNext": hasNext}})
+	actions, err := s.db.ListAuditActions(r.Context())
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	data := auditPageData{Audits: audits, HostNames: hostNames, Actions: actions, Page: page, HasNext: hasNext,
+		Query: filter.Query, Action: filter.Action, ExportURL: auditURL("/audit/export", filter, 0)}
+	if page > 1 {
+		data.PrevURL = auditURL("/audit", filter, page-1)
+	}
+	if hasNext {
+		data.NextURL = auditURL("/audit", filter, page+1)
+	}
+	s.render(w, r, "audit", pageData{Title: "审计", Nav: "audit", Data: data})
+}
+
+func (s *Server) auditExport(w http.ResponseWriter, r *http.Request) {
+	filter, ok := s.auditFilter(w, r)
+	if !ok {
+		return
+	}
+	audits, err := s.db.SearchAuditPage(r.Context(), filter, 500, 0)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	hosts, hostErr := s.db.ListHosts(r.Context())
+	hostNames := map[string]string{}
+	if hostErr == nil {
+		for _, host := range hosts {
+			hostNames[host.ID] = host.Name
+		}
+	}
+	sess, _ := sessionFrom(r.Context())
+	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username,
+		Action: "audit.export", RemoteIP: s.clientIP(r), Detail: map[string]any{"rows": len(audits), "query": filter.Query, "action_filter": filter.Action}})
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="audit.csv"`)
+	_, _ = w.Write([]byte{0xef, 0xbb, 0xbf})
+	writer := csv.NewWriter(w)
+	_ = writer.Write([]string{"时间", "操作", "操作代码", "操作人", "主机/VM", "来源 IP", "详情"})
+	for _, entry := range audits {
+		host := hostNames[entry.HostID]
+		if host == "" {
+			host = entry.HostID
+		}
+		if entry.VMName != "" {
+			host += " / " + entry.VMName
+		}
+		_ = writer.Write([]string{entry.CreatedAt.Local().Format("2006-01-02 15:04:05"), auditActionName(entry.Action),
+			entry.Action, csvSafeCell(entry.ActorName), csvSafeCell(host), csvSafeCell(entry.RemoteIP), csvSafeCell(auditDetailText(entry.Detail))})
+	}
+	writer.Flush()
+}
+
+func (s *Server) auditFilter(w http.ResponseWriter, r *http.Request) (store.AuditFilter, bool) {
+	filter := store.AuditFilter{Query: strings.TrimSpace(r.URL.Query().Get("q")), Action: strings.TrimSpace(r.URL.Query().Get("action"))}
+	if utf8.RuneCountInString(filter.Query) > 200 || utf8.RuneCountInString(filter.Action) > 200 {
+		s.renderError(w, r, http.StatusBadRequest, "筛选条件无效", "搜索词和操作筛选不能超过 200 个字符。")
+		return store.AuditFilter{}, false
+	}
+	return filter, true
+}
+
+func auditURL(path string, filter store.AuditFilter, page int) string {
+	query := url.Values{}
+	if filter.Query != "" {
+		query.Set("q", filter.Query)
+	}
+	if filter.Action != "" {
+		query.Set("action", filter.Action)
+	}
+	if page > 0 {
+		query.Set("page", strconv.Itoa(page))
+	}
+	if encoded := query.Encode(); encoded != "" {
+		return path + "?" + encoded
+	}
+	return path
+}
+
+func csvSafeCell(value string) string {
+	if strings.HasPrefix(value, "=") || strings.HasPrefix(value, "+") || strings.HasPrefix(value, "-") || strings.HasPrefix(value, "@") {
+		return "'" + value
+	}
+	return value
 }
 
 func (s *Server) hostLookupError(w http.ResponseWriter, r *http.Request, err error) {
@@ -1244,6 +1347,7 @@ func auditActionLabels() map[string]string {
 		"backup.drill", "记录恢复演练",
 		"platform.export", "导出平台配置",
 		"platform.restore_checked", "校验平台恢复",
+		"audit.export", "导出审计日志",
 	}
 	labels := make(map[string]string, len(entries)/2)
 	for i := 0; i+1 < len(entries); i += 2 {

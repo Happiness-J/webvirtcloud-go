@@ -205,6 +205,11 @@ type Audit struct {
 	SourceID  string
 }
 
+type AuditFilter struct {
+	Query  string
+	Action string
+}
+
 type QueueStats struct {
 	Queued    int
 	Running   int
@@ -2318,14 +2323,33 @@ func (s *Store) RecentAudit(ctx context.Context, limit int) ([]Audit, error) {
 }
 
 func (s *Store) RecentAuditPage(ctx context.Context, limit, offset int) ([]Audit, error) {
+	return s.SearchAuditPage(ctx, AuditFilter{}, limit, offset)
+}
+
+func (s *Store) SearchAuditPage(ctx context.Context, filter AuditFilter, limit, offset int) ([]Audit, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 50
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := s.pool.Query(ctx, fmt.Sprintf(`SELECT actor_id,actor_name,action,host_id,vm_name,detail::text,remote_ip,created_at
-		FROM audit_logs ORDER BY id DESC LIMIT %d OFFSET %d`, limit, offset))
+	where := make([]string, 0, 2)
+	args := make([]any, 0, 2)
+	if filter.Query != "" {
+		args = append(args, "%"+escapeAuditLike(filter.Query)+"%")
+		where = append(where, fmt.Sprintf(`(actor_name ILIKE $%d ESCAPE '\' OR action ILIKE $%d ESCAPE '\' OR host_id ILIKE $%d ESCAPE '\' OR vm_name ILIKE $%d ESCAPE '\' OR remote_ip ILIKE $%d ESCAPE '\' OR detail::text ILIKE $%d ESCAPE '\')`,
+			len(args), len(args), len(args), len(args), len(args), len(args)))
+	}
+	if filter.Action != "" {
+		args = append(args, filter.Action)
+		where = append(where, fmt.Sprintf("action = $%d", len(args)))
+	}
+	query := `SELECT actor_id,actor_name,action,host_id,vm_name,detail::text,remote_ip,created_at FROM audit_logs`
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+	query += fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
+	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -2342,6 +2366,28 @@ func (s *Store) RecentAuditPage(ctx context.Context, limit, offset int) ([]Audit
 		out = append(out, a)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) ListAuditActions(ctx context.Context) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT action FROM audit_logs ORDER BY action`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var actions []string
+	for rows.Next() {
+		var action string
+		if err := rows.Scan(&action); err != nil {
+			return nil, err
+		}
+		actions = append(actions, action)
+	}
+	return actions, rows.Err()
+}
+
+func escapeAuditLike(value string) string {
+	replacer := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+	return replacer.Replace(value)
 }
 
 func auditHashLegacy(prev string, a Audit, detail string, createdAt time.Time) string {
