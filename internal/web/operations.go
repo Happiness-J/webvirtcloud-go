@@ -136,6 +136,20 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标卷名称无效")
 			return
 		}
+		metadata, metadataErr := s.libvirt.VolumeMetadata(r.Context(), host.ID, pool, volume)
+		if metadataErr != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法读取源存储卷元数据")
+			return
+		}
+		targetInfo, targetInfoErr := s.libvirt.PoolInfo(r.Context(), host.ID, targetPool)
+		if targetInfoErr != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标存储池不可用")
+			return
+		}
+		if !strings.EqualFold(strings.TrimSpace(targetInfo["State"]), "active") {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标存储池未激活")
+			return
+		}
 		volumes, volErr := s.libvirt.ListVolumes(r.Context(), host.ID, pool)
 		if volErr != nil {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法读取存储卷")
@@ -152,16 +166,32 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "该卷没有可移动的文件路径")
 			return
 		}
+		targetVolumes, targetVolErr := s.libvirt.ListVolumes(r.Context(), host.ID, targetPool)
+		if targetVolErr != nil {
+			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法读取目标存储卷")
+			return
+		}
+		for _, item := range targetVolumes {
+			if item.Name == name {
+				s.redirectError(w, r, storageRedirect(host.ID, pool), "目标卷名称已存在")
+				return
+			}
+		}
 		dest := strings.TrimRight(path[:strings.LastIndex(path, "/")], "/") + "/.wvc-move-" + name
 		if strings.Contains(dest, "..") {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "临时路径无效")
 			return
 		}
+		createArgs := []string{"vol-create-as", targetPool, name, strconv.FormatUint(metadata.Capacity, 10), "--format", metadata.Format}
 		download := []string{"vol-download", volume, dest, "--pool", pool}
 		upload := []string{"vol-upload", name, dest, "--pool", targetPool}
-		first, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", fmt.Sprintf("导出卷 %s/%s", pool, volume), "virsh", download, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600))
+		first, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", fmt.Sprintf("创建目标卷 %s/%s", targetPool, name), "virsh", createArgs, "", boundedOperationTimeout(s.cfg.MaxTimeout, 120))
 		if err != nil {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "无法提交卷移动")
+			return
+		}
+		if _, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", fmt.Sprintf("导出卷 %s/%s", pool, volume), "virsh", download, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600)); err != nil {
+			s.redirectError(w, r, "/jobs/"+first, "无法提交卷导出")
 			return
 		}
 		if _, err := s.enqueueCommand(r, sess.User, host.ID, "storage-action", fmt.Sprintf("导入卷到 %s/%s", targetPool, name), "virsh", upload, "", boundedOperationTimeout(s.cfg.MaxTimeout, 3600)); err != nil {
