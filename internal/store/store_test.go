@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -1336,6 +1337,42 @@ func TestAuditChainCheckpointAndTamperDetection(t *testing.T) {
 	}
 	if err := db.VerifyAuditChain(ctx); err == nil {
 		t.Fatal("tampered audit row passed chain verification")
+	}
+}
+
+func TestSearchAuditPage(t *testing.T) {
+	db := newTestStore(t)
+	ctx := context.Background()
+	marker := "audit-search-" + randomHex(t, 8)
+	entries := []Audit{
+		{ActorName: "alice", Action: "test.search.one", VMName: "first-vm", Detail: map[string]any{"marker": marker}},
+		{ActorName: "bob", Action: "test.search.two", Detail: map[string]any{"marker": marker, "literal": "100%_done"}},
+		{ActorName: "alice", Action: "test.search.other", Detail: map[string]any{"marker": "unrelated"}},
+	}
+	for _, entry := range entries {
+		if err := db.AddAudit(ctx, entry); err != nil {
+			t.Fatal(err)
+		}
+	}
+	matches, err := db.SearchAuditPage(ctx, AuditFilter{Query: marker}, 10, 0)
+	if err != nil || len(matches) != 2 {
+		t.Fatalf("search matches = %d, %v; want 2", len(matches), err)
+	}
+	matches, err = db.SearchAuditPage(ctx, AuditFilter{Query: marker, Action: "test.search.one"}, 10, 0)
+	if err != nil || len(matches) != 1 || matches[0].ActorName != "alice" {
+		t.Fatalf("action-filtered matches = %+v, %v", matches, err)
+	}
+	matches, err = db.SearchAuditPage(ctx, AuditFilter{Query: "100%_done"}, 10, 0)
+	if err != nil || len(matches) != 1 || matches[0].Action != "test.search.two" {
+		t.Fatalf("literal wildcard matches = %+v, %v", matches, err)
+	}
+	matches, err = db.SearchAuditPage(ctx, AuditFilter{Query: marker}, 1, 1)
+	if err != nil || len(matches) != 1 || matches[0].Action != "test.search.one" {
+		t.Fatalf("paged matches = %+v, %v", matches, err)
+	}
+	actions, err := db.ListAuditActions(ctx)
+	if err != nil || !slices.Contains(actions, "test.search.one") || !slices.Contains(actions, "test.search.two") {
+		t.Fatalf("actions = %v, %v", actions, err)
 	}
 }
 
