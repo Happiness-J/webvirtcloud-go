@@ -769,11 +769,17 @@ func (s *Server) protect(role string, next http.HandlerFunc) http.Handler {
 }
 
 func roleAllowed(actual, minimum string) bool {
-	if minimum == "desktop" {
-		return actual == "desktop" || actual == "operator" || actual == "admin"
+	// Desktop users rank at viewer level, matching store.rankOf. The desktop
+	// tier is still a distinct capability: viewers must not reach desktop-only
+	// routes, while desktops inherit every viewer-level page.
+	rank := map[string]int{"viewer": 1, "desktop": 1, "operator": 2, "admin": 3}
+	if rank[actual] == 0 || rank[actual] < rank[minimum] {
+		return false
 	}
-	rank := map[string]int{"viewer": 1, "operator": 2, "admin": 3}
-	return rank[actual] >= rank[minimum] && rank[actual] > 0
+	if minimum == "desktop" {
+		return actual != "viewer"
+	}
+	return true
 }
 
 func (s *Server) redirectLogin(w http.ResponseWriter, r *http.Request) {
