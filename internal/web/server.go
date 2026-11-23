@@ -1052,3 +1052,14 @@ func poolStateName(state string) string {
 		return state
 	}
 }
+
+// poolIsActive reports whether a virsh storage pool state means the pool can
+// be used. virsh pool-info reports "running" for an active pool.
+func poolIsActive(state string) bool {
+	switch strings.ToLower(strings.TrimSpace(state)) {
+	case "running", "active":
+		return true
+	default:
+		return false
+	}
+}

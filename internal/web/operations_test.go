@@ -59,6 +59,19 @@ func TestValidVolumeFormat(t *testing.T) {
 	}
 }
 
+func TestPoolIsActive(t *testing.T) {
+	for _, state := range []string{"running", "Running", " active "} {
+		if !poolIsActive(state) {
+			t.Errorf("poolIsActive(%q) = false", state)
+		}
+	}
+	for _, state := range []string{"", "inactive", "building", "degraded", "inaccessible", "unknown"} {
+		if poolIsActive(state) {
+			t.Errorf("poolIsActive(%q) = true", state)
+		}
+	}
+}
+
 func TestStorageDefineUsesNameField(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/hosts/host/storage/action", strings.NewReader("action=pool-define&name=nightly-pool&pool="))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
