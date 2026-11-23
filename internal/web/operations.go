@@ -146,7 +146,7 @@ func (s *Server) storageAction(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标存储池不可用")
 			return
 		}
-		if !strings.EqualFold(strings.TrimSpace(targetInfo["State"]), "active") {
+		if !poolIsActive(targetInfo["State"]) {
 			s.redirectError(w, r, storageRedirect(host.ID, pool), "目标存储池未激活")
 			return
 		}
