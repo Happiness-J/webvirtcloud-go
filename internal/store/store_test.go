@@ -1344,10 +1344,12 @@ func TestSearchAuditPage(t *testing.T) {
 	db := newTestStore(t)
 	ctx := context.Background()
 	marker := "audit-search-" + randomHex(t, 8)
+	host := createTestHost(t, db)
 	entries := []Audit{
 		{ActorName: "alice", Action: "test.search.one", VMName: "first-vm", Detail: map[string]any{"marker": marker}},
 		{ActorName: "bob", Action: "test.search.two", Detail: map[string]any{"marker": marker, "literal": "100%_done"}},
 		{ActorName: "alice", Action: "test.search.other", Detail: map[string]any{"marker": "unrelated"}},
+		{ActorName: "alice", Action: "test.search.host", HostID: host.ID},
 	}
 	for _, entry := range entries {
 		if err := db.AddAudit(ctx, entry); err != nil {
@@ -1365,6 +1367,10 @@ func TestSearchAuditPage(t *testing.T) {
 	matches, err = db.SearchAuditPage(ctx, AuditFilter{Query: "100%_done"}, 10, 0)
 	if err != nil || len(matches) != 1 || matches[0].Action != "test.search.two" {
 		t.Fatalf("literal wildcard matches = %+v, %v", matches, err)
+	}
+	matches, err = db.SearchAuditPage(ctx, AuditFilter{Query: host.Name}, 10, 0)
+	if err != nil || len(matches) != 1 || matches[0].HostID != host.ID {
+		t.Fatalf("host-name matches = %+v, %v", matches, err)
 	}
 	matches, err = db.SearchAuditPage(ctx, AuditFilter{Query: marker}, 1, 1)
 	if err != nil || len(matches) != 1 || matches[0].Action != "test.search.one" {

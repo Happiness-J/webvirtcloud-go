@@ -2337,18 +2337,18 @@ func (s *Store) SearchAuditPage(ctx context.Context, filter AuditFilter, limit, 
 	args := make([]any, 0, 2)
 	if filter.Query != "" {
 		args = append(args, "%"+escapeAuditLike(filter.Query)+"%")
-		where = append(where, fmt.Sprintf(`(actor_name ILIKE $%d ESCAPE '\' OR action ILIKE $%d ESCAPE '\' OR host_id ILIKE $%d ESCAPE '\' OR vm_name ILIKE $%d ESCAPE '\' OR remote_ip ILIKE $%d ESCAPE '\' OR detail::text ILIKE $%d ESCAPE '\')`,
-			len(args), len(args), len(args), len(args), len(args), len(args)))
+		where = append(where, fmt.Sprintf(`(a.actor_name ILIKE $%d ESCAPE '\' OR a.action ILIKE $%d ESCAPE '\' OR a.host_id ILIKE $%d ESCAPE '\' OR a.vm_name ILIKE $%d ESCAPE '\' OR a.remote_ip ILIKE $%d ESCAPE '\' OR a.detail::text ILIKE $%d ESCAPE '\' OR h.name ILIKE $%d ESCAPE '\')`,
+			len(args), len(args), len(args), len(args), len(args), len(args), len(args)))
 	}
 	if filter.Action != "" {
 		args = append(args, filter.Action)
-		where = append(where, fmt.Sprintf("action = $%d", len(args)))
+		where = append(where, fmt.Sprintf("a.action = $%d", len(args)))
 	}
-	query := `SELECT actor_id,actor_name,action,host_id,vm_name,detail::text,remote_ip,created_at FROM audit_logs`
+	query := `SELECT a.actor_id,a.actor_name,a.action,a.host_id,a.vm_name,a.detail::text,a.remote_ip,a.created_at FROM audit_logs a LEFT JOIN hosts h ON a.host_id = h.id`
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
+	query += fmt.Sprintf(" ORDER BY a.id DESC LIMIT %d OFFSET %d", limit, offset)
 	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
