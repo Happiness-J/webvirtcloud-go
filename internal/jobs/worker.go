@@ -15,6 +15,7 @@ import (
 	"webvirtcloud-go/internal/id"
 	"webvirtcloud-go/internal/secret"
 	"webvirtcloud-go/internal/store"
+	"webvirtcloud-go/internal/webhook"
 )
 
 const (
@@ -30,12 +31,13 @@ type Worker struct {
 	store  *store.Store
 	cipher *secret.Cipher
 	runner *command.Runner
+	hooks  *webhook.Client
 	log    *slog.Logger
 	id     string
 }
 
-func New(cfg config.Config, db *store.Store, cipher *secret.Cipher, runner *command.Runner, log *slog.Logger) *Worker {
-	return &Worker{cfg: cfg, store: db, cipher: cipher, runner: runner, log: log, id: id.New("worker")}
+func New(cfg config.Config, db *store.Store, cipher *secret.Cipher, runner *command.Runner, hooks *webhook.Client, log *slog.Logger) *Worker {
+	return &Worker{cfg: cfg, store: db, cipher: cipher, runner: runner, hooks: hooks, log: log, id: id.New("worker")}
 }
 
 func (w *Worker) Run(ctx context.Context) {
@@ -285,6 +287,44 @@ func (w *Worker) finalize(workerID string, job *store.Job, status, output, errTe
 			w.log.Error("release VM usage", "job_id", job.ID, "error", err)
 		}
 	}
+	w.notifyJob(job, status, errText)
+}
+
+func eventForFailedJob(job *store.Job) string {
+	var args []string
+	_ = json.Unmarshal([]byte(job.ArgsJSON), &args)
+	switch {
+	case job.Kind == "backup-policy":
+		return "backup.failed"
+	case len(args) > 0 && args[0] == "destroy":
+		return "vm.forced_off"
+	default:
+		return ""
+	}
+}
+
+func (w *Worker) notifyJob(job *store.Job, status, errText string) {
+	if w.hooks == nil || status != "failed" {
+		return
+	}
+	action := eventForFailedJob(job)
+	if action == "" {
+		return
+	}
+	var args []string
+	_ = json.Unmarshal([]byte(job.ArgsJSON), &args)
+	vm := ""
+	if len(args) > 1 {
+		vm = args[1]
+	}
+	w.hooks.Send(webhook.Event{Action: action, HostID: job.HostID, VM: vm, JobID: job.ID, Detail: map[string]any{"status": status, "error": truncateEvent(errText)}})
+}
+
+func truncateEvent(value string) string {
+	if len(value) > 300 {
+		return value[:300]
+	}
+	return value
 }
 
 func releaseUsageAfterJob(ctx context.Context, db *store.Store, job *store.Job) error {
