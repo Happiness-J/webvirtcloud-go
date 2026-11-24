@@ -340,13 +340,15 @@
 {{if .Data.Schedules}}<table><thead><tr><th>类型</th><th>周期</th><th>下次</th><th></th></tr></thead><tbody>{{range .Data.Schedules}}<tr><td>{{if eq .Kind "snapshot"}}快照 · 保留 {{.RetainCount}}{{else}}电源 · {{.PowerAction}}{{end}}</td><td>{{.IntervalHours}} 小时</td><td class="muted">{{date .NextRunAt}}</td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/schedule/delete" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="kind" value="{{.Kind}}"><button class="btn danger" data-confirm="确定删除这个定时任务吗？">删除</button></form></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有定时快照或电源动作。</p>{{end}}
 </section>
 <section class="panel">
-  <h2>增量备份检查点</h2>
+  <h2>增量备份检查点<button type="button" class="help-tip" aria-label="说明" data-tip="增量检查点记录磁盘变化链，不是一份可以直接开机的整机副本。恢复校验只核对记录的摘要和检查点名称，不会自动恢复虚拟机。">?</button></h2>
+  <p class="hint">用来确认备份链是否连续、恢复演练记录是否指向已知检查点。父检查点为空表示这条链的起点。</p>
+  {{if .Data.BackupChainReady}}<p class="hint">当前检查点链完整。</p>{{else}}<p class="hint">当前检查点链缺少父检查点，恢复前需要先核对。</p>{{end}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="backup-create">
     <input name="snapshot" placeholder="检查点名称" maxlength="128" required>
     <button class="btn" data-confirm="确定创建增量备份检查点吗？这不会立刻生成一份可直接恢复的整机副本。">创建检查点</button>
   </form>
-  {{if .Data.Detail.Backups}}<table><thead><tr><th>名称</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Backups}}<tr><td>{{.Name}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
+  {{if .Data.Detail.Backups}}<table><thead><tr><th>名称</th><th>父检查点</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Backups}}<tr><td>{{.Name}}</td><td>{{if .Parent}}{{.Parent}}{{else}}<span class="muted">链起点</span>{{end}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
     <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="backup-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
   </td></tr>{{end}}</tbody></table>{{else}}<p class="empty">没有增量检查点。</p>{{end}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/backup-policy" class="stack">
@@ -373,7 +375,7 @@
     <button class="btn">记录演练</button>
   </form>
   {{if .Data.Drills}}<table><thead><tr><th>时间</th><th>目标</th><th>结果</th><th>摘要</th><th>说明</th></tr></thead><tbody>
-  {{range .Data.Drills}}<tr><td class="muted">{{date .CreatedAt}}</td><td>{{.TargetKind}} {{.TargetRef}}</td><td>{{if eq .Result "passed"}}<span class="pill ok">通过</span>{{else}}<span class="pill bad">未通过</span>{{end}}</td><td><code>{{short .Checksum}}</code></td><td>{{.Note}}</td></tr>{{end}}
+  {{range .Data.Drills}}<tr><td class="muted">{{date .CreatedAt}}</td><td>{{.TargetKind}} {{.TargetRef}}</td><td>{{if eq .Result "passed"}}<span class="pill ok">通过</span>{{else}}<span class="pill bad">未通过</span>{{end}}</td><td><code>{{short .Checksum}}</code><div class="muted">{{if .Note}}记录已保存{{end}}</div></td><td>{{.Note}}</td></tr>{{end}}
   </tbody></table>{{else}}<p class="empty">还没有恢复演练记录。</p>{{end}}
 </section>
 <section class="panel">

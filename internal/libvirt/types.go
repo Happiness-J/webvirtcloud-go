@@ -67,6 +67,7 @@ type Backup struct {
 	Name      string
 	CreatedAt string
 	State     string
+	Parent    string
 }
 
 type GuestAddress struct {
