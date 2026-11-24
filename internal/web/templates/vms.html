@@ -3,6 +3,11 @@
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
   {{if .Data.Groups}}{{with index .Data.Groups 0}}<a class="btn primary" href="/hosts/{{.Host.ID}}/vms/new">创建虚拟机</a>{{end}}{{else}}<a class="btn primary" href="/hosts">先添加主机</a>{{end}}
 {{end}}</div>
+{{if .Data.Idle}}<section class="panel">
+  <h2>无人认领的关机虚拟机 <button type="button" class="help-tip" aria-label="说明" data-tip="这些虚拟机现在是关机的，也没有随宿主机自动启动。它们仍占着名称和磁盘，但面板不知道具体关了多久。这里只列出，不会开机，也不会删除。">?</button></h2>
+  <p class="hint">用来找可能忘了的虚拟机。确认不再需要后，再到详情页处理。连接失败的主机不在这份清单里。</p>
+  <ul class="plain-list">{{range .Data.Idle}}<li><a href="/hosts/{{.HostID}}/vms/{{pathEscape .Name}}">{{.Name}}</a> <span class="muted">{{.HostName}}</span></li>{{end}}</ul>
+</section>{{end}}
 {{if not .Data.Groups}}<section class="panel"><div class="empty-state"><strong>还没有可管理的主机</strong><span>先添加 libvirt 连接，然后就能在这里创建和查看虚拟机。</span></div></section>{{end}}
 {{range $group := .Data.Groups}}
 <section class="panel">
