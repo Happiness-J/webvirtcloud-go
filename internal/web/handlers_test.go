@@ -210,7 +210,7 @@ func TestVMDetailSnapshotTreeRenders(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := buf.String()
-	for _, want := range []string{"快照树", "内部", "外部", "父快照", "正在运行", "固件与引导", "UEFI", "已启用", "tpm-crb 2.0"} {
+	for _, want := range []string{"快照树", "更多设置", "硬件直通", "启动与固件", "内部", "外部", "父快照", "正在运行", "固件与引导", "UEFI", "已启用", "tpm-crb 2.0"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("missing %s", want)
 		}

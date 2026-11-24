@@ -129,6 +129,12 @@
   {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
 </section>
 <section class="panel">
+  <h2>更多设置 <button type="button" class="help-tip" aria-label="说明" data-tip="这里收起不常用的硬件、固件、性能、调试和备份设置。展开后功能和原来一样，没有删除入口。">?</button></h2>
+  <p class="hint">日常开关机、磁盘、快照和诊断留在上面。下面按场景收起，需要时展开，入口都还在。</p>
+  <details class="fold-group">
+    <summary>硬件直通 <button type="button" class="help-tip" aria-label="说明" data-tip="平时不用。把宿主机的 PCI、USB 或 vGPU 交给这台虚拟机时再展开。设备交给虚拟机后宿主机不能同时使用。">?</button></summary>
+    <div class="fold-body">
+<section class="panel">
   <div class="panel-head"><h2>主机设备、PCI 与 vGPU<button type="button" class="help-tip" aria-label="说明" data-tip="设备交给虚拟机后，宿主机不能同时使用它。移除前先在客户机内卸载。">?</button></h2><span class="pill muted">分配前检查占用</span></div>
   <p class="hint">可以把宿主机上的 USB 设备或独立块设备分配给这台虚拟机。系统盘、已被其他虚拟机占用的设备不会出现在可选项中。移除前请先在客户机内卸载。</p>
   {{if .Data.HostDeviceError}}<div class="empty-state"><strong>暂时无法读取宿主机设备</strong><span>请检查主机连接后再试。已有虚拟机信息不受影响。</span></div>{{else}}
@@ -141,6 +147,11 @@
   </form>
   {{end}}
 </section>
+    </div>
+  </details>
+  <details class="fold-group">
+    <summary>启动与固件 <button type="button" class="help-tip" aria-label="说明" data-tip="改固件、安全启动、启动顺序或 PXE 时再展开。清单只展示当前生效值，修改要先关机。">?</button></summary>
+    <div class="fold-body">
 <section class="panel">
   <div class="panel-head"><h2>固件与引导 <button type="button" class="help-tip" aria-label="说明" data-tip="这是虚拟机当前定义里实际生效的固件、安全启动、虚拟 TPM 和启动顺序。迁移或导出后先看这里，确认有没有变成 BIOS、丢掉安全启动或改了启动设备。这里只展示，不会修改固件。">?</button></h2><span class="pill muted">只读</span></div>
   <table><tbody>
@@ -162,6 +173,11 @@
   </form>
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改启动顺序或 PXE。</span></div>{{end}}
 </section>
+    </div>
+  </details>
+  <details class="fold-group">
+    <summary>磁盘与网卡性能 <button type="button" class="help-tip" aria-label="说明" data-tip="调整队列、磁盘限速、控制器或网卡 VLAN、MTU、防火墙时再展开。这些改动大多要先关机。">?</button></summary>
+    <div class="fold-body">
 <section class="panel">
   <div class="panel-head"><h2>多队列与磁盘限速</h2><span class="pill muted">关机后生效</span></div>
   <p class="hint">virtio 网卡队列可以提高并发网络吞吐。磁盘限速按字节和 IOPS 分别限制读写，填 0 表示不限制。discard 设为 unmap 后，客户机释放的空间可以回收。</p>
@@ -192,6 +208,27 @@
   {{if not .Data.NICChoices}}<div class="empty-state"><strong>没有可配置的 virtio 网卡</strong><span>先为虚拟机添加 virtio 网卡，再设置队列数。</span></div>{{end}}
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改队列数、磁盘限速或 discard。</span></div>{{end}}
 </section>
+<section class="panel">
+  <div class="panel-head"><h2>磁盘控制器</h2><span class="pill muted">关机后生效</span></div>
+  <p class="hint">可选 virtio、SATA、SCSI 或模拟 NVMe。NVMe 队列数范围为 1 到 16。</p>
+  {{if .Data.DiskControllers}}<table><thead><tr><th>目标</th><th>控制器</th><th>队列</th></tr></thead><tbody>{{range .Data.DiskControllers}}<tr><td><code>{{.Target}}</code></td><td>{{if .Bus}}{{.Bus}}{{else}}未设置{{end}}</td><td>{{if gt .Queues 0}}{{.Queues}}{{else}}-{{end}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>没有可读的磁盘控制器</strong><span>创建或启动虚拟机后会在这里显示控制器类型。</span></div>{{end}}
+  {{if eq .Data.Detail.Domain.State "shut off"}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="disk-controller">
+    <select name="snapshot" required>{{range .Data.DiskControllers}}<option value="{{.Target}}">{{.Target}}</option>{{end}}</select>
+    <select name="bus"><option value="virtio">virtio</option><option value="sata">SATA</option><option value="scsi">SCSI</option><option value="nvme">NVMe</option></select>
+    <input name="queues" value="1" pattern="([1-9]|1[0-6])">
+    <button class="btn">保存控制器</button>
+  </form>
+  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改磁盘控制器。</span></div>{{end}}
+</section>
+<section class="panel"><div class="panel-head"><h2>网卡高级配置<button type="button" class="help-tip" aria-label="说明" data-tip="配置 VLAN、MTU、MAC 和链路状态。留空的项目保持不变；断开链路会中断这张网卡的通信。">?</button></h2></div><p class="hint">这些设置在关机后保存，并作用于所选虚拟网络网卡。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="nic-advanced"><div class="grid two compact"><label>网卡<select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select></label><label>VLAN 模式<select name="vlan_mode"><option value="access">access</option><option value="trunk">trunk</option></select></label><label>VLAN<input name="vlan" placeholder="1-4094，可留空"></label><label>MTU<input name="mtu" placeholder="576-9000，可留空"></label><label>新 MAC<input name="new_mac" placeholder="可留空"></label><label>链路<select name="link"><option value="">保持不变</option><option value="up">接通</option><option value="down">断开</option></select></label></div><button class="btn">保存网卡配置</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改 VLAN、MTU、MAC 或链路状态。</span></div>{{end}}</section>
+<section class="panel"><div class="panel-head"><h2>网卡防火墙<button type="button" class="help-tip" aria-label="说明" data-tip="为单块网卡限制进入或离开虚拟机的流量。防欺骗会拒绝与网卡地址不符的 IP 和 MAC。">?</button></h2></div><p class="hint">规则在关机后保存。选择方向、协议和端口；ICMP 不使用端口。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="firewall-apply"><select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select><select name="direction"><option value="in">入站</option><option value="out">出站</option></select><select name="protocol"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="icmp">ICMP</option></select><input name="port" placeholder="端口，例如 22"><label class="confirm"><input type="checkbox" name="antispoof" value="yes" checked>防 IP/MAC 欺骗</label><button class="btn">保存规则</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改网卡防火墙。</span></div>{{end}}</section>
+    </div>
+  </details>
+  <details class="fold-group">
+    <summary>客户机与显示 <button type="button" class="help-tip" aria-label="说明" data-tip="改显卡、控制台、客户机优化、随机数或看门狗时再展开。">?</button></summary>
+    <div class="fold-body">
 <section class="panel">
   <div class="panel-head"><h2>随机数与看门狗</h2><span class="pill muted">关机后生效</span></div>
   <p class="hint">virtio 随机数设备为客户机提供熵源。看门狗在客户机停止响应时可以重启、关机，或只记录告警。</p>
@@ -244,20 +281,11 @@
   </div>
   {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再应用 Windows 或 Linux 优化档。</span></div>{{end}}
 </section>
-<section class="panel">
-  <div class="panel-head"><h2>磁盘控制器</h2><span class="pill muted">关机后生效</span></div>
-  <p class="hint">可选 virtio、SATA、SCSI 或模拟 NVMe。NVMe 队列数范围为 1 到 16。</p>
-  {{if .Data.DiskControllers}}<table><thead><tr><th>目标</th><th>控制器</th><th>队列</th></tr></thead><tbody>{{range .Data.DiskControllers}}<tr><td><code>{{.Target}}</code></td><td>{{if .Bus}}{{.Bus}}{{else}}未设置{{end}}</td><td>{{if gt .Queues 0}}{{.Queues}}{{else}}-{{end}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>没有可读的磁盘控制器</strong><span>创建或启动虚拟机后会在这里显示控制器类型。</span></div>{{end}}
-  {{if eq .Data.Detail.Domain.State "shut off"}}
-  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
-    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="disk-controller">
-    <select name="snapshot" required>{{range .Data.DiskControllers}}<option value="{{.Target}}">{{.Target}}</option>{{end}}</select>
-    <select name="bus"><option value="virtio">virtio</option><option value="sata">SATA</option><option value="scsi">SCSI</option><option value="nvme">NVMe</option></select>
-    <input name="queues" value="1" pattern="([1-9]|1[0-6])">
-    <button class="btn">保存控制器</button>
-  </form>
-  {{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改磁盘控制器。</span></div>{{end}}
-</section>
+    </div>
+  </details>
+  <details class="fold-group">
+    <summary>调试接口 <button type="button" class="help-tip" aria-label="说明" data-tip="排查 QEMU 状态或做内核调试时再展开。GDB 会暂停虚拟机，默认不要开。">?</button></summary>
+    <div class="fold-body">
 <section class="panel">
   <div class="panel-head"><h2>QMP 管理接口</h2><span class="pill muted">只读</span></div>
   <p class="hint">这里只提供 query-status 和 query-block 两个只读查询。写操作仍必须通过受控任务，不接受任意 QMP 命令。</p>
@@ -280,8 +308,11 @@
     <button class="btn" data-confirm="虚拟机会暂停启动并等待调试器，确定继续吗？">暂停启动</button>
   </form>
 </section>{{end}}
-<section class="panel"><div class="panel-head"><h2>网卡高级配置<button type="button" class="help-tip" aria-label="说明" data-tip="配置 VLAN、MTU、MAC 和链路状态。留空的项目保持不变；断开链路会中断这张网卡的通信。">?</button></h2></div><p class="hint">这些设置在关机后保存，并作用于所选虚拟网络网卡。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="nic-advanced"><div class="grid two compact"><label>网卡<select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select></label><label>VLAN 模式<select name="vlan_mode"><option value="access">access</option><option value="trunk">trunk</option></select></label><label>VLAN<input name="vlan" placeholder="1-4094，可留空"></label><label>MTU<input name="mtu" placeholder="576-9000，可留空"></label><label>新 MAC<input name="new_mac" placeholder="可留空"></label><label>链路<select name="link"><option value="">保持不变</option><option value="up">接通</option><option value="down">断开</option></select></label></div><button class="btn">保存网卡配置</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改 VLAN、MTU、MAC 或链路状态。</span></div>{{end}}</section>
-<section class="panel"><div class="panel-head"><h2>网卡防火墙<button type="button" class="help-tip" aria-label="说明" data-tip="为单块网卡限制进入或离开虚拟机的流量。防欺骗会拒绝与网卡地址不符的 IP 和 MAC。">?</button></h2></div><p class="hint">规则在关机后保存。选择方向、协议和端口；ICMP 不使用端口。</p>{{if eq .Data.Detail.Domain.State "shut off"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="firewall-apply"><select name="snapshot" required><option value="" disabled selected>选择网卡</option>{{range .Data.NICChoices}}<option value="{{.MAC}}">{{.Label}}</option>{{end}}</select><select name="direction"><option value="in">入站</option><option value="out">出站</option></select><select name="protocol"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="icmp">ICMP</option></select><input name="port" placeholder="端口，例如 22"><label class="confirm"><input type="checkbox" name="antispoof" value="yes" checked>防 IP/MAC 欺骗</label><button class="btn">保存规则</button></form>{{else}}<div class="empty-state"><strong>虚拟机正在运行</strong><span>请先关机，再修改网卡防火墙。</span></div>{{end}}</section>
+    </div>
+  </details>
+  <details class="fold-group">
+    <summary>CPU、内存与绑定 <button type="button" class="help-tip" aria-label="说明" data-tip="改 vCPU、内存或把虚拟机绑到指定 NUMA 和 CPU 时再展开。">?</button></summary>
+    <div class="fold-body">
 <section class="panel">
   <h2>NUMA 与 CPU 亲和性<button type="button" class="help-tip" aria-label="说明" data-tip="先看宿主机有哪些 NUMA 节点和 CPU，再决定绑定范围。这里的拓扑只读展示；提交后仍由现有任务校验执行。">?</button></h2>
   <p class="hint">用来让性能敏感的虚拟机靠近同一组内存和 CPU。当前宿主机节点：{{.Data.Topology.Nodes}}。CPU 范围：{{.Data.Topology.CPUs}}。绑定会在下次启动时生效，不会立即迁移正在运行的 vCPU。</p>
@@ -312,30 +343,11 @@
   <div class="stats"><div class="stat"><strong>{{.Data.Balloon.Current}}</strong><span>当前分配</span></div><div class="stat"><strong>{{.Data.Balloon.GuestUsed}}</strong><span>客户机占用</span></div><div class="stat"><strong>{{.Data.Balloon.Reclaimed}}</strong><span>已回收</span></div></div>
   <p class="hint">当前配置：{{index .Data.Detail.Info "CPU(s)"}} vCPU，最大内存 {{bytes .Data.MaxMemoryBytes}}。在线调大内存不得超过宿主机和 libvirt 允许的上限。</p>
 </section>
-<section class="panel">
-  <h2>快照树<button type="button" class="help-tip" aria-label="说明" data-tip="快照是虚拟机某个时刻的恢复点。内部快照保存在原磁盘中，外部快照会生成独立磁盘文件。运行中恢复会丢弃当前未保存的内存和磁盘变化，请先确认客户机可以接受回滚。">?</button></h2>
-  <p class="hint">用来在变更前保存恢复点，并在误操作后回到所选快照。内部快照适合单磁盘快速回退；外部快照会留下独立磁盘文件，删除前要确认没有被其他磁盘引用。虚拟机正在运行时，恢复会中断客户机并回滚到快照时刻，未写入磁盘的数据会丢失。</p>
-  {{if eq .Data.Detail.Domain.State "running"}}<p class="hint">当前虚拟机正在运行。恢复快照会立即改变客户机磁盘和内存状态，建议先正常关机，或确认业务可以承受一致性回滚。</p>{{end}}
-  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
-    <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <select name="action"><option value="snapshot-create">创建</option><option value="snapshot-revert">恢复</option><option value="snapshot-delete">删除</option></select>
-    <input name="snapshot" placeholder="快照名称" maxlength="128" required>
-    <label class="confirm"><input type="checkbox" name="confirm" value="yes">恢复/删除需确认</label>
-    <button class="btn" data-confirm="创建快照时会先通过客户机代理冻结文件系统，确定继续吗？">执行</button>
-  </form>
-  {{if .Data.Detail.Snapshots}}<table><thead><tr><th>快照</th><th>类型</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Snapshots}}<tr><td style="padding-left: {{add 12 (add .Depth (add .Depth .Depth))}}em">{{if .Parent}}└ {{end}}{{.Name}}{{if .Current}} <span class="muted">当前</span>{{end}}{{if .Parent}}<div class="muted">父快照 {{.Parent}}</div>{{end}}</td><td>{{if eq .Kind "external"}}外部{{else if eq .Kind "internal"}}内部{{else if eq .Kind "mixed"}}混合{{else}}未识别{{end}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
-    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-revert"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger" data-confirm="{{if eq $.Data.Detail.Domain.State "running"}}虚拟机正在运行。恢复会回滚磁盘和内存，未保存的数据会丢失。确定恢复到 {{.Name}} 吗？{{else}}确定恢复到快照 {{.Name}} 吗？当前快照之后的改动会被丢弃。{{end}}">恢复</button></form>
-    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
-  </td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有快照</strong><span>变更系统或升级前先创建一个快照，出问题后可以从这里恢复。</span></div>{{end}}
-</section>
-<section class="panel">
-  <h2>磁盘与内存诊断</h2>
-  <section class="panel"><h2>24 小时资源趋势</h2><canvas id="vm-history" data-url="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/metrics" aria-label="虚拟机历史资源趋势"></canvas></section>
-<div class="grid two">
-    <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
-    <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
-  </div>
-</section>
+    </div>
+  </details>
+  <details class="fold-group">
+    <summary>定时任务与备份 <button type="button" class="help-tip" aria-label="说明" data-tip="设置定时快照或核对增量备份时再展开。这里只配置和复核，不会自动恢复虚拟机。">?</button></summary>
+    <div class="fold-body">
 <section class="panel"><h2>定时快照与电源<button type="button" class="help-tip" aria-label="说明" data-tip="到期后自动创建静默快照或执行开机、关机。保留数量用于限制自动快照。">?</button></h2>
 <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/schedule" class="inline-form">
   <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="snapshot">
@@ -392,6 +404,33 @@
   {{if .Data.Drills}}<table><thead><tr><th>时间</th><th>目标</th><th>结果</th><th>摘要</th><th>说明</th></tr></thead><tbody>
   {{range .Data.Drills}}<tr><td class="muted">{{date .CreatedAt}}</td><td>{{.TargetKind}} {{.TargetRef}}</td><td>{{if eq .Result "passed"}}<span class="pill ok">通过</span>{{else}}<span class="pill bad">未通过</span>{{end}}</td><td><code>{{short .Checksum}}</code><div class="muted">{{if .Note}}记录已保存{{end}}</div></td><td>{{.Note}}</td></tr>{{end}}
   </tbody></table>{{else}}<p class="empty">还没有恢复演练记录。</p>{{end}}
+</section>
+    </div>
+  </details>
+</section>
+<section class="panel">
+  <h2>快照树<button type="button" class="help-tip" aria-label="说明" data-tip="快照是虚拟机某个时刻的恢复点。内部快照保存在原磁盘中，外部快照会生成独立磁盘文件。运行中恢复会丢弃当前未保存的内存和磁盘变化，请先确认客户机可以接受回滚。">?</button></h2>
+  <p class="hint">用来在变更前保存恢复点，并在误操作后回到所选快照。内部快照适合单磁盘快速回退；外部快照会留下独立磁盘文件，删除前要确认没有被其他磁盘引用。虚拟机正在运行时，恢复会中断客户机并回滚到快照时刻，未写入磁盘的数据会丢失。</p>
+  {{if eq .Data.Detail.Domain.State "running"}}<p class="hint">当前虚拟机正在运行。恢复快照会立即改变客户机磁盘和内存状态，建议先正常关机，或确认业务可以承受一致性回滚。</p>{{end}}
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <select name="action"><option value="snapshot-create">创建</option><option value="snapshot-revert">恢复</option><option value="snapshot-delete">删除</option></select>
+    <input name="snapshot" placeholder="快照名称" maxlength="128" required>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes">恢复/删除需确认</label>
+    <button class="btn" data-confirm="创建快照时会先通过客户机代理冻结文件系统，确定继续吗？">执行</button>
+  </form>
+  {{if .Data.Detail.Snapshots}}<table><thead><tr><th>快照</th><th>类型</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{{range .Data.Detail.Snapshots}}<tr><td style="padding-left: {{add 12 (add .Depth (add .Depth .Depth))}}em">{{if .Parent}}└ {{end}}{{.Name}}{{if .Current}} <span class="muted">当前</span>{{end}}{{if .Parent}}<div class="muted">父快照 {{.Parent}}</div>{{end}}</td><td>{{if eq .Kind "external"}}外部{{else if eq .Kind "internal"}}内部{{else if eq .Kind "mixed"}}混合{{else}}未识别{{end}}</td><td>{{.CreatedAt}}</td><td>{{.State}}</td><td>
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-revert"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger" data-confirm="{{if eq $.Data.Detail.Domain.State "running"}}虚拟机正在运行。恢复会回滚磁盘和内存，未保存的数据会丢失。确定恢复到 {{.Name}} 吗？{{else}}确定恢复到快照 {{.Name}} 吗？当前快照之后的改动会被丢弃。{{end}}">恢复</button></form>
+    <form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/action" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="snapshot-delete"><input type="hidden" name="snapshot" value="{{.Name}}"><label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label><button class="btn danger">删除</button></form>
+  </td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有快照</strong><span>变更系统或升级前先创建一个快照，出问题后可以从这里恢复。</span></div>{{end}}
+</section>
+<section class="panel">
+  <h2>磁盘与内存诊断</h2>
+  <section class="panel"><h2>24 小时资源趋势</h2><canvas id="vm-history" data-url="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/metrics" aria-label="虚拟机历史资源趋势"></canvas></section>
+<div class="grid two">
+    <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
+    <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
+  </div>
 </section>
 <section class="panel">
   <h2>运行诊断</h2>

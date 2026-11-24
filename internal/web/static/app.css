@@ -296,3 +296,11 @@ details summary { cursor: pointer; color: var(--brand); }
 .failure-card ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
 .failure-card li{display:grid;gap:2px}
 .failure-card li span{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+
+.fold-group{margin-top:10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff}
+.fold-group>summary{cursor:pointer;padding:12px 14px;font-weight:650;list-style:none;display:flex;align-items:center;gap:8px}
+.fold-group>summary::-webkit-details-marker{display:none}
+.fold-group>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-right:4px}
+.fold-group[open]>summary::before{transform:rotate(45deg)}
+.fold-body{padding:0 14px 14px}
+.fold-body>.panel{box-shadow:none;border:0;padding:8px 0 0;background:transparent}
