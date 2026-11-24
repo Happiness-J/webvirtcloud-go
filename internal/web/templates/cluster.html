@@ -68,9 +68,9 @@
   {{else}}<div class="empty-state"><strong>还没有主机</strong><span>先添加至少两台可迁移的计算主机。</span></div>{{end}}
 </section>
 <section class="panel">
-  <h2>受保护的虚拟机</h2>
+  <h2>受保护的虚拟机 <button type="button" class="help-tip" aria-label="说明" data-tip="只有高可用表示这台虚拟机会在主机故障后重启，但没有防删锁，仍可能被删除。标记只对照，不会改高可用，也不会开防删锁。">?</button></h2>
   {{if .Data.Protected}}<table><thead><tr><th>主机</th><th>虚拟机</th><th>更新时间</th><th></th></tr></thead><tbody>
-  {{range .Data.Protected}}<tr><td><code>{{.HostID}}</code></td><td>{{.VMName}}</td><td class="muted">{{date .UpdatedAt}}</td><td><form method="post" action="/cluster/protect" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="host_id" value="{{.HostID}}"><input type="hidden" name="vm" value="{{.VMName}}"><button class="btn small danger" data-confirm="确定取消这台虚拟机的高可用保护吗？">取消保护</button></form></td></tr>{{end}}
+  {{range .Data.Protected}}<tr><td><code>{{.HostID}}</code></td><td>{{.VMName}}{{with index $.Data.ProtectionGaps (print .HostID "/" .VMName)}} <span class="pill warn">{{.}}</span>{{end}}</td><td class="muted">{{date .UpdatedAt}}</td><td><form method="post" action="/cluster/protect" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="host_id" value="{{.HostID}}"><input type="hidden" name="vm" value="{{.VMName}}"><button class="btn small danger" data-confirm="确定取消这台虚拟机的高可用保护吗？">取消保护</button></form></td></tr>{{end}}
   </tbody></table>{{else}}<div class="empty-state"><strong>还没有受保护的虚拟机</strong><span>只有加入这里的虚拟机会在主机故障后自动重启。</span></div>{{end}}
 </section>
 {{end}}

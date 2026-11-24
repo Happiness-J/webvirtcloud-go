@@ -57,7 +57,7 @@ func (s *Server) clusterPage(w http.ResponseWriter, r *http.Request) {
 		trends[host.ID] = summarizeCapacity(samples)
 	}
 	s.render(w, r, "cluster", pageData{Title: "高可用与调度", Nav: "cluster", Data: map[string]any{
-		"Policy": policy, "Hosts": hosts, "Health": health, "Protected": protected, "Suggestion": suggestion, "Trends": trends,
+		"Policy": policy, "Hosts": hosts, "Health": health, "Protected": protected, "Suggestion": suggestion, "Trends": trends, "ProtectionGaps": s.protectionGapLabels(r, protected),
 	}})
 }
 
@@ -121,6 +121,40 @@ func summarizeCapacity(samples []store.HostCapacitySample) hostCapacityTrend {
 	trend.MemPoints = strings.Join(mem, " ")
 	trend.VMPoints = strings.Join(vms, " ")
 	return trend
+}
+
+func (s *Server) vmHAProtected(r *http.Request, hostID, vmName string) bool {
+	items, err := s.db.ListProtectedVMs(r.Context())
+	if err != nil {
+		return false
+	}
+	for _, item := range items {
+		if item.HostID == hostID && item.VMName == vmName && item.Protected {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) protectionGapLabels(r *http.Request, protected []store.HAVM) map[string]string {
+	out := map[string]string{}
+	tagsByHost := map[string]map[string][]string{}
+	for _, item := range protected {
+		tags, ok := tagsByHost[item.HostID]
+		if !ok {
+			loaded, err := s.db.ListVMTags(r.Context(), item.HostID)
+			if err != nil {
+				continue
+			}
+			tags = loaded
+			tagsByHost[item.HostID] = tags
+		}
+		gap := protectionMismatch(vmHasDeleteProtection(tags, item.VMName), item.Protected)
+		if gap.Label != "" {
+			out[item.HostID+"/"+item.VMName] = gap.Label
+		}
+	}
+	return out
 }
 
 func (s *Server) clusterPolicySave(w http.ResponseWriter, r *http.Request) {
