@@ -536,6 +536,13 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "在线迁移只适用于运行中或已挂起的虚拟机")
 			return
 		}
+		if action == "migrate" {
+			check := s.migrationPrecheck(r, host.ID, detail.BlockList)
+			if !check.OK {
+				s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "迁移前检查未通过，请先处理阻断项")
+				return
+			}
+		}
 		if action == "clone" {
 			tool = "virt-clone"
 			kind = "vm-clone"
