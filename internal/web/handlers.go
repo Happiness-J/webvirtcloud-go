@@ -728,6 +728,8 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 			data["VolumeUsage"] = s.volumeUsages(r.Context(), host.ID, volumes)
 		}
 	}
+	volumes, _ := data["Volumes"].([]libvirt.Volume)
+	data["CapacityHints"] = poolCapacityHints(pools, volumes)
 	s.render(w, r, "storage", page)
 }
 
