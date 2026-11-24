@@ -133,13 +133,15 @@ func saveLibraryUpload(dir, name string, body io.Reader, limit int64) error {
 	if err != nil {
 		return fmt.Errorf("无法保存镜像")
 	}
-	defer file.Close()
-	written, err := io.Copy(file, io.LimitReader(body, limit+1))
-	if err != nil {
+	written, copyErr := io.Copy(file, io.LimitReader(body, limit+1))
+	closeErr := file.Close()
+	if copyErr != nil || closeErr != nil || written > limit {
+		_ = root.Remove(name)
+	}
+	if copyErr != nil || closeErr != nil {
 		return fmt.Errorf("保存镜像失败")
 	}
 	if written > limit {
-		_ = root.Remove(name)
 		return fmt.Errorf("镜像超过大小限制")
 	}
 	return nil
@@ -156,18 +158,26 @@ func fetchLibraryURL(dir, name, source, checksum string) error {
 	if !ok || !validLibraryName(name) {
 		return fmt.Errorf("只允许拉取预置镜像")
 	}
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 3 {
+			return fmt.Errorf("too many redirects")
+		}
+		if req.URL.Scheme != "https" {
+			return fmt.Errorf("redirect left https")
+		}
+		return nil
+	}}
 	response, err := client.Get(rawURL)
-	if err != nil || response.StatusCode != http.StatusOK {
+	if err != nil {
+		return fmt.Errorf("无法拉取镜像")
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("无法拉取镜像")
 	}
 	if response.ContentLength < 0 || response.ContentLength > 512<<20 {
-		if err := response.Body.Close(); err != nil {
-			return fmt.Errorf("无法拉取镜像")
-		}
 		return fmt.Errorf("镜像超过大小限制")
 	}
-	defer response.Body.Close()
 	if err := saveLibraryUpload(dir, name, response.Body, 512<<20); err != nil {
 		return err
 	}
