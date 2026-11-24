@@ -230,7 +230,8 @@ func (s *Server) hostDetail(w http.ResponseWriter, r *http.Request) {
 		s.logRequestError(r, "load domains for maintenance impact", domainErr)
 	}
 	impact := buildMaintenanceImpact(domains, jobs, domainErr != nil)
-	s.render(w, r, "host_detail", pageData{Title: host.Name, Nav: "hosts", Data: map[string]any{"Host": host, "Redacted": redactedURI, "Jobs": jobs, "Impact": impact}})
+	preview := buildRebootPreview(domains)
+	s.render(w, r, "host_detail", pageData{Title: host.Name, Nav: "hosts", Data: map[string]any{"Host": host, "Redacted": redactedURI, "Jobs": jobs, "Impact": impact, "Reboot": preview}})
 }
 
 func (s *Server) hostEditPage(w http.ResponseWriter, r *http.Request) {

@@ -44,7 +44,7 @@ func TestHostDetailRendersMaintenanceImpact(t *testing.T) {
 	impact := buildMaintenanceImpact([]libvirt.Domain{{Name: "web", State: "running", Autostart: "yes"}}, []store.Job{{ID: "job-1", Label: "迁移 web", Status: "running"}}, false)
 	page := pageData{Title: "host", CSRF: "csrf", User: &store.User{Role: "admin"}, Data: map[string]any{
 		"Host": store.Host{ID: "host", Name: "compute", Enabled: true}, "Redacted": "qemu:///system",
-		"Jobs": []store.Job{}, "Impact": impact,
+		"Jobs": []store.Job{}, "Impact": impact, "Reboot": rebootPreview{},
 	}}
 	var rendered strings.Builder
 	if err := templates["host_detail"].ExecuteTemplate(&rendered, "base", page); err != nil {

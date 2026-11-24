@@ -115,7 +115,7 @@ func TestHostDetailRendersOutsideMaintenance(t *testing.T) {
 	}
 	page := pageData{Title: "host", CSRF: "csrf", User: &store.User{Role: "admin"}, Data: map[string]any{
 		"Host":     store.Host{ID: "host-1", Name: "compute", Enabled: true, CreatedAt: time.Unix(1, 0)},
-		"Redacted": "qemu:///system", "Jobs": []store.Job{}, "Impact": maintenanceImpact{},
+		"Redacted": "qemu:///system", "Jobs": []store.Job{}, "Impact": maintenanceImpact{}, "Reboot": rebootPreview{},
 	}}
 	var rendered bytes.Buffer
 	if err := templates["host_detail"].ExecuteTemplate(&rendered, "base", page); err != nil {
