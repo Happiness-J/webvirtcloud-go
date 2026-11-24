@@ -16,11 +16,7 @@ import (
 
 func (w *Worker) reconcileCluster(ctx context.Context) {
 	policy, err := w.store.ClusterPolicy(ctx)
-	if err != nil || !policy.Enabled {
-		return
-	}
-	if err := w.store.EnsureSystemUser(ctx, store.User{ID: "system:cluster", Username: "system:cluster", PasswordHash: "disabled", Role: "operator"}); err != nil {
-		w.log.Warn("ensure cluster user", "error", err)
+	if err != nil {
 		return
 	}
 	hosts, err := w.store.ListHosts(ctx)
@@ -43,6 +39,24 @@ func (w *Worker) reconcileCluster(ctx context.Context) {
 		}
 		view := w.probeHost(ctx, host, previous[host.ID])
 		views = append(views, view)
+		// History is append-only and read-only. Recording it never places or migrates a VM.
+		if view.Reachable {
+			if err := w.store.RecordHostCapacity(ctx, store.HostCapacitySample{
+				HostID: host.ID, CPUPercent: view.CPUPercent, MemPercent: view.MemPercent, RunningVMs: view.RunningVMs,
+			}); err != nil {
+				w.log.Warn("record host capacity", "host_id", host.ID, "error", err)
+			}
+		}
+	}
+	if _, err := w.store.PruneHostCapacity(ctx, time.Now().Add(-store.HostCapacityRetention)); err != nil && ctx.Err() == nil {
+		w.log.Warn("prune host capacity", "error", err)
+	}
+	if !policy.Enabled {
+		return
+	}
+	if err := w.store.EnsureSystemUser(ctx, store.User{ID: "system:cluster", Username: "system:cluster", PasswordHash: "disabled", Role: "operator"}); err != nil {
+		w.log.Warn("ensure cluster user", "error", err)
+		return
 	}
 	protected, err := w.store.ListProtectedVMs(ctx)
 	if err != nil {
