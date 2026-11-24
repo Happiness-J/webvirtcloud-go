@@ -759,7 +759,26 @@ func (s *Server) networksPage(w http.ResponseWriter, r *http.Request) {
 			allocations[pool.ID] = items
 		}
 	}
-	page := pageData{Title: "网络", Nav: "hosts", Data: map[string]any{"Host": host, "Networks": networks, "IPPools": pools, "Allocations": allocations}}
+	var leaseText string
+	leaseUnavailable := err != nil
+	if err == nil {
+		for _, network := range networks {
+			if network.State != "active" && network.State != "running" {
+				continue
+			}
+			result, leaseErr := s.libvirt.RunReadOnly(r.Context(), host.ID, []string{"net-dhcp-leases", network.Name}, 10*time.Second)
+			if leaseErr != nil {
+				leaseUnavailable = true
+				s.logRequestError(r, "load dhcp leases", leaseErr)
+				continue
+			}
+			leaseText += result.Output() + "\n"
+		}
+	}
+	page := pageData{Title: "网络", Nav: "hosts", Data: map[string]any{
+		"Host": host, "Networks": networks, "IPPools": pools, "Allocations": allocations,
+		"AddressUses": matchAddressUses(leaseText, pools, allocations), "LeasesUnavailable": leaseUnavailable,
+	}}
 	if err != nil {
 		s.logRequestError(r, "load networks", err)
 		page.Flash, page.FlashType = "无法读取虚拟网络，请检查主机连接或查看服务日志。", "error"

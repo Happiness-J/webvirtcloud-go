@@ -38,6 +38,14 @@
 {{end}}{{else}}<p class="empty">还没有地址池。</p>{{end}}
 </section>
 {{end}}
+<section class="panel">
+  <h2>租约与地址池 <button type="button" class="help-tip" aria-label="说明" data-tip="把 DHCP 租约和地址池占用按同一个地址放在一行。两边都有说明面板记录和客户机实际拿到的一致；只有一边时，要核对是没登记还是租约已经过期。这里只对照，不会释放地址。">?</button></h2>
+  <p class="hint">用来查哪台虚拟机占了哪个地址。释放地址仍在上面的地址池里操作。</p>
+  {{if .Data.LeasesUnavailable}}<p class="hint">有的网络暂时读不到 DHCP 租约，下面只显示已经读到的记录和地址池占用。</p>{{end}}
+  {{if .Data.AddressUses}}<table><thead><tr><th>地址</th><th>DHCP 租约</th><th>地址池</th><th>使用者</th><th>对照</th></tr></thead><tbody>
+  {{range .Data.AddressUses}}<tr><td><code>{{.Address}}</code></td><td>{{if .Lease}}{{.Lease}}{{else}}<span class="muted">没有租约</span>{{end}}</td><td>{{if .Pool}}{{.Pool}}{{else}}<span class="muted">未登记</span>{{end}}</td><td>{{if .Owner}}{{.Owner}}{{else}}<span class="muted">-</span>{{end}}</td><td><span class="pill {{if eq .Kind "两边都有"}}ok{{else}}warn{{end}}">{{.Kind}}</span></td></tr>{{end}}
+  </tbody></table>{{else}}<div class="empty-state"><strong>没有可对照的地址</strong><span>网络还没有 DHCP 租约，地址池也还没有分配。</span></div>{{end}}
+</section>
 {{end}}
 
 
