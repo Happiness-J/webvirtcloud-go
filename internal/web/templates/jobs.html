@@ -4,6 +4,20 @@
   <div class="stat"><strong>{{.Data.Stats.Queued}}</strong><span>排队</span></div><div class="stat"><strong>{{.Data.Stats.Running}}</strong><span>运行中</span></div><div class="stat"><strong>{{.Data.Stats.Succeeded}}</strong><span>成功</span></div><div class="stat"><strong>{{.Data.Stats.Failed}}</strong><span>失败</span></div>
 </section>
 <section class="panel">
+  <h2>最近失败归类 <button type="button" class="help-tip" aria-label="说明" data-tip="把最近 100 条已结束的失败任务按错误文字分成几类，用来看出哪类问题在重复。这里只读，不会重新执行或重试任何任务。打开下面的任务才能看完整输出。">?</button></h2>
+  {{if .Data.FailureGroups}}
+  <div class="failure-grid">
+  {{range .Data.FailureGroups}}
+    <article class="failure-card">
+      <header><strong>{{.Label}}</strong><span class="pill bad">{{.Count}}</span></header>
+      <p class="hint">{{.Hint}}</p>
+      <ul>{{range .Examples}}<li><a href="/jobs/{{.ID}}">{{.Label}}</a><span>{{.Error}}</span></li>{{end}}</ul>
+    </article>
+  {{end}}
+  </div>
+  {{else}}<div class="empty-state"><strong>最近没有失败任务</strong><span>失败出现后，同类原因会汇总在这里，方便先看是不是同一个问题。</span></div>{{end}}
+</section>
+<section class="panel">
 {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>发起人</th><th>主机</th><th>工具</th><th>状态<button type="button" class="help-tip" aria-label="说明" data-tip="排队表示还没开始，运行中可以进详情看输出，失败会保留错误原因。">?</button></th><th>时间</th></tr></thead><tbody>
 {{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td>{{.UserName}}</td><td>{{jobHostLabel .}}</td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}
 </tbody></table>{{else}}<div class="empty-state"><strong>任务队列是空的</strong><span>创建虚拟机、调整资源或执行维护操作后，进度会显示在这里。</span></div>{{end}}

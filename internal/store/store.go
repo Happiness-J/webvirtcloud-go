@@ -1853,6 +1853,41 @@ func (s *Store) ListJobsPage(ctx context.Context, userID string, isAdmin bool, l
 	return jobs, rows.Err()
 }
 
+func (s *Store) ListFailedJobs(ctx context.Context, userID string, isAdmin bool, limit int) ([]Job, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	query := `SELECT j.id,j.user_id,u.username,COALESCE(j.host_id,''),COALESCE(h.name,''),
+		j.kind,j.label,j.tool,j.status,COALESCE(j.error_ciphertext,''),j.created_at,j.sensitive
+		FROM jobs j JOIN users u ON u.id=j.user_id LEFT JOIN hosts h ON h.id=j.host_id
+		WHERE j.status='failed'`
+	args := []any{}
+	if !isAdmin {
+		query += ` AND j.user_id=$1`
+		args = append(args, userID)
+	}
+	query += fmt.Sprintf(` ORDER BY j.finished_at DESC NULLS LAST, j.created_at DESC LIMIT %d`, limit)
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var jobs []Job
+	for rows.Next() {
+		var j Job
+		if err := rows.Scan(&j.ID, &j.UserID, &j.UserName, &j.HostID, &j.HostName,
+			&j.Kind, &j.Label, &j.Tool, &j.Status, &j.errorCiphertext, &j.CreatedAt, &j.Sensitive); err != nil {
+			return nil, err
+		}
+		if err := s.decryptJob(&j); err != nil {
+			return nil, err
+		}
+		protectJobSummary(&j, isAdmin)
+		jobs = append(jobs, j)
+	}
+	return jobs, rows.Err()
+}
+
 func (s *Store) ListJobsByHost(ctx context.Context, userID string, isAdmin bool, hostID string, limit int) ([]Job, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 10

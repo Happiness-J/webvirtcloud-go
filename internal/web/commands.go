@@ -872,8 +872,17 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.log.Warn("load job queue stats", "error", err)
 	}
+	groups := []failureCategory{}
+	if page == 1 {
+		failed, err := s.db.ListFailedJobs(r.Context(), sess.User.ID, sess.User.Role == "admin", 100)
+		if err != nil {
+			s.log.Warn("load failed job groups", "error", err)
+		} else {
+			groups = failureGroups(failed)
+		}
+	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext,
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups,
 	}})
 }
 
