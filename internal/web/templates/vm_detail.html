@@ -368,6 +368,8 @@
 {{if .Data.Schedules}}<table><thead><tr><th>类型</th><th>周期</th><th>下次</th><th></th></tr></thead><tbody>{{range .Data.Schedules}}<tr><td>{{if eq .Kind "snapshot"}}快照 · 保留 {{.RetainCount}}{{else}}电源 · {{.PowerAction}}{{end}}</td><td>{{.IntervalHours}} 小时</td><td class="muted">{{date .NextRunAt}}</td><td><form method="post" action="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape $.Data.VM}}/schedule/delete" class="inline"><input type="hidden" name="_csrf" value="{{$.CSRF}}"><input type="hidden" name="kind" value="{{.Kind}}"><button class="btn danger" data-confirm="确定删除这个定时任务吗？">删除</button></form></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有定时快照或电源动作。</p>{{end}}
 </section>
 <section class="panel">
+  <h3>备份新旧 <button type="button" class="help-tip" aria-label="说明" data-tip="看最近一次增量检查点距现在有多久。超过两周算过期，从来没有检查点会单独标出。这里只提示，不会创建备份，也不会恢复。">?</button></h3>
+  <p class="hint">{{.Data.BackupAge.Label}}{{if .Data.BackupAge.When}}，记录时间 {{.Data.BackupAge.When}}{{end}}。{{if eq .Data.BackupAge.Status "stale"}}建议补一次检查点。{{else if eq .Data.BackupAge.Status "none"}}出问题前没有可复核的恢复点。{{end}}</p>
   <h2>增量备份检查点<button type="button" class="help-tip" aria-label="说明" data-tip="增量检查点记录磁盘变化链，不是一份可以直接开机的整机副本。恢复校验只核对记录的摘要和检查点名称，不会自动恢复虚拟机。">?</button></h2>
   <p class="hint">用来确认备份链是否连续、恢复演练记录是否指向已知检查点。父检查点为空表示这条链的起点。</p>
   {{if .Data.BackupChainReady}}<p class="hint">当前检查点链完整。</p>{{else}}<p class="hint">当前检查点链缺少父检查点，恢复前需要先核对。</p>{{end}}
