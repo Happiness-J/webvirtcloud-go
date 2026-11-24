@@ -321,7 +321,7 @@ func (s *Service) ListSnapshots(ctx context.Context, hostID, name string) ([]Sna
 	if err := ValidateName(name); err != nil {
 		return nil, err
 	}
-	res, err := s.run(ctx, hostID, []string{"snapshot-list", name}, 10*time.Second)
+	res, err := s.run(ctx, hostID, []string{"snapshot-list", name, "--parent", "--current"}, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
 	}
@@ -331,16 +331,100 @@ func (s *Service) ListSnapshots(ctx context.Context, hostID, name string) ([]Sna
 		if len(row) == 0 || ValidateName(row[0]) != nil {
 			continue
 		}
-		snapshot := Snapshot{Name: row[0]}
+		snapshot := Snapshot{Name: row[0], Kind: "unknown"}
 		if len(row) > 1 {
 			snapshot.CreatedAt = row[1]
 		}
 		if len(row) > 2 {
 			snapshot.State = row[2]
 		}
+		if len(row) > 3 && row[3] != "-" && ValidateName(row[3]) == nil {
+			snapshot.Parent = row[3]
+		}
+		if len(row) > 4 && row[4] == "yes" {
+			snapshot.Current = true
+		}
 		out = append(out, snapshot)
 	}
-	return out, nil
+	for i := range out {
+		xmlRes, xmlErr := s.run(ctx, hostID, []string{"snapshot-dumpxml", name, "--snapshotname", out[i].Name}, 10*time.Second)
+		if xmlErr != nil {
+			continue
+		}
+		kind, parent := snapshotMetadata(xmlRes.Stdout)
+		if kind != "" {
+			out[i].Kind = kind
+		}
+		if out[i].Parent == "" && parent != "" && ValidateName(parent) == nil {
+			out[i].Parent = parent
+		}
+	}
+	return orderSnapshots(out), nil
+}
+
+func snapshotMetadata(value string) (string, string) {
+	var parsed struct {
+		Parent struct {
+			Name string `xml:"name"`
+		} `xml:"parent"`
+		Disks []struct {
+			Name     string `xml:"name,attr"`
+			Snapshot string `xml:"snapshot,attr"`
+		} `xml:"disks>disk"`
+		Memory struct {
+			Snapshot string `xml:"snapshot,attr"`
+		} `xml:"memory"`
+	}
+	if err := xml.Unmarshal([]byte(value), &parsed); err != nil {
+		return "", ""
+	}
+	external := false
+	internal := false
+	for _, disk := range parsed.Disks {
+		switch strings.ToLower(disk.Snapshot) {
+		case "external":
+			external = true
+		case "internal", "":
+			if disk.Name != "" {
+				internal = true
+			}
+		}
+	}
+	if strings.EqualFold(parsed.Memory.Snapshot, "external") {
+		external = true
+	}
+	kind := "unknown"
+	switch {
+	case external && internal:
+		kind = "mixed"
+	case external:
+		kind = "external"
+	case internal || len(parsed.Disks) > 0:
+		kind = "internal"
+	}
+	return kind, strings.TrimSpace(parsed.Parent.Name)
+}
+
+func orderSnapshots(items []Snapshot) []Snapshot {
+	byParent := map[string][]Snapshot{}
+	for _, item := range items {
+		byParent[item.Parent] = append(byParent[item.Parent], item)
+	}
+	var ordered []Snapshot
+	var walk func(parent string, depth int)
+	walk = func(parent string, depth int) {
+		children := byParent[parent]
+		for _, child := range children {
+			child.Depth = depth
+			ordered = append(ordered, child)
+			walk(child.Name, depth+1)
+		}
+	}
+	walk("", 0)
+	if len(ordered) != len(items) {
+		return items
+	}
+	return ordered
 }
 
 func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bool) (DomainDetail, error) {
