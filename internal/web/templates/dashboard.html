@@ -33,6 +33,8 @@
 <div class="grid two">
   <section class="panel">
     <div class="panel-head"><h2>计算主机</h2><a href="/hosts">全部</a></div>
+    <h3>即将写满的存储池 <button type="button" class="help-tip" aria-label="说明" data-tip="可用空间不到容量一成的存储池会列在这里。用来在概览上发现快满的磁盘，不用逐台打开存储页。这里只提示，不会迁移虚拟机，也不会扩容。">?</button></h3>
+    {{if .Data.FullPools}}<ul class="plain-list">{{range .Data.FullPools}}<li><a href="/hosts/{{.HostID}}/storage?pool={{.Name}}">{{.HostName}} · {{.Name}}</a> <span class="muted">可用 {{.Free}}</span></li>{{end}}</ul>{{else}}<p class="hint">没有可用空间低于一成的存储池。</p>{{end}}
     {{if .Data.Hosts}}
     <table><thead><tr><th>名称</th><th>状态</th><th>说明</th></tr></thead><tbody>
       {{range .Data.Hosts}}<tr><td><a href="/hosts/{{.ID}}">{{.Name}}</a></td><td>{{if .Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</td><td class="muted">{{.Description}}</td></tr>{{end}}
