@@ -203,13 +203,14 @@ func TestVMDetailSnapshotTreeRenders(t *testing.T) {
 	page := pageData{Title: "vm", CSRF: "csrf", User: &store.User{Role: "operator"}, Data: map[string]any{
 		"Host": store.Host{ID: "host"}, "VM": "web", "Video": videoDevice{}, "MaxMemoryBytes": uint64(1024), "Balloon": balloonView{},
 		"Detail": libvirt.DomainDetail{Domain: libvirt.Domain{Name: "web", State: "running"}, Info: map[string]string{}, Snapshots: []libvirt.Snapshot{{Name: "base", Kind: "internal", State: "shutoff"}, {Name: "child", Parent: "base", Kind: "external", Depth: 1, Current: true, State: "running"}}},
+		"Boot":   bootInventory{Firmware: "UEFI", SecureBoot: "已启用", TPM: "tpm-crb 2.0", BootOrder: "硬盘", BootMenu: "关闭"},
 	}}
 	var buf bytes.Buffer
 	if err := templates["vm_detail"].ExecuteTemplate(&buf, "base", page); err != nil {
 		t.Fatal(err)
 	}
 	body := buf.String()
-	for _, want := range []string{"快照树", "内部", "外部", "父快照", "正在运行"} {
+	for _, want := range []string{"快照树", "内部", "外部", "父快照", "正在运行", "固件与引导", "UEFI", "已启用", "tpm-crb 2.0"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("missing %s", want)
 		}

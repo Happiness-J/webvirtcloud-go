@@ -142,6 +142,15 @@
   {{end}}
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>固件与引导 <button type="button" class="help-tip" aria-label="说明" data-tip="这是虚拟机当前定义里实际生效的固件、安全启动、虚拟 TPM 和启动顺序。迁移或导出后先看这里，确认有没有变成 BIOS、丢掉安全启动或改了启动设备。这里只展示，不会修改固件。">?</button></h2><span class="pill muted">只读</span></div>
+  <table><tbody>
+    <tr><th>固件</th><td>{{.Data.Boot.Firmware}}</td></tr>
+    <tr><th>Secure Boot</th><td>{{.Data.Boot.SecureBoot}}</td></tr>
+    <tr><th>虚拟 TPM</th><td>{{.Data.Boot.TPM}}</td></tr>
+    <tr><th>启动顺序</th><td>{{.Data.Boot.BootOrder}}</td></tr>
+    <tr><th>启动菜单</th><td>{{.Data.Boot.BootMenu}}</td></tr>
+    {{if .Data.Boot.Loader}}<tr><th>固件文件</th><td><code>{{.Data.Boot.Loader}}</code></td></tr>{{end}}
+  </tbody></table>
   <div class="panel-head"><h2>启动顺序与 PXE</h2><span class="pill muted">关机后生效</span></div>
   <p class="hint">调整下次启动时硬盘、光驱和网络的顺序。选择网络即可从 PXE 安装；启动菜单让控制台在启动时手动选择设备。</p>
   {{if eq .Data.Detail.Domain.State "shut off"}}
