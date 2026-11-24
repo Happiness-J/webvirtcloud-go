@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/xml"
 	"fmt"
 	"strings"
 
@@ -31,4 +32,34 @@ func validCPUSet(value string) bool {
 		}
 	}
 	return true
+}
+
+type hostTopology struct {
+	Nodes string
+	CPUs  string
+}
+
+func parseHostTopology(capabilitiesXML string) hostTopology {
+	var parsed struct {
+		Cells []struct {
+			ID   string `xml:"id,attr"`
+			CPUs []struct {
+				ID string `xml:"id,attr"`
+			} `xml:"cpus>cpu"`
+		} `xml:"host>topology>cells>cell"`
+	}
+	if err := xml.Unmarshal([]byte(capabilitiesXML), &parsed); err != nil || len(parsed.Cells) == 0 {
+		return hostTopology{Nodes: "未读取到拓扑", CPUs: "未读取到拓扑"}
+	}
+	nodes := make([]string, 0, len(parsed.Cells))
+	cpuCount := 0
+	for _, cell := range parsed.Cells {
+		nodes = append(nodes, cell.ID)
+		cpuCount += len(cell.CPUs)
+	}
+	cpus := "0"
+	if cpuCount > 1 {
+		cpus = fmt.Sprintf("0-%d", cpuCount-1)
+	}
+	return hostTopology{Nodes: strings.Join(nodes, ", "), CPUs: cpus}
 }
