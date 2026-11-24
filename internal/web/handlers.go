@@ -1841,7 +1841,8 @@ func (s *Server) vmCreatePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	disks, _ := listImportableDisks(s.cfg.ImageDir)
-	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles(), "Sizes": vmSizes(), "Disks": disks}})
+	templates, _ := s.db.ListVMTemplates(r.Context())
+	s.render(w, r, "vm_create", pageData{Title: "创建虚拟机", Nav: "vms", Data: map[string]any{"Host": host, "Networks": active, "InactiveNetworks": inactive, "NetworkError": netErr != nil, "ISOs": listInstallISOs(s.cfg.ImageDir), "OSProfiles": osProfiles(), "Sizes": vmSizes(), "Disks": disks, "Templates": templates}})
 }
 
 func (s *Server) vmCreate(w http.ResponseWriter, r *http.Request) {
