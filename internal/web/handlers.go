@@ -54,6 +54,7 @@ type dashboardData struct {
 	Audit     []store.Audit
 	Stats     store.QueueStats
 	Live      []dashboardHostLive
+	FullPools []nearlyFullPool
 }
 
 type dashboardHostLive struct {
@@ -109,13 +110,29 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 		vmCount += len(group.Domains)
 	}
 	live := s.dashboardLive(r.Context(), hosts)
+	full := s.nearlyFullHostPools(r, hosts)
 	s.render(w, r, "dashboard", pageData{
 		Title: "概览", Nav: "dashboard",
 		Data: dashboardData{
 			Hosts: hosts, HostCount: len(hosts), VMCount: vmCount, UserCount: userCount,
-			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats, Live: live,
+			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats, Live: live, FullPools: full,
 		},
 	})
+}
+
+func (s *Server) nearlyFullHostPools(r *http.Request, hosts []store.Host) []nearlyFullPool {
+	var out []nearlyFullPool
+	for _, host := range hosts {
+		if !host.Enabled {
+			continue
+		}
+		pools, err := s.libvirt.ListPools(r.Context(), host.ID)
+		if err != nil {
+			continue
+		}
+		out = append(out, nearlyFullPools(host.ID, host.Name, pools)...)
+	}
+	return out
 }
 
 func (s *Server) dashboardLive(ctx context.Context, hosts []store.Host) []dashboardHostLive {
