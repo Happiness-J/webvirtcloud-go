@@ -13,8 +13,11 @@ func TestConfirmScriptChecksFormBeforeDialog(t *testing.T) {
 	}
 	script := string(data)
 	validity := strings.Index(script, "form.checkValidity()")
-	dialog := strings.Index(script, "window.confirm")
+	dialog := strings.Index(script, "showChangePreview")
 	if validity < 0 || dialog < 0 || validity > dialog {
-		t.Fatal("confirmation dialog runs before native form validation")
+		t.Fatal("confirmation preview runs before native form validation")
+	}
+	if !strings.Contains(script, "连接已隐藏") || !strings.Contains(script, "已隐藏") {
+		t.Fatal("preview does not hide connection or secret text")
 	}
 }
