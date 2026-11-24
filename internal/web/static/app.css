@@ -304,3 +304,9 @@ details summary { cursor: pointer; color: var(--brand); }
 .fold-group[open]>summary::before{transform:rotate(45deg)}
 .fold-body{padding:0 14px 14px}
 .fold-body>.panel{box-shadow:none;border:0;padding:8px 0 0;background:transparent}
+
+.impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.impact-grid article{display:grid;gap:8px;align-content:start;padding:12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#f8fafc}
+.impact-grid header{display:flex;justify-content:space-between;align-items:center;font-weight:650}
+.impact-grid ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.impact-grid li{display:flex;justify-content:space-between;gap:8px}
