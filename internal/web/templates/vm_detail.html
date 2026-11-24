@@ -43,7 +43,7 @@
 </section>{{end}}
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
-  <h2>名称</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/rename" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input name="new_name" placeholder="新名称" maxlength="128" required><button class="btn">重命名</button></form><h2>克隆、迁移和 USB</h2>
+  <section class="panel"><h2>配置清单<button type="button" class="help-tip" aria-label="说明" data-tip="导出一份用于复核和复制的虚拟机配置清单。清单不包含连接地址、密码或密钥。">?</button></h2><p class="hint">用来在变更前保存可读配置。下载只包含名称、状态、资源、磁盘和地址摘要。</p><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/manifest">下载配置清单</a></section><h2>名称</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/rename" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input name="new_name" placeholder="新名称" maxlength="128" required><button class="btn">重命名</button></form><h2>克隆、迁移和 USB</h2>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="clone">
     <input name="snapshot" placeholder="新虚拟机名称" maxlength="128" required>
