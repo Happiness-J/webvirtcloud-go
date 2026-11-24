@@ -796,9 +796,11 @@ func (s *Server) networksPage(w http.ResponseWriter, r *http.Request) {
 			leaseText += result.Output() + "\n"
 		}
 	}
+	owners, macFailed := s.hostMACOwners(r, host.ID)
 	page := pageData{Title: "网络", Nav: "hosts", Data: map[string]any{
 		"Host": host, "Networks": networks, "IPPools": pools, "Allocations": allocations,
 		"AddressUses": matchAddressUses(leaseText, pools, allocations), "LeasesUnavailable": leaseUnavailable,
+		"DuplicateMACs": duplicateMACs(owners), "MACScanIncomplete": macFailed > 0,
 	}}
 	if err != nil {
 		s.logRequestError(r, "load networks", err)
@@ -810,6 +812,26 @@ func (s *Server) networksPage(w http.ResponseWriter, r *http.Request) {
 type userRow struct {
 	User store.User
 	Self bool
+}
+
+func (s *Server) hostMACOwners(r *http.Request, hostID string) ([]macOwner, int) {
+	domains, err := s.libvirt.ListDomains(r.Context(), hostID)
+	if err != nil {
+		return nil, 1
+	}
+	var owners []macOwner
+	failed := 0
+	for _, domain := range domains {
+		output, err := s.libvirt.Interfaces(r.Context(), hostID, domain.Name)
+		if err != nil {
+			failed++
+			continue
+		}
+		for _, nic := range parseNICChoices(output) {
+			owners = append(owners, macOwner{VM: domain.Name, MAC: nic.MAC})
+		}
+	}
+	return owners, failed
 }
 
 func (s *Server) usersPage(w http.ResponseWriter, r *http.Request) {
