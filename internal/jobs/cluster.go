@@ -11,6 +11,7 @@ import (
 	"webvirtcloud-go/internal/command"
 	"webvirtcloud-go/internal/id"
 	"webvirtcloud-go/internal/store"
+	"webvirtcloud-go/internal/webhook"
 )
 
 func (w *Worker) reconcileCluster(ctx context.Context) {
@@ -109,6 +110,9 @@ func (w *Worker) probeHost(ctx context.Context, host store.Host, previous store.
 		health.Failures = 0
 	} else {
 		health.Failures = previous.Failures + 1
+		if previous.Failures == 0 && w.hooks != nil {
+			w.hooks.Send(webhook.Event{Action: "host.unreachable", HostID: host.ID, Detail: map[string]any{"failures": health.Failures}})
+		}
 	}
 	if err := w.store.RecordHostHealth(ctx, health); err != nil {
 		w.log.Warn("record host health", "host_id", host.ID, "error", err)

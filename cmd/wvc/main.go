@@ -25,6 +25,7 @@ import (
 	"webvirtcloud-go/internal/secret"
 	"webvirtcloud-go/internal/store"
 	"webvirtcloud-go/internal/web"
+	"webvirtcloud-go/internal/webhook"
 )
 
 var (
@@ -193,7 +194,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	worker := jobs.New(cfg, db, cipher, runner, log)
+	worker := jobs.New(cfg, db, cipher, runner, webhook.New(cfg.WebhookURL, cfg.WebhookToken, cfg.WebhookTimeout, log), log)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

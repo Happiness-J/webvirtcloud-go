@@ -212,7 +212,7 @@ func TestWebIntegration(t *testing.T) {
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
-		jobs.New(cfg, db, cipher, runner, log).Run(workerCtx)
+		jobs.New(cfg, db, cipher, runner, nil, log).Run(workerCtx)
 	}()
 	defer func() {
 		stopWorker()
