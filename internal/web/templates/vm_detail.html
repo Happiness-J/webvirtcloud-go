@@ -378,8 +378,11 @@
 {{end}}
 <div class="grid two">
   <section class="panel"><h2>摘要</h2><dl class="kv">{{range .Data.InfoRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
-  <section class="panel"><h2>客户机信息<button type="button" class="help-tip" aria-label="说明" data-tip="通过 guest agent 查看操作系统、磁盘使用和在线状态。没有 agent 时，可以挂载工具 ISO 后在客户机内安装。">?</button></h2>
+  <section class="panel"><h2>客户机代理<button type="button" class="help-tip" aria-label="说明" data-tip="通过虚拟机内的 QEMU Guest Agent 读取真实主机名、IP 和磁盘。冻结文件系统只用于备份或快照前让客户机短暂停止写入，不会在客户机里执行任意命令。">?</button></h2>
+<p class="hint">用来确认客户机真实身份和地址，或在备份前暂停写入。客户机必须已安装并运行 qemu-guest-agent。冻结后请及时解冻；这里不提供任意命令执行。</p>
 <p class="hint">{{if .Data.Detail.GuestAgent}}代理在线。{{else}}代理未响应。Windows 安装 QEMU Guest Agent，Linux 安装并启动 qemu-guest-agent。{{end}}</p>
+<h3>主机名</h3><pre class="output">{{.Data.GuestHostname}}</pre>
+{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="guest-fsfreeze"><button class="btn" data-confirm="冻结会让客户机文件系统暂停写入。确定现在冻结吗？">冻结文件系统</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="guest-fsthaw"><button class="btn">解冻文件系统</button></form>{{end}}
 <h3>操作系统</h3><pre class="output">{{.Data.GuestOS}}</pre><h3>内部磁盘</h3><pre class="output">{{.Data.GuestFilesystems}}</pre>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cdrom-change"><input name="snapshot" placeholder="光驱目标，例如 sda" required><input name="media" placeholder="工具 ISO 路径" required><button class="btn">挂载工具 ISO</button></form>{{end}}
 <h2>客户机 IP</h2>

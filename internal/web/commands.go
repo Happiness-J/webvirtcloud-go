@@ -177,6 +177,12 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 			return nil, false, err
 		}
 		return []string{"detach-disk", vm, snapshot, "--live"}, true, nil
+	case "guest-fsfreeze", "guest-fsthaw":
+		commandName := "domfsfreeze"
+		if action == "guest-fsthaw" {
+			commandName = "domfsthaw"
+		}
+		return []string{commandName, vm}, action == "guest-fsfreeze", nil
 	case "snapshot-create", "snapshot-revert", "snapshot-delete", "backup-create", "backup-restore", "backup-delete":
 		if err := command.ValidateActionOperandPublic(snapshot); err != nil {
 			return nil, false, fmt.Errorf("恢复点名称无效")

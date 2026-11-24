@@ -162,3 +162,13 @@ func TestBackupPolicyJobRole(t *testing.T) {
 		t.Fatal("unexpected backup command accepted")
 	}
 }
+
+func TestGuestAgentFilesystemFreeze(t *testing.T) {
+	role, err := JobMinimumRole("vm-action", "virsh", []string{"domfsfreeze", "web"})
+	if err != nil || role != RoleOperator {
+		t.Fatalf("freeze role = %q %v", role, err)
+	}
+	if _, err := JobMinimumRole("vm-action", "virsh", []string{"qemu-agent-command", "web", "guest-exec"}); err == nil {
+		t.Fatal("arbitrary guest command accepted")
+	}
+}
