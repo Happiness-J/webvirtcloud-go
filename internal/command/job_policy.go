@@ -170,6 +170,21 @@ func JobMinimumRole(kind, tool string, args []string) (string, error) {
 			return "", err
 		}
 		return RoleOperator, nil
+	case "backup-policy":
+		if tool != "virsh" || len(args) != 6 || args[0] != "checkpoint-create-as" || args[2] != "--name" || args[4] != "--retain" {
+			return "", fmt.Errorf("定时备份参数不正确")
+		}
+		if err := validateActionOperand(args[1]); err != nil {
+			return "", fmt.Errorf("虚拟机名称无效")
+		}
+		if err := validateActionOperand(args[3]); err != nil {
+			return "", fmt.Errorf("检查点名称无效")
+		}
+		retain, err := strconv.Atoi(args[5])
+		if err != nil || retain < 1 || retain > 100 {
+			return "", fmt.Errorf("检查点保留数量无效")
+		}
+		return RoleOperator, nil
 	default:
 		return "", fmt.Errorf("未知任务类型 %q", kind)
 	}
