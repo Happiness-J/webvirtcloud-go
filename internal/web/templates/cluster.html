@@ -33,6 +33,25 @@
   </section>
 </div>
 <section class="panel">
+  <h2>最近一天的容量趋势 <button type="button" class="help-tip" aria-label="说明" data-tip="这是每台主机最近 24 小时的 CPU、内存和运行中虚拟机数量。用来看负载是在升高还是回落，方便决定什么时候创建或迁移。它只展示探活结果，不会自动放置或迁移虚拟机。超过一天的记录会自动删除。">?</button></h2>
+  {{if .Data.Hosts}}
+  <div class="trend-grid">
+  {{range .Data.Hosts}}{{$trend := index $.Data.Trends .ID}}
+    <article class="trend-card">
+      <header><a href="/hosts/{{.ID}}">{{.Name}}</a>{{if gt $trend.Points 0}}<span class="muted">{{$trend.Points}} 个采样</span>{{end}}</header>
+      {{if gt $trend.Points 0}}
+      <div class="trend-lines">
+        <figure><svg viewBox="0 0 240 52" role="img" aria-label="CPU 趋势"><polyline points="{{$trend.CPUPoints}}"></polyline></svg><figcaption>CPU 最近 {{printf "%.0f" $trend.LatestCPU}}% · 最高 {{printf "%.0f" $trend.PeakCPU}}%</figcaption></figure>
+        <figure><svg viewBox="0 0 240 52" role="img" aria-label="内存趋势"><polyline points="{{$trend.MemPoints}}"></polyline></svg><figcaption>内存 最近 {{printf "%.0f" $trend.LatestMem}}% · 最高 {{printf "%.0f" $trend.PeakMem}}%</figcaption></figure>
+        <figure><svg viewBox="0 0 240 52" role="img" aria-label="运行中虚拟机趋势"><polyline points="{{$trend.VMPoints}}"></polyline></svg><figcaption>运行中虚拟机 {{$trend.MinVMs}}–{{$trend.MaxVMs}}</figcaption></figure>
+      </div>
+      {{else}}<p class="hint">还没有采样。开启面板后，每分钟探活会记下可达主机的容量，大约一天后这里能看出变化。</p>{{end}}
+    </article>
+  {{end}}
+  </div>
+  {{else}}<div class="empty-state"><strong>还没有主机</strong><span>添加主机后，这里会显示最近一天的容量变化。</span></div>{{end}}
+</section>
+<section class="panel">
   <h2>放置建议<button type="button" class="help-tip" aria-label="说明" data-tip="创建或迁移前先看这里。建议只根据当前 CPU、内存和运行中的虚拟机数量排序，不会自动迁移或创建虚拟机。">?</button></h2>
   <p class="hint">用来减少人工挑机器。{{if .Data.Suggestion.HostName}}当前建议优先使用 {{.Data.Suggestion.HostName}}。{{.Data.Suggestion.Reason}}{{else}}还没有可用于建议的可达主机。{{end}}确认目标后，再到对应主机的创建页面或虚拟机迁移操作里手动执行。</p>
   <h2>主机负载</h2>

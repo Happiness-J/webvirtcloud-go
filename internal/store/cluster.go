@@ -126,3 +126,52 @@ func (db *Store) ListProtectedVMs(ctx context.Context) ([]HAVM, error) {
 	}
 	return out, rows.Err()
 }
+
+const HostCapacityRetention = 24 * time.Hour
+
+// HostCapacitySample is one read-only capacity observation. host_health keeps
+// only the latest probe, so trends need their own append-only history.
+type HostCapacitySample struct {
+	HostID     string
+	CPUPercent float64
+	MemPercent float64
+	RunningVMs int
+	SampledAt  time.Time
+}
+
+func (db *Store) RecordHostCapacity(ctx context.Context, item HostCapacitySample) error {
+	if item.HostID == "" || item.RunningVMs < 0 || item.CPUPercent < 0 || item.CPUPercent > 100 || item.MemPercent < 0 || item.MemPercent > 100 {
+		return fmt.Errorf("主机容量数据超出范围")
+	}
+	_, err := db.pool.Exec(ctx, `INSERT INTO host_capacity_samples(host_id,cpu_percent,mem_percent,running_vms,sampled_at)
+		VALUES($1,$2,$3,$4,now())`, item.HostID, item.CPUPercent, item.MemPercent, item.RunningVMs)
+	return err
+}
+
+func (db *Store) ListHostCapacity(ctx context.Context, hostID string, since time.Time) ([]HostCapacitySample, error) {
+	rows, err := db.pool.Query(ctx, `SELECT host_id,cpu_percent,mem_percent,running_vms,sampled_at
+		FROM host_capacity_samples WHERE host_id=$1 AND sampled_at>=$2 ORDER BY sampled_at`, hostID, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []HostCapacitySample
+	for rows.Next() {
+		var item HostCapacitySample
+		if err := rows.Scan(&item.HostID, &item.CPUPercent, &item.MemPercent, &item.RunningVMs, &item.SampledAt); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+// PruneHostCapacity drops samples older than the retention window so the
+// append-only history cannot grow without a bound.
+func (db *Store) PruneHostCapacity(ctx context.Context, before time.Time) (int64, error) {
+	tag, err := db.pool.Exec(ctx, `DELETE FROM host_capacity_samples WHERE sampled_at < $1`, before)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}

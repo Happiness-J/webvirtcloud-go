@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"webvirtcloud-go/internal/cluster"
 	"webvirtcloud-go/internal/libvirt"
@@ -45,9 +46,81 @@ func (s *Server) clusterPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	suggestion := placementSuggestion(hosts, health, policy.Policy)
+	since := time.Now().Add(-store.HostCapacityRetention)
+	trends := map[string]hostCapacityTrend{}
+	for _, host := range hosts {
+		samples, err := s.db.ListHostCapacity(r.Context(), host.ID, since)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		trends[host.ID] = summarizeCapacity(samples)
+	}
 	s.render(w, r, "cluster", pageData{Title: "高可用与调度", Nav: "cluster", Data: map[string]any{
-		"Policy": policy, "Hosts": hosts, "Health": health, "Protected": protected, "Suggestion": suggestion,
+		"Policy": policy, "Hosts": hosts, "Health": health, "Protected": protected, "Suggestion": suggestion, "Trends": trends,
 	}})
+}
+
+type hostCapacityTrend struct {
+	Points                         int
+	LatestCPU, LatestMem           float64
+	PeakCPU, PeakMem               float64
+	MinVMs, MaxVMs                 int
+	CPUPoints, MemPoints, VMPoints string
+}
+
+func summarizeCapacity(samples []store.HostCapacitySample) hostCapacityTrend {
+	trend := hostCapacityTrend{MinVMs: -1}
+	var cpu, mem, vms []string
+	maxVMs := 0
+	for _, sample := range samples {
+		if sample.RunningVMs > maxVMs {
+			maxVMs = sample.RunningVMs
+		}
+	}
+	scale := func(value, max float64) int {
+		if max <= 0 {
+			return 46
+		}
+		y := 46 - int(value/max*40)
+		if y < 6 {
+			return 6
+		}
+		if y > 46 {
+			return 46
+		}
+		return y
+	}
+	for i, sample := range samples {
+		trend.Points++
+		trend.LatestCPU, trend.LatestMem = sample.CPUPercent, sample.MemPercent
+		if sample.CPUPercent > trend.PeakCPU {
+			trend.PeakCPU = sample.CPUPercent
+		}
+		if sample.MemPercent > trend.PeakMem {
+			trend.PeakMem = sample.MemPercent
+		}
+		if trend.MinVMs < 0 || sample.RunningVMs < trend.MinVMs {
+			trend.MinVMs = sample.RunningVMs
+		}
+		if sample.RunningVMs > trend.MaxVMs {
+			trend.MaxVMs = sample.RunningVMs
+		}
+		x := "4"
+		if len(samples) > 1 {
+			x = strconv.Itoa(4 + i*232/(len(samples)-1))
+		}
+		cpu = append(cpu, x+","+strconv.Itoa(scale(sample.CPUPercent, 100)))
+		mem = append(mem, x+","+strconv.Itoa(scale(sample.MemPercent, 100)))
+		vms = append(vms, x+","+strconv.Itoa(scale(float64(sample.RunningVMs), float64(maxVMs))))
+	}
+	if trend.MinVMs < 0 {
+		trend.MinVMs = 0
+	}
+	trend.CPUPoints = strings.Join(cpu, " ")
+	trend.MemPoints = strings.Join(mem, " ")
+	trend.VMPoints = strings.Join(vms, " ")
+	return trend
 }
 
 func (s *Server) clusterPolicySave(w http.ResponseWriter, r *http.Request) {
