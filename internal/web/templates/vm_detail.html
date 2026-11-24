@@ -163,6 +163,8 @@
     {{if .Data.Boot.Loader}}<tr><th>固件文件</th><td><code>{{.Data.Boot.Loader}}</code></td></tr>{{end}}
   </tbody></table>
   <div class="panel-head"><h2>光驱与安装介质 <button type="button" class="help-tip" aria-label="说明" data-tip="这里列出每个光驱现在挂的安装镜像。装完系统后如果还挂着 ISO，下次启动可能再次进入安装程序。这里只展示，不会弹出或更换介质。">?</button></h2><span class="pill muted">只读</span></div>
+  <h3>关机前挂载残留 <button type="button" class="help-tip" aria-label="说明" data-tip="虚拟机已经关机，但光驱里还有镜像，或还占着 USB 和宿主机磁盘。下次开机可能从安装盘启动，宿主机设备也会继续被占用。这里只列出残留，不会弹出或卸载。">?</button></h3>
+  {{if .Data.Leftovers}}<table><thead><tr><th>类型</th><th>位置</th><th>还挂着</th></tr></thead><tbody>{{range .Data.Leftovers}}<tr><td>{{.Kind}}</td><td>{{.Where}}</td><td>{{.What}}</td></tr>{{end}}</tbody></table>{{else if eq .Data.Detail.Domain.State "shut off"}}<p class="hint">关机后没有残留的安装镜像、USB 或宿主机磁盘。</p>{{end}}
   {{if .Data.CDROMs}}<table><thead><tr><th>光驱</th><th>介质</th></tr></thead><tbody>{{range .Data.CDROMs}}<tr><td><code>{{.Target}}</code></td><td>{{if .Empty}}<span class="muted">空</span>{{else}}{{.Image}}{{end}}</td></tr>{{end}}</tbody></table>{{else}}<p class="hint">这台虚拟机没有光驱。</p>{{end}}
   <div class="panel-head"><h2>启动顺序与 PXE</h2><span class="pill muted">关机后生效</span></div>
   <p class="hint">调整下次启动时硬盘、光驱和网络的顺序。选择网络即可从 PXE 安装；启动菜单让控制台在启动时手动选择设备。</p>
