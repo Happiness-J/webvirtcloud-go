@@ -873,16 +873,18 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 		s.log.Warn("load job queue stats", "error", err)
 	}
 	groups := []failureCategory{}
+	targets := []failureTarget{}
 	if page == 1 {
 		failed, err := s.db.ListFailedJobs(r.Context(), sess.User.ID, sess.User.Role == "admin", 100)
 		if err != nil {
 			s.log.Warn("load failed job groups", "error", err)
 		} else {
 			groups = failureGroups(failed)
+			targets = repeatedFailureTargets(failed)
 		}
 	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups,
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets,
 	}})
 }
 
