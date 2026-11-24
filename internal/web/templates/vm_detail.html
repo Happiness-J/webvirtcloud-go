@@ -52,16 +52,17 @@
   </form>
   <p class="hint">迁移前检查只读取磁盘路径、主机探活和活动任务。它不会启动迁移。本地镜像目录中的磁盘会被视为不共享。</p>
   {{if .Data.MigrationCheck.OK}}<p class="hint">当前只读检查没有发现阻断项。</p>{{else}}<ul class="hint">{{range .Data.MigrationCheck.Reasons}}<li>{{.}}</li>{{end}}</ul>{{end}}
-  {{if or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")}}
+  <section class="panel"><h2>在线迁移向导<button type="button" class="help-tip" aria-label="说明" data-tip="向导只在迁移前检查通过后允许手动提交。它不会自动选择目标或自动迁移。">?</button></h2><p class="hint">用来在确认共享存储、目标可达和没有任务锁冲突后，手动发起一次迁移。检查未通过时按钮保持禁用。</p>
+  {{if and (or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")) .Data.MigrationCheck.OK}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="migrate">
     <input name="snapshot" placeholder="qemu+ssh://user@target/system" maxlength="256" required>
     <input name="bandwidth" inputmode="numeric" placeholder="带宽 MiB/s，可选" pattern="[0-9]*">
     <label class="confirm"><input type="checkbox" name="encrypted" value="yes">加密传输</label>
-    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>确认</label>
-    <button class="btn danger">在线迁移</button>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>我已确认检查结果</label>
+    <button class="btn danger" data-confirm="将按当前检查结果手动迁移这台虚拟机。确定继续吗？">手动开始迁移</button>
   </form>
-  {{else}}<p class="hint">虚拟机已关机；在线迁移只在运行中或已挂起时开放。</p>{{end}}
+  {{else}}<button class="btn" disabled>手动开始迁移</button><p class="hint">检查未通过或虚拟机未在运行，迁移向导不会提交任务。</p>{{end}}</section>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="usb-attach">
     <input name="snapshot" placeholder="/dev/disk/by-id/usb-..." maxlength="256" required>
