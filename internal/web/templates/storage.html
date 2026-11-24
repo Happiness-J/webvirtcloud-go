@@ -27,6 +27,8 @@
   {{$hint := index .Data.CapacityHints .Data.SelectedPool}}
   {{if $hint.Known}}<p class="hint {{if $hint.Over}}warn-text{{end}}">{{$hint.Detail}}</p>{{end}}
   <dl class="kv">{{range .Data.PoolInfo}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
+  <h3>同一路径被多台虚拟机使用 <button type="button" class="help-tip" aria-label="说明" data-tip="这些卷的同一路径挂在两台或更多虚拟机上。迁移或删除前先确认它们是不是同一份磁盘。这里只汇总，不会解除引用。">?</button></h3>
+  {{if .Data.SharedVolumes}}<ul class="plain-list">{{range .Data.SharedVolumes}}<li><code>{{.Path}}</code>：{{range $i, $vm := .VMs}}{{if $i}}、{{end}}{{$vm}}{{end}}</li>{{end}}</ul>{{else}}<p class="hint">这个存储池里没有被多台虚拟机同时引用的路径。</p>{{end}}
   <p class="hint">卷使用关系按虚拟机磁盘路径只读匹配。删除前先看“使用中”一列；这里只提示，不会自动解除引用。</p>
 {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>容器格式</th><th>使用中</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Filesystem}}{{.Filesystem}}{{else}}-{{end}}</td><td>{{if index $.Data.VolumeUsage .Name}}{{range index $.Data.VolumeUsage .Name}}<div>{{.VM}} · {{.Target}}</div>{{end}}{{else}}<span class="muted">未发现引用</span>{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
 </section>
