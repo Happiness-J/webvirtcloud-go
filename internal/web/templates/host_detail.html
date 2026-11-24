@@ -25,6 +25,14 @@
   </div>
 </section>
 <section class="panel">
+  <h2>重启后拉起 <button type="button" class="help-tip" aria-label="说明" data-tip="按当前自启动和电源状态预览宿主机重启后的结果。开了自启动的会拉起，正在运行但没开自启动的不会回来。这里只预览，不会重启主机，也不会改自启动。">?</button></h2>
+  <p class="hint">用来在重启宿主机前确认谁会自己起来。已经关机且没开自启动的不列在这里。</p>
+  <div class="impact-grid">
+    <article><header>会拉起 <span class="pill {{if .Data.Reboot.WillStart}}ok{{else}}muted{{end}}">{{len .Data.Reboot.WillStart}}</span></header>{{if .Data.Reboot.WillStart}}<ul>{{range .Data.Reboot.WillStart}}<li><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a><span class="muted">{{statusName .State}}</span></li>{{end}}</ul>{{else}}<p class="hint">没有开自启动的虚拟机。</p>{{end}}</article>
+    <article><header>不会回来 <span class="pill {{if .Data.Reboot.StayDown}}warn{{else}}ok{{end}}">{{len .Data.Reboot.StayDown}}</span></header>{{if .Data.Reboot.StayDown}}<ul>{{range .Data.Reboot.StayDown}}<li><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a><span class="muted">{{statusName .State}}</span></li>{{end}}</ul>{{else}}<p class="hint">正在运行的虚拟机都开了自启动。</p>{{end}}</article>
+  </div>
+</section>
+<section class="panel">
   <div class="panel-head"><h2>该主机的最近任务</h2><a href="/jobs">全部任务</a></div>
   {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td>{{.UserName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>这台主机还没有任务</strong><span>创建、迁移或调整资源后，任务会显示在这里。</span></div>{{end}}
 </section>
