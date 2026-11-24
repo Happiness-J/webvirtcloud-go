@@ -544,6 +544,11 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 			vmDevices = append(vmDevices, device)
 		}
 	}
+	vmTags, tagErr := s.db.ListVMTags(r.Context(), host.ID)
+	if tagErr != nil {
+		s.logRequestError(r, "load vm protection", tagErr)
+		vmTags = map[string][]string{}
+	}
 	schedules, schedErr := s.db.ListVMSchedules(r.Context(), host.ID, vmName)
 	if schedErr != nil {
 		s.logRequestError(r, "load vm schedules", schedErr)
@@ -559,7 +564,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
-		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML), "DiskControllers": parseDiskControllers(detail.XML), "Video": parseVideo(detail.XML), "GDB": parseGDB(detail.XML), "GuestOS": guestText(s, r, host.ID, vmName, "os"), "GuestHostname": guestText(s, r, host.ID, vmName, "hostname"), "GuestFilesystems": guestText(s, r, host.ID, vmName, "fs"), "QMPStatus": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "status"), "QMPBlock": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "block"),
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML), "DiskControllers": parseDiskControllers(detail.XML), "Video": parseVideo(detail.XML), "GDB": parseGDB(detail.XML), "DeleteProtected": vmHasDeleteProtection(vmTags, vmName), "GuestOS": guestText(s, r, host.ID, vmName, "os"), "GuestHostname": guestText(s, r, host.ID, vmName, "hostname"), "GuestFilesystems": guestText(s, r, host.ID, vmName, "fs"), "QMPStatus": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "status"), "QMPBlock": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "block"),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"

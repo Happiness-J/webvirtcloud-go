@@ -274,6 +274,15 @@ func (s *Server) apiVMDelete(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, r, http.StatusBadRequest, "confirmation_required", "Set confirm=true and confirm_name to the exact VM name")
 		return
 	}
+	protected, protectErr := s.vmDeleteProtected(r.Context(), host.ID, vmName)
+	if protectErr != nil {
+		writeAPIError(w, r, http.StatusInternalServerError, "protection_unavailable", "Could not check delete protection")
+		return
+	}
+	if protected {
+		writeAPIError(w, r, http.StatusConflict, "delete_protected", "Delete protection is enabled for this VM")
+		return
+	}
 	info, err := s.libvirt.DomainInfo(r.Context(), host.ID, vmName)
 	if err != nil {
 		if errors.Is(err, libvirt.ErrDomainNotFound) {

@@ -558,6 +558,17 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "删除虚拟机时必须输入完整虚拟机名称")
 		return
 	}
+	if action == "undefine" {
+		protected, protectErr := s.vmDeleteProtected(r.Context(), host.ID, vmName)
+		if protectErr != nil {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "无法确认防删锁")
+			return
+		}
+		if protected {
+			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), "虚拟机已开启防删锁，请先在详情页关闭后再删除")
+			return
+		}
+	}
 	label := fmt.Sprintf("%s: %s", vmName, action)
 	timeout := 300
 	if action == "clone" || action == "migrate" {
