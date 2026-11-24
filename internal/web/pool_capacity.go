@@ -71,7 +71,7 @@ func summarizePoolCapacity(pool libvirt.Pool, volumes []libvirt.Volume) poolCapa
 	}
 	free := capacity - committed
 	hint.Remaining = "还剩 " + humanByteLabel(free)
-	hint.UsedPercent = int(committed * 100 / capacity)
+	hint.UsedPercent = percentOf(committed, capacity)
 	hint.Label = "未超配"
 	if !hint.Known {
 		hint.Detail = "打开这个存储池后，会把卷的承诺容量加总，并和池容量比较。"
@@ -128,4 +128,12 @@ func fallbackSize(value string) string {
 		return "-"
 	}
 	return value
+}
+
+func percentOf(part, total uint64) int {
+	if total == 0 || part >= total {
+		return 100
+	}
+	// #nosec G115 -- part is below total, so part*100/total is at most 99.
+	return int(part * 100 / total)
 }
