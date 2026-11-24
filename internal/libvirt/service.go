@@ -314,16 +314,24 @@ func (s *Service) ListBackups(ctx context.Context, hostID, name string) ([]Backu
 	if err := ValidateName(name); err != nil {
 		return nil, err
 	}
-	res, err := s.run(ctx, hostID, []string{"checkpoint-list", name, "--name"}, 10*time.Second)
+	res, err := s.run(ctx, hostID, []string{"checkpoint-list", name, "--parent"}, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
 	}
-	out := make([]Backup, 0)
-	for _, line := range nonEmptyLines(res.Stdout) {
-		if ValidateName(line) != nil {
+	rows := ParseTable(res.Stdout)
+	out := make([]Backup, 0, len(rows))
+	for _, row := range rows {
+		if len(row) == 0 || ValidateName(row[0]) != nil {
 			continue
 		}
-		out = append(out, Backup{Name: line, State: "checkpoint"})
+		item := Backup{Name: row[0], State: "checkpoint"}
+		if len(row) > 1 && row[1] != "-" && ValidateName(row[1]) == nil {
+			item.Parent = row[1]
+		}
+		if len(row) > 2 {
+			item.CreatedAt = row[2]
+		}
+		out = append(out, item)
 	}
 	return out, nil
 }
