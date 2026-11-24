@@ -207,6 +207,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 			}
 		},
 		"flagName":      flagName,
+		"autostartGap":  autostartGapFor,
 		"poolStateName": poolStateName,
 		"hasPrefix":     strings.HasPrefix,
 		"statusClass": func(status string) string {
