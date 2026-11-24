@@ -35,6 +35,10 @@ type auditPageData struct {
 	HasNext   bool
 	Query     string
 	Action    string
+	HostID    string
+	VMName    string
+	Since     string
+	Until     string
 	PrevURL   string
 	NextURL   string
 	ExportURL string
@@ -1139,7 +1143,13 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := auditPageData{Audits: audits, HostNames: hostNames, Actions: actions, Page: page, HasNext: hasNext,
-		Query: filter.Query, Action: filter.Action, ExportURL: auditURL("/audit/export", filter, 0)}
+		Query: filter.Query, Action: filter.Action, HostID: filter.HostID, VMName: filter.VMName, ExportURL: auditURL("/audit/export", filter, 0)}
+	if !filter.Since.IsZero() {
+		data.Since = filter.Since.Format("2006-01-02")
+	}
+	if !filter.Until.IsZero() {
+		data.Until = filter.Until.Add(-24 * time.Hour).Format("2006-01-02")
+	}
 	if page > 1 {
 		data.PrevURL = auditURL("/audit", filter, page-1)
 	}
@@ -1189,12 +1199,32 @@ func (s *Server) auditExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) auditFilter(w http.ResponseWriter, r *http.Request) (store.AuditFilter, bool) {
-	filter := store.AuditFilter{Query: strings.TrimSpace(r.URL.Query().Get("q")), Action: strings.TrimSpace(r.URL.Query().Get("action"))}
-	if utf8.RuneCountInString(filter.Query) > 200 || utf8.RuneCountInString(filter.Action) > 200 {
-		s.renderError(w, r, http.StatusBadRequest, "筛选条件无效", "搜索词和操作筛选不能超过 200 个字符。")
+	filter := store.AuditFilter{Query: strings.TrimSpace(r.URL.Query().Get("q")), Action: strings.TrimSpace(r.URL.Query().Get("action")), HostID: strings.TrimSpace(r.URL.Query().Get("host")), VMName: strings.TrimSpace(r.URL.Query().Get("vm"))}
+	if utf8.RuneCountInString(filter.Query) > 200 || utf8.RuneCountInString(filter.Action) > 200 || utf8.RuneCountInString(filter.VMName) > 200 {
+		s.renderError(w, r, http.StatusBadRequest, "筛选条件无效", "搜索词和筛选不能超过 200 个字符。")
 		return store.AuditFilter{}, false
 	}
+	var err error
+	if filter.Since, err = auditDate(r.URL.Query().Get("since")); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "时间范围无效", "开始日期格式应为 YYYY-MM-DD。")
+		return store.AuditFilter{}, false
+	}
+	if filter.Until, err = auditDate(r.URL.Query().Get("until")); err != nil {
+		s.renderError(w, r, http.StatusBadRequest, "时间范围无效", "结束日期格式应为 YYYY-MM-DD。")
+		return store.AuditFilter{}, false
+	}
+	if !filter.Until.IsZero() {
+		filter.Until = filter.Until.Add(24 * time.Hour)
+	}
 	return filter, true
+}
+
+func auditDate(value string) (time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, nil
+	}
+	return time.Parse("2006-01-02", value)
 }
 
 func auditURL(path string, filter store.AuditFilter, page int) string {
@@ -1204,6 +1234,18 @@ func auditURL(path string, filter store.AuditFilter, page int) string {
 	}
 	if filter.Action != "" {
 		query.Set("action", filter.Action)
+	}
+	if filter.HostID != "" {
+		query.Set("host", filter.HostID)
+	}
+	if filter.VMName != "" {
+		query.Set("vm", filter.VMName)
+	}
+	if !filter.Since.IsZero() {
+		query.Set("since", filter.Since.Format("2006-01-02"))
+	}
+	if !filter.Until.IsZero() {
+		query.Set("until", filter.Until.Add(-24*time.Hour).Format("2006-01-02"))
 	}
 	if page > 0 {
 		query.Set("page", strconv.Itoa(page))

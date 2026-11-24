@@ -208,6 +208,10 @@ type Audit struct {
 type AuditFilter struct {
 	Query  string
 	Action string
+	HostID string
+	VMName string
+	Since  time.Time
+	Until  time.Time
 }
 
 type QueueStats struct {
@@ -2343,6 +2347,22 @@ func (s *Store) SearchAuditPage(ctx context.Context, filter AuditFilter, limit, 
 	if filter.Action != "" {
 		args = append(args, filter.Action)
 		where = append(where, fmt.Sprintf("a.action = $%d", len(args)))
+	}
+	if filter.HostID != "" {
+		args = append(args, filter.HostID)
+		where = append(where, fmt.Sprintf("a.host_id = $%d", len(args)))
+	}
+	if filter.VMName != "" {
+		args = append(args, filter.VMName)
+		where = append(where, fmt.Sprintf("a.vm_name = $%d", len(args)))
+	}
+	if !filter.Since.IsZero() {
+		args = append(args, filter.Since)
+		where = append(where, fmt.Sprintf("a.created_at >= $%d", len(args)))
+	}
+	if !filter.Until.IsZero() {
+		args = append(args, filter.Until)
+		where = append(where, fmt.Sprintf("a.created_at < $%d", len(args)))
 	}
 	query := `SELECT a.actor_id,a.actor_name,a.action,a.host_id,a.vm_name,a.detail::text,a.remote_ip,a.created_at FROM audit_logs a LEFT JOIN hosts h ON a.host_id = h.id`
 	if len(where) > 0 {
