@@ -117,6 +117,15 @@ func (s *Server) apiVMCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if err := s.ensureHostVisible(r, host.ID); err != nil {
+		if errors.Is(err, errHostForbidden) {
+			writeAPIError(w, r, http.StatusForbidden, "host_forbidden", "This account is not granted this host")
+			return
+		}
+		s.logRequestError(r, "check API VM create host access", err)
+		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not check host access")
+		return
+	}
 	args, err := s.vmCreateArgs(r.Context(), host.ID, request.Name, request.VCPUs, request.MemoryGB, request.DiskGB, request.Network, request.ISO, request.OSVariant, cloudInitSpec{})
 	if err != nil {
 		writeAPIError(w, r, http.StatusUnprocessableEntity, "invalid_vm_spec", err.Error())
@@ -160,6 +169,15 @@ func (s *Server) apiVMAction(w http.ResponseWriter, r *http.Request) {
 			s.logRequestError(r, "load API VM action host", err)
 			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the host")
 		}
+		return
+	}
+	if err := s.ensureHostVisible(r, host.ID); err != nil {
+		if errors.Is(err, errHostForbidden) {
+			writeAPIError(w, r, http.StatusForbidden, "host_forbidden", "This account is not granted this host")
+			return
+		}
+		s.logRequestError(r, "check API VM action host access", err)
+		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not check host access")
 		return
 	}
 	vmName := r.PathValue("vm")
@@ -236,6 +254,15 @@ func (s *Server) apiVMDelete(w http.ResponseWriter, r *http.Request) {
 			s.logRequestError(r, "load API VM delete host", err)
 			writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not load the host")
 		}
+		return
+	}
+	if err := s.ensureHostVisible(r, host.ID); err != nil {
+		if errors.Is(err, errHostForbidden) {
+			writeAPIError(w, r, http.StatusForbidden, "host_forbidden", "This account is not granted this host")
+			return
+		}
+		s.logRequestError(r, "check API VM delete host access", err)
+		writeAPIError(w, r, http.StatusInternalServerError, "internal_error", "Could not check host access")
 		return
 	}
 	vmName := r.PathValue("vm")
