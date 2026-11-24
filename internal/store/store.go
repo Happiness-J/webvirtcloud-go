@@ -2013,6 +2013,12 @@ func (s *Store) RecoverStaleJobs(ctx context.Context, olderThan time.Duration) (
 	}
 }
 
+func (s *Store) HostHasActiveJobs(ctx context.Context, hostID string) (bool, error) {
+	var active bool
+	err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM jobs WHERE host_id=$1 AND status IN ('queued','running'))`, hostID).Scan(&active)
+	return active, err
+}
+
 func (s *Store) QueueStats(ctx context.Context) (QueueStats, error) {
 	var out QueueStats
 	rows, err := s.pool.Query(ctx, `SELECT status, count(*) FROM jobs GROUP BY status`)
