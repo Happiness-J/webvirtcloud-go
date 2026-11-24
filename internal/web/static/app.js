@@ -2,15 +2,39 @@
 
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-confirm]');
-  if (!button) return;
+  if (!button || button.dataset.confirmed === 'yes') return;
   const form = button.form;
-  if (form && !form.checkValidity()) {
-    return;
-  }
-  if (!window.confirm(button.dataset.confirm || '确定继续吗？')) {
-    event.preventDefault();
-  }
+  if (form && !form.checkValidity()) return;
+  event.preventDefault();
+  showChangePreview(button);
 });
+
+function showChangePreview(button) {
+  document.querySelector('.change-preview')?.remove();
+  const dialog = document.createElement('section');
+  dialog.className = 'panel change-preview';
+  dialog.tabIndex = -1;
+  const impact = safePreviewText(button.dataset.confirm || '确定继续吗？');
+  dialog.innerHTML = '<h2>确认变更 <button type="button" class="help-tip" aria-label="说明" data-tip="提交前先看这次操作会影响什么。这里只显示动作和影响，不会显示连接地址、密钥或口令。">?</button></h2><p class="hint">用来在危险操作真正提交前再确认一次。确认后才会继续。</p><p><strong>动作</strong> ' + escapePreview(button.textContent.trim()) + '</p><p><strong>影响</strong> ' + escapePreview(impact) + '</p><div class="actions"><button type="button" class="btn" data-preview-cancel>返回</button><button type="button" class="btn danger" data-preview-continue>确认并继续</button></div>';
+  button.closest('section, form, body').prepend(dialog);
+  dialog.querySelector('[data-preview-cancel]').addEventListener('click', () => dialog.remove());
+  dialog.querySelector('[data-preview-continue]').addEventListener('click', () => {
+    button.dataset.confirmed = 'yes';
+    button.click();
+    delete button.dataset.confirmed;
+  });
+  dialog.focus();
+}
+
+function safePreviewText(value) {
+  return value
+    .replace(/qemu\+[a-z]+:\/\/\S+/gi, '[连接已隐藏]')
+    .replace(/(password|passwd|secret|token|key)\s*[:=]\s*\S+/gi, '$1 [已隐藏]');
+}
+
+function escapePreview(value) {
+  return value.replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
 
 document.addEventListener('click', (event) => {
   const sample = event.target.closest('.sample-args');
