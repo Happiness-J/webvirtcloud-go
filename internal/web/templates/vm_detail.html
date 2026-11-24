@@ -414,6 +414,8 @@
 </section>
 <section class="panel">
   <h2>快照树<button type="button" class="help-tip" aria-label="说明" data-tip="快照是虚拟机某个时刻的恢复点。内部快照保存在原磁盘中，外部快照会生成独立磁盘文件。运行中恢复会丢弃当前未保存的内存和磁盘变化，请先确认客户机可以接受回滚。">?</button></h2>
+  <h3>快照摘要 <button type="button" class="help-tip" aria-label="说明" data-tip="先看一共有多少份、当前用的是哪一份、哪些快照下面还挂着子快照。删掉有子快照的父快照会让下面的恢复点一起受影响。这里只汇总，不会删除或恢复。">?</button></h3>
+  {{if .Data.Snapshots.Count}}<p class="hint">共 {{.Data.Snapshots.Count}} 份{{if .Data.Snapshots.Current}}，当前是 {{.Data.Snapshots.Current}}{{end}}{{if .Data.Snapshots.Depth}}，最深 {{.Data.Snapshots.Depth}} 层{{end}}。</p>{{if .Data.Snapshots.Parents}}<ul class="plain-list">{{range .Data.Snapshots.Parents}}<li>{{.Name}} 下面有 {{.Children}} 份子快照</li>{{end}}</ul>{{else}}<p class="hint">这些快照都没有子快照，删除一份不会带着别的快照。</p>{{end}}{{else}}<p class="hint">还没有快照可以汇总。</p>{{end}}
   <p class="hint">用来在变更前保存恢复点，并在误操作后回到所选快照。内部快照适合单磁盘快速回退；外部快照会留下独立磁盘文件，删除前要确认没有被其他磁盘引用。虚拟机正在运行时，恢复会中断客户机并回滚到快照时刻，未写入磁盘的数据会丢失。</p>
   {{if eq .Data.Detail.Domain.State "running"}}<p class="hint">当前虚拟机正在运行。恢复快照会立即改变客户机磁盘和内存状态，建议先正常关机，或确认业务可以承受一致性回滚。</p>{{end}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">

@@ -310,3 +310,5 @@ details summary { cursor: pointer; color: var(--brand); }
 .impact-grid header{display:flex;justify-content:space-between;align-items:center;font-weight:650}
 .impact-grid ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 .impact-grid li{display:flex;justify-content:space-between;gap:8px}
+
+.plain-list{margin:8px 0 0;padding-left:18px;color:var(--muted)}
