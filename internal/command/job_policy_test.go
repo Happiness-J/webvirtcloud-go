@@ -152,3 +152,13 @@ func TestFailoverDefinePath(t *testing.T) {
 		t.Fatal("virsh start does not accept --file")
 	}
 }
+
+func TestBackupPolicyJobRole(t *testing.T) {
+	role, err := JobMinimumRole("backup-policy", "virsh", []string{"checkpoint-create-as", "web", "--name", "auto-20260102-030405", "--retain", "3"})
+	if err != nil || role != RoleOperator {
+		t.Fatalf("backup policy role = %q, %v", role, err)
+	}
+	if _, err := JobMinimumRole("backup-policy", "virsh", []string{"snapshot-create-as", "web", "auto"}); err == nil {
+		t.Fatal("unexpected backup command accepted")
+	}
+}
