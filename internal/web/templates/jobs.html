@@ -18,6 +18,10 @@
   {{else}}<div class="empty-state"><strong>最近没有失败任务</strong><span>失败出现后，同类原因会汇总在这里，方便先看是不是同一个问题。</span></div>{{end}}
 </section>
 <section class="panel">
+  <h2>同一目标反复失败 <button type="button" class="help-tip" aria-label="说明" data-tip="把最近失败里点名同一台虚拟机或同一个存储对象的任务数出来。出现两次及以上才列出，用来看出是不是同一个目标在反复失败。这里只汇总，不会重试或重新执行。">?</button></h2>
+  {{if .Data.FailureTargets}}<table><thead><tr><th>目标</th><th>主机</th><th>最近失败</th></tr></thead><tbody>{{range .Data.FailureTargets}}<tr><td>{{.Name}}</td><td>{{if .Host}}{{.Host}}{{else}}<span class="muted">-</span>{{end}}</td><td><span class="pill bad">{{.Count}}</span></td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>没有反复失败的同一目标</strong><span>最近失败没有两次以上指向同一台虚拟机或同一个存储对象。</span></div>{{end}}
+</section>
+<section class="panel">
 {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>发起人</th><th>主机</th><th>工具</th><th>状态<button type="button" class="help-tip" aria-label="说明" data-tip="排队表示还没开始，运行中可以进详情看输出，失败会保留错误原因。">?</button></th><th>时间</th></tr></thead><tbody>
 {{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td>{{.UserName}}</td><td>{{jobHostLabel .}}</td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}
 </tbody></table>{{else}}<div class="empty-state"><strong>任务队列是空的</strong><span>创建虚拟机、调整资源或执行维护操作后，进度会显示在这里。</span></div>{{end}}
