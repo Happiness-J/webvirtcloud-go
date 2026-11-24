@@ -717,6 +717,7 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			data["ResizableVolumes"] = resizable
+			data["VolumeUsage"] = s.volumeUsages(r.Context(), host.ID, volumes)
 		}
 	}
 	s.render(w, r, "storage", page)

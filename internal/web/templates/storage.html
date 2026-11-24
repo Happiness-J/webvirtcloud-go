@@ -24,7 +24,8 @@
 <section class="panel">
   <h2>存储池 {{.Data.SelectedPool}}</h2>
   <dl class="kv">{{range .Data.PoolInfo}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
-  {{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>容器格式</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Filesystem}}{{.Filesystem}}{{else}}-{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
+  <p class="hint">卷使用关系按虚拟机磁盘路径只读匹配。删除前先看“使用中”一列；这里只提示，不会自动解除引用。</p>
+{{if .Data.Volumes}}<table><thead><tr><th>卷</th><th>类型</th><th>容量</th><th>已分配</th><th>容器格式</th><th>使用中</th><th>路径</th></tr></thead><tbody>{{range .Data.Volumes}}<tr><td>{{.Name}}</td><td>{{if .Type}}{{.Type}}{{else}}-{{end}}</td><td>{{if .Capacity}}{{.Capacity}}{{else}}-{{end}}</td><td>{{if .Allocation}}{{.Allocation}}{{else}}-{{end}}</td><td>{{if .Filesystem}}{{.Filesystem}}{{else}}-{{end}}</td><td>{{if index $.Data.VolumeUsage .Name}}{{range index $.Data.VolumeUsage .Name}}<div>{{.VM}} · {{.Target}}</div>{{end}}{{else}}<span class="muted">未发现引用</span>{{end}}</td><td><code>{{.Path}}</code></td></tr>{{end}}</tbody></table>{{else}}<p class="empty">该存储池没有卷。</p>{{end}}
 </section>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel"><h2>OVA / OVF<button type="button" class="help-tip" aria-label="说明" data-tip="用于和 VMware、VirtualBox 交换虚拟机。导入读取镜像库中的 OVA，导出前会把 qcow2 或 raw 自动转换为 VMDK。">?</button></h2>
@@ -88,7 +89,7 @@
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="pool" value="{{.Data.SelectedPool}}"><input type="hidden" name="action" value="volume-delete">
       <label>卷<select name="volume" required>{{if .Data.Volumes}}{{range .Data.Volumes}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{else}}<option value="" disabled selected>没有卷</option>{{end}}</select></label>
       <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>我确认删除该卷</label>
-      <button class="btn danger" data-confirm="删除卷会永久删除其数据，确定继续吗？" {{if not .Data.Volumes}}disabled{{end}}>删除卷</button>
+      <button class="btn danger" data-confirm="删除卷会永久删除其数据。请先确认没有虚拟机正在使用它，确定继续吗？" {{if not .Data.Volumes}}disabled{{end}}>删除卷</button>
     </form>
   </div>
 </section>
