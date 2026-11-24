@@ -365,6 +365,9 @@
     <button class="btn">保存定时备份</button>
   </form>
   <p class="hint">定时策略仍创建 libvirt 增量检查点。NFS 与对象存储地址只记录副本应送到的位置，不保存访问密钥。恢复后请把副本摘要记到下面的演练记录。</p>
+  <h3>恢复校验报告<button type="button" class="help-tip" aria-label="说明" data-tip="报告汇总检查点链、最近演练摘要和备份目标位置。它只用于复核，不会自动恢复虚拟机。">?</button></h3>
+  <p class="hint">用来在恢复前确认备份链和演练记录是否对得上。目标位置只显示已保存的目的地，不显示访问密钥。</p>
+  <table><tbody><tr><th>检查点链</th><td>{{.Data.BackupReport.Chain}}</td></tr><tr><th>最新检查点</th><td>{{.Data.BackupReport.Checkpoint}}</td></tr><tr><th>最近演练</th><td>{{.Data.BackupReport.Drill}}</td></tr><tr><th>目标位置</th><td>{{.Data.BackupReport.Target}}</td></tr></tbody></table>
   <h3>恢复演练</h3>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/backup-drill" class="stack">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
