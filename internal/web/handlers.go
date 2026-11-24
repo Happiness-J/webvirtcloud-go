@@ -225,7 +225,12 @@ func (s *Server) hostDetail(w http.ResponseWriter, r *http.Request) {
 	if decryptErr != nil {
 		redactedURI = "[无法解密]"
 	}
-	s.render(w, r, "host_detail", pageData{Title: host.Name, Nav: "hosts", Data: map[string]any{"Host": host, "Redacted": redactedURI, "Jobs": jobs}})
+	domains, domainErr := s.libvirt.ListDomains(r.Context(), host.ID)
+	if domainErr != nil {
+		s.logRequestError(r, "load domains for maintenance impact", domainErr)
+	}
+	impact := buildMaintenanceImpact(domains, jobs, domainErr != nil)
+	s.render(w, r, "host_detail", pageData{Title: host.Name, Nav: "hosts", Data: map[string]any{"Host": host, "Redacted": redactedURI, "Jobs": jobs, "Impact": impact}})
 }
 
 func (s *Server) hostEditPage(w http.ResponseWriter, r *http.Request) {

@@ -15,6 +15,16 @@
 </div>
 {{if eq .User.Role "admin"}}<section class="panel"><h2>KSM 内存合并</h2><p class="hint">开启后，宿主机可以合并相同内存页以节省物理内存。变更会写入审计。</p><form method="post" action="/hosts/{{.Data.Host.ID}}/ksm" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn" name="enabled" value="1">开启 KSM</button><button class="btn" name="enabled" value="0">关闭 KSM</button></form></section>{{end}}
 <section class="panel">
+  <h2>维护前影响 <button type="button" class="help-tip" aria-label="说明" data-tip="进入维护或疏散前先看这里。运行中的虚拟机会被疏散带走，开了自启动的虚拟机会在宿主机重新开机后自己启动，没结束的任务还占着这台主机。清单只展示，不会自动迁移或取消任务。">?</button></h2>
+  <p class="hint">用来决定现在能不能进入维护。有运行中的虚拟机或未结束的任务时，先处理完再维护。这里不会自动疏散。</p>
+  {{if .Data.Impact.Unavailable}}<div class="empty-state"><strong>暂时读不到虚拟机</strong><span>主机连接失败时，不能判断哪些虚拟机还在运行。下面的任务仍然来自面板记录。</span></div>{{end}}
+  <div class="impact-grid">
+    <article><header>运行中 <span class="pill {{if .Data.Impact.Running}}warn{{else}}ok{{end}}">{{len .Data.Impact.Running}}</span></header>{{if .Data.Impact.Running}}<ul>{{range .Data.Impact.Running}}<li><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a><span class="muted">{{statusName .State}}</span></li>{{end}}</ul>{{else}}<p class="hint">没有运行或暂停的虚拟机。</p>{{end}}</article>
+    <article><header>自启动 <span class="pill {{if .Data.Impact.Autostart}}warn{{else}}muted{{end}}">{{len .Data.Impact.Autostart}}</span></header>{{if .Data.Impact.Autostart}}<ul>{{range .Data.Impact.Autostart}}<li><a href="/hosts/{{$.Data.Host.ID}}/vms/{{pathEscape .Name}}">{{.Name}}</a></li>{{end}}</ul>{{else}}<p class="hint">没有虚拟机会随宿主机自动启动。</p>{{end}}</article>
+    <article><header>未结束任务 <span class="pill {{if .Data.Impact.OpenJobs}}warn{{else}}ok{{end}}">{{len .Data.Impact.OpenJobs}}</span></header>{{if .Data.Impact.OpenJobs}}<ul>{{range .Data.Impact.OpenJobs}}<li><a href="/jobs/{{.ID}}">{{.Label}}</a><span class="muted">{{statusName .Status}}</span></li>{{end}}</ul>{{else}}<p class="hint">没有排队或运行中的任务。</p>{{end}}</article>
+  </div>
+</section>
+<section class="panel">
   <div class="panel-head"><h2>该主机的最近任务</h2><a href="/jobs">全部任务</a></div>
   {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td>{{.UserName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>这台主机还没有任务</strong><span>创建、迁移或调整资源后，任务会显示在这里。</span></div>{{end}}
 </section>
