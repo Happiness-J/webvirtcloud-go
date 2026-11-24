@@ -50,6 +50,8 @@
     <label class="confirm"><input type="checkbox" name="linked" value="yes">链接克隆</label>
     <button class="btn" data-confirm="完整克隆会复制磁盘；链接克隆会创建 qcow2 backing file，继续吗？">克隆</button>
   </form>
+  <p class="hint">迁移前检查只读取磁盘路径、主机探活和活动任务。它不会启动迁移。本地镜像目录中的磁盘会被视为不共享。</p>
+  {{if .Data.MigrationCheck.OK}}<p class="hint">当前只读检查没有发现阻断项。</p>{{else}}<ul class="hint">{{range .Data.MigrationCheck.Reasons}}<li>{{.}}</li>{{end}}</ul>{{end}}
   {{if or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="migrate">
