@@ -26,6 +26,7 @@
 <section class="panel">
   <h2>防删锁<button type="button" class="help-tip" aria-label="说明" data-tip="防删锁只阻止删除这台虚拟机的定义。它和高可用保护不是一回事，不会在主机故障后自动重启虚拟机。">?</button></h2>
   <p class="hint">用来防止误删生产虚拟机。开启后，页面和 API 都不能删除定义；需要删除时先关闭防删锁。{{if .Data.DeleteProtected}}当前已开启。{{else}}当前未开启。{{end}}</p>
+  {{if .Data.ProtectionGap.Label}}<p class="hint">保护不一致：{{.Data.ProtectionGap.Label}}。防删锁只阻止删除，高可用才会在主机故障后重启。这里只对照，不会自动修改。</p>{{end}}
   {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/protection" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="enabled" value="{{if .Data.DeleteProtected}}0{{else}}1{{end}}"><button class="btn {{if .Data.DeleteProtected}}danger{{end}}">{{if .Data.DeleteProtected}}关闭防删锁{{else}}开启防删锁{{end}}</button></form>{{end}}
 </section>
 {{if eq .User.Role "admin"}}<section class="panel danger-zone">
