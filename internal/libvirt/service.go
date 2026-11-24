@@ -276,6 +276,17 @@ func (s *Service) GuestFilesystems(ctx context.Context, hostID, name string) (st
 	return strings.TrimSpace(res.Stdout), err
 }
 
+func (s *Service) GuestHostname(ctx context.Context, hostID, name string) (string, error) {
+	if err := ValidateName(name); err != nil {
+		return "", err
+	}
+	res, err := s.run(ctx, hostID, []string{"domhostname", name, "--source", "agent"}, 10*time.Second)
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	return strings.TrimSpace(res.Stdout), nil
+}
+
 func (s *Service) GuestAgentInfo(ctx context.Context, hostID, name string) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err

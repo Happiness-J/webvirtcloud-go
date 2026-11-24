@@ -576,6 +576,10 @@ func validateVMActionArgs(args []string) error {
 		if len(args) != 3 && (len(args) != 4 || args[3] != "--quiesce") {
 			return fmt.Errorf("静默快照参数不正确")
 		}
+	case "domfsfreeze", "domfsthaw":
+		if len(args) != 2 {
+			return fmt.Errorf("文件系统冻结参数不正确")
+		}
 	case "snapshot-revert", "snapshot-delete", "checkpoint-delete":
 		if len(args) != 3 {
 			return fmt.Errorf("恢复点操作 %s 的参数数量不正确", args[0])

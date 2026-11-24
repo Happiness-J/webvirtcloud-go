@@ -5,9 +5,12 @@ import "net/http"
 func guestText(s *Server, r *http.Request, hostID, vm, kind string) string {
 	var text string
 	var err error
-	if kind == "os" {
+	switch kind {
+	case "os":
 		text, err = s.libvirt.GuestOSInfo(r.Context(), hostID, vm)
-	} else {
+	case "hostname":
+		text, err = s.libvirt.GuestHostname(r.Context(), hostID, vm)
+	default:
 		text, err = s.libvirt.GuestFilesystems(r.Context(), hostID, vm)
 	}
 	if err != nil || text == "" {
