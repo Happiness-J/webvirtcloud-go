@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"webvirtcloud-go/internal/cluster"
 	"webvirtcloud-go/internal/libvirt"
 	"webvirtcloud-go/internal/store"
 )
@@ -43,8 +44,9 @@ func (s *Server) clusterPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	suggestion := placementSuggestion(hosts, health, policy.Policy)
 	s.render(w, r, "cluster", pageData{Title: "高可用与调度", Nav: "cluster", Data: map[string]any{
-		"Policy": policy, "Hosts": hosts, "Health": health, "Protected": protected,
+		"Policy": policy, "Hosts": hosts, "Health": health, "Protected": protected, "Suggestion": suggestion,
 	}})
 }
 
@@ -89,4 +91,22 @@ func (s *Server) clusterProtect(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
 	s.audit.Record(r.Context(), store.Audit{ActorID: sess.User.ID, ActorName: sess.User.Username, Action: "cluster.protect", HostID: hostID, RemoteIP: s.clientIP(r), Detail: map[string]any{"vm": vm, "protected": item.Protected}})
 	http.Redirect(w, r, "/cluster", http.StatusSeeOther)
+}
+
+func placementSuggestion(hosts []store.Host, health map[string]store.HostHealth, policy string) cluster.Decision {
+	views := make([]cluster.Host, 0, len(hosts))
+	for _, host := range hosts {
+		item := health[host.ID]
+		views = append(views, cluster.Host{
+			ID: host.ID, Name: host.Name, URI: "qemu+ssh://placement.invalid/system",
+			Enabled: host.Enabled, Maintenance: host.Maintenance, Reachable: item.Reachable,
+			CPUPercent: item.CPUPercent, MemPercent: item.MemPercent, RunningVMs: item.RunningVMs,
+		})
+	}
+	decision, err := cluster.Place(views, cluster.Request{Policy: policy})
+	if err != nil {
+		return cluster.Decision{}
+	}
+	decision.URI = ""
+	return decision
 }

@@ -33,16 +33,18 @@
   </section>
 </div>
 <section class="panel">
+  <h2>放置建议<button type="button" class="help-tip" aria-label="说明" data-tip="创建或迁移前先看这里。建议只根据当前 CPU、内存和运行中的虚拟机数量排序，不会自动迁移或创建虚拟机。">?</button></h2>
+  <p class="hint">用来减少人工挑机器。{{if .Data.Suggestion.HostName}}当前建议优先使用 {{.Data.Suggestion.HostName}}。{{.Data.Suggestion.Reason}}{{else}}还没有可用于建议的可达主机。{{end}}确认目标后，再到对应主机的创建页面或虚拟机迁移操作里手动执行。</p>
   <h2>主机负载</h2>
   {{if .Data.Hosts}}
-  <table><thead><tr><th>主机</th><th>状态</th><th>探活</th><th>CPU</th><th>内存</th><th>运行中虚拟机</th></tr></thead><tbody>
+  <table><thead><tr><th>主机</th><th>状态</th><th>探活</th><th>CPU</th><th>内存</th><th>运行中虚拟机</th><th>建议</th></tr></thead><tbody>
   {{range .Data.Hosts}}{{$health := index $.Data.Health .ID}}<tr>
     <td><a href="/hosts/{{.ID}}">{{.Name}}</a></td>
     <td>{{if .Maintenance}}<span class="pill warn">维护</span>{{else if .Enabled}}<span class="pill ok">启用</span>{{else}}<span class="pill bad">禁用</span>{{end}}</td>
     <td>{{if $health.CheckedAt.IsZero}}<span class="pill muted">未检查</span>{{else if $health.Reachable}}<span class="pill ok">可达</span>{{else}}<span class="pill bad">失联 {{$health.Failures}}</span>{{end}}</td>
     <td>{{printf "%.0f" $health.CPUPercent}}%</td>
     <td>{{printf "%.0f" $health.MemPercent}}%</td>
-    <td>{{$health.RunningVMs}}</td>
+    <td>{{$health.RunningVMs}}</td><td>{{if eq .ID $.Data.Suggestion.HostID}}<span class="pill ok">建议</span>{{else}}<span class="muted">-</span>{{end}}</td>
   </tr>{{end}}</tbody></table>
   {{else}}<div class="empty-state"><strong>还没有主机</strong><span>先添加至少两台可迁移的计算主机。</span></div>{{end}}
 </section>
