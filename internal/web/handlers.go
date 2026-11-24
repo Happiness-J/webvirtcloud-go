@@ -2108,11 +2108,37 @@ func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) imageLibraryPage(w http.ResponseWriter, r *http.Request) {
 	images, err := listLibraryImages(s.cfg.ImageDir, r.URL.Query().Get("q"), r.URL.Query().Get("category"))
-	page := pageData{Title: "镜像库", Nav: "hosts", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category")}}
+	mounted, failed := s.mountedInstallers(r)
+	page := pageData{Title: "镜像库", Nav: "hosts", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category"), "Unused": unusedInstallers(images, mounted, failed)}}
 	if err != nil {
 		page.Flash, page.FlashType = "无法读取镜像目录。", "error"
 	}
 	s.render(w, r, "images", page)
+}
+
+func (s *Server) mountedInstallers(r *http.Request) ([]cdromMedia, int) {
+	hosts, err := s.visibleHosts(r)
+	if err != nil {
+		return nil, 1
+	}
+	var mounted []cdromMedia
+	failed := 0
+	for _, host := range hosts {
+		domains, err := s.libvirt.ListDomains(r.Context(), host.ID)
+		if err != nil {
+			failed++
+			continue
+		}
+		for _, domain := range domains {
+			output, err := s.libvirt.BlockDevices(r.Context(), host.ID, domain.Name)
+			if err != nil {
+				failed++
+				continue
+			}
+			mounted = append(mounted, cdromMediaList(libvirt.ParseBlockDevices(output))...)
+		}
+	}
+	return mounted, failed
 }
 
 func (s *Server) imageLibraryUpload(w http.ResponseWriter, r *http.Request) {
