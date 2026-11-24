@@ -32,8 +32,8 @@ func TestVMListRendersIdleVMs(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := pageData{Title: "vms", CSRF: "csrf", User: &store.User{Role: "operator"}, Data: map[string]any{
-		"Groups": []vmGroup{{Host: store.Host{ID: "host", Name: "compute"}, Domains: []libvirt.Domain{{Name: "web", State: "running", Autostart: "enable"}}}},
-		"Idle":   []idleVM{{HostID: "host", HostName: "compute", Name: "forgotten"}},
+		"Unbacked": map[string]bool{}, "Groups": []vmGroup{{Host: store.Host{ID: "host", Name: "compute"}, Domains: []libvirt.Domain{{Name: "web", State: "running", Autostart: "enable"}}}},
+		"Idle": []idleVM{{HostID: "host", HostName: "compute", Name: "forgotten"}},
 	}}
 	var rendered strings.Builder
 	if err := templates["vms"].ExecuteTemplate(&rendered, "base", page); err != nil {
