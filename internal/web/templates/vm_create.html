@@ -2,6 +2,7 @@
 <div class="page-head"><div><p class="page-kicker">新建资源</p><h1>创建虚拟机</h1><p class="muted">{{.Data.Host.Name}} · 默认只要选系统和规格、写一个名字。其余都已填好，需要时再展开高级区。</p></div><a class="btn" href="/vms">返回列表</a></div>
 <section class="panel narrow"><form method="post" class="stack" id="vm-create-form" novalidate>
 <input type="hidden" name="_csrf" value="{{.CSRF}}">
+<section class="panel"><h2>从模板开始<button type="button" class="help-tip" aria-label="说明" data-tip="模板保存常用规格、系统和首次启动的主机名、用户、网络。它不保存密码或私钥。选择后仍可在提交前修改。">?</button></h2><p class="hint">用来减少重复安装。选择模板会填入受控字段；SSH 公钥仍需本次手动粘贴。</p>{{if .Data.Templates}}<label>模板<select id="vm-template"><option value="">不使用模板</option>{{range .Data.Templates}}<option value="{{.Name}}" data-vcpus="{{.VCPUs}}" data-memory="{{.MemoryGB}}" data-disk="{{.DiskGB}}" data-network="{{.Network}}" data-os="{{.OSVariant}}" data-hostname="{{.Hostname}}" data-user="{{.Username}}" data-address="{{.Address}}" data-gateway="{{.Gateway}}" data-dns="{{.DNS}}">{{.Name}}</option>{{end}}</select></label>{{else}}<p class="empty">还没有模板。填写下面的配置后可以保存为一份模板。</p>{{end}}</section>
 <section class="create-basic">
   <div class="panel-head"><h2>常用配置</h2></div>
   <p class="hint">第一步选系统，第二步选规格，第三步写名字。选好后处理器、内存和磁盘会自动填上。</p>
@@ -19,5 +20,5 @@
 <details class="advanced-group" data-group="cloud"><summary>首次启动配置 <button type="button" class="help-tip" aria-label="首次启动说明" data-tip="全部留空即可。填写后会生成 cloud-init 配置，适合新建 Linux 虚拟机自动设置用户和网络。">?</button></summary><div class="advanced-body"><label>主机名 <span class="opt">可选</span><input name="hostname" maxlength="253" placeholder="web-01" data-label="主机名"></label><label>初始用户 <span class="opt">可选</span><input name="cloud_user" maxlength="32" placeholder="operator" data-label="初始用户"></label><label>SSH 公钥 <span class="opt">可选</span><textarea name="ssh_key" rows="2" placeholder="ssh-ed25519 AAAA..." data-label="SSH 公钥"></textarea></label><label>客户机地址 <span class="opt">可选</span><input name="guest_address" placeholder="192.0.2.10/24" data-label="客户机地址"></label><label>网关 <span class="opt">可选</span><input name="guest_gateway" placeholder="192.0.2.1" data-label="网关"></label><label>DNS <span class="opt">可选</span><input name="guest_dns" placeholder="192.0.2.53" data-label="DNS"></label><p class="hint">静态地址和网关需要同时填写。不会保存密码。</p></div></details>
 <p class="form-error" id="create-error" hidden></p>
 <button class="btn primary">创建虚拟机</button>
-</form></section>
+<label>模板名称<input name="template_name" maxlength="64" placeholder="例如 web-small"></label><button class="btn" formaction="/hosts/{{.Data.Host.ID}}/vm-templates" formmethod="post">保存为模板</button></form></section>
 {{end}}

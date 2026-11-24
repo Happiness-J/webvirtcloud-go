@@ -310,6 +310,20 @@ if (createForm) {
     createForm.cores.value = source.dataset.vcpus;
     createForm.threads.value = "1";
   };
+  createForm.querySelector('#vm-template')?.addEventListener('change', () => {
+    const option = createForm.querySelector('#vm-template').selectedOptions[0];
+    if (!option?.dataset.vcpus) return;
+    createForm.vcpus.value = option.dataset.vcpus;
+    createForm.memory.value = option.dataset.memory;
+    createForm.disk.value = option.dataset.disk;
+    if (option.dataset.network) createForm.network.value = option.dataset.network;
+    if (option.dataset.os) createForm.os_profile.value = option.dataset.os;
+    createForm.hostname.value = option.dataset.hostname || '';
+    createForm.cloud_user.value = option.dataset.user || '';
+    createForm.guest_address.value = option.dataset.address || '';
+    createForm.guest_gateway.value = option.dataset.gateway || '';
+    createForm.guest_dns.value = option.dataset.dns || '';
+  });
   createForm.querySelector('#os-profile')?.addEventListener('change', applyPreset);
   createForm.querySelector('#vm-size')?.addEventListener('change', applyPreset);
   applyPreset();

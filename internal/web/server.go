@@ -432,6 +432,7 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("GET /api/v1/hosts", s.protect("viewer", s.apiHosts))
 	mux.Handle("GET /hosts/{id}/vms/new", s.protect("operator", s.vmCreatePage))
 	mux.Handle("POST /hosts/{id}/vms/new", s.protect("operator", s.vmCreate))
+	mux.Handle("POST /hosts/{id}/vm-templates", s.protect("operator", s.vmTemplateSave))
 	mux.Handle("POST /api/v1/hosts/{id}/vms", s.protect("operator", s.apiVMCreate))
 	mux.Handle("GET /api/v1/hosts/{id}/vms", s.protect("viewer", s.apiHostVMs))
 	mux.Handle("GET /api/v1/hosts/{id}/vms/{vm}", s.protect("viewer", s.apiVM))
