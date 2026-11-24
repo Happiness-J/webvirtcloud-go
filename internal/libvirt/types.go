@@ -16,6 +16,10 @@ type Snapshot struct {
 	Name      string
 	CreatedAt string
 	State     string
+	Parent    string
+	Kind      string
+	Depth     int
+	Current   bool
 }
 
 type Pool struct {

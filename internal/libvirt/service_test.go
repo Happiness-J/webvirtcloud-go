@@ -382,3 +382,18 @@ func TestFormatMemoryStats(t *testing.T) {
 		t.Fatalf("formatMemoryStats() = %q", got)
 	}
 }
+
+func TestSnapshotMetadataAndOrder(t *testing.T) {
+	kind, parent := snapshotMetadata(`<domainsnapshot><name>child</name><parent><name>base</name></parent><disks><disk name="vda" snapshot="external"/></disks></domainsnapshot>`)
+	if kind != "external" || parent != "base" {
+		t.Fatalf("metadata = %s %s", kind, parent)
+	}
+	kind, _ = snapshotMetadata(`<domainsnapshot><name>base</name><disks><disk name="vda" snapshot="internal"/></disks></domainsnapshot>`)
+	if kind != "internal" {
+		t.Fatalf("kind = %s", kind)
+	}
+	ordered := orderSnapshots([]Snapshot{{Name: "child", Parent: "base"}, {Name: "base"}})
+	if len(ordered) != 2 || ordered[0].Name != "base" || ordered[1].Name != "child" || ordered[1].Depth != 1 {
+		t.Fatalf("order = %#v", ordered)
+	}
+}
