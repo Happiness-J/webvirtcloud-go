@@ -52,6 +52,8 @@
 </section>
 
 <section class="panel">
+  <h3>长期未活动 <button type="button" class="help-tip" aria-label="说明" data-tip="这些是当前账号里、除了正在使用的这一次以外，最近活动已经超过一天的登录。改密或人员离开后可以到下面逐条退出。这里只计数，不会强制下线。">?</button></h3>
+  {{if .Data.IdleSessions}}<p class="hint">有 {{.Data.IdleSessions}} 个会话超过一天未活动。</p>{{else}}<p class="hint">没有超过一天未活动的其他会话。</p>{{end}}
   <h2>登录会话</h2>
   {{if .Data.Sessions}}<table><thead><tr><th>最近活动</th><th>来源</th><th>客户端</th><th></th></tr></thead><tbody>
   {{range .Data.Sessions}}<tr>
