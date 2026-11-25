@@ -42,9 +42,9 @@ func (s *Server) renderAccountSecurity(w http.ResponseWriter, r *http.Request, u
 	}
 	pending, _ := pendingTOTP(r)
 	s.render(w, r, "account_security", pageData{Title: "账号安全", Nav: "account", Flash: flash, FlashType: "ok", Data: map[string]any{
-		"TOTPEnabled":  user.TOTPEnabled(),
-		"Pending":      pending,
-		"Sessions":     sessions,
+		"TOTPEnabled": user.TOTPEnabled(),
+		"Pending":     pending,
+		"Sessions":    sessions, "IdleSessions": idleSessionCount(sessions, time.Now()),
 		"Tokens":       tokens,
 		"Roles":        tokenRoles(user.Role),
 		"CreatedToken": createdToken,
