@@ -884,7 +884,7 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets,
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "LongQueued": longQueuedJobs(jobs, time.Now()),
 	}})
 }
 
