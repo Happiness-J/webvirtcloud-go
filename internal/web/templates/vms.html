@@ -8,6 +8,11 @@
   <p class="hint">用来找可能忘了的虚拟机。确认不再需要后，再到详情页处理。连接失败的主机不在这份清单里。</p>
   <ul class="plain-list">{{range .Data.Idle}}<li><a href="/hosts/{{.HostID}}/vms/{{pathEscape .Name}}">{{.Name}}</a> <span class="muted">{{.HostName}}</span></li>{{end}}</ul>
 </section>{{end}}
+{{if .Data.Paused}}<section class="panel">
+  <h2>暂停中的虚拟机 <button type="button" class="help-tip" aria-label="说明" data-tip="这些虚拟机是暂停的，不是关机。内存还占在宿主机上，恢复后会从暂停的位置继续。这里只列出，不会恢复，也不会关机。">?</button></h2>
+  <p class="hint">用来在恢复或关机前看清还有哪几台挂着。连接失败的主机不在这份清单里。</p>
+  <ul class="plain-list">{{range .Data.Paused}}<li><a href="/hosts/{{.HostID}}/vms/{{pathEscape .Name}}">{{.Name}}</a> <span class="muted">{{.HostName}}</span></li>{{end}}</ul>
+</section>{{end}}
 {{if not .Data.Groups}}<section class="panel"><div class="empty-state"><strong>还没有可管理的主机</strong><span>先添加 libvirt 连接，然后就能在这里创建和查看虚拟机。</span></div></section>{{end}}
 {{range $group := .Data.Groups}}
 <section class="panel">
