@@ -212,6 +212,7 @@ details summary { cursor: pointer; color: var(--brand); }
 
 .ops-summary .kv dd { font-variant-numeric: tabular-nums; }
 .table-wrap { overflow-x: auto; }
+.audit-action code { white-space: nowrap; }
 .ops-table { min-width: 860px; }
 .ops-table td:nth-child(n+5), .ops-table th:nth-child(n+5) { text-align: right; font-variant-numeric: tabular-nums; }
 
