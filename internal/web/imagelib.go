@@ -41,7 +41,7 @@ func listLibraryImages(dir, query, category string) ([]libraryImage, error) {
 		if err != nil || !info.Mode().IsRegular() {
 			continue
 		}
-		item := libraryImage{Name: entry.Name(), Path: path, Kind: libraryKind(entry.Name()), Category: libraryCategory(entry.Name()), Size: fmt.Sprintf("%d B", info.Size())}
+		item := libraryImage{Name: entry.Name(), Path: path, Kind: libraryKind(entry.Name()), Category: libraryCategory(entry.Name()), Size: formatBytes(uint64(info.Size()))}
 		if category != "" && category != "all" && item.Category != category {
 			continue
 		}
