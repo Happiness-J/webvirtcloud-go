@@ -922,7 +922,12 @@ func (s *Server) usersPage(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		rows = append(rows, userRow{User: user, Self: user.ID == sess.User.ID})
 	}
-	s.render(w, r, "users", pageData{Title: "用户", Nav: "users", Data: map[string]any{"Users": rows, "Page": page, "HasNext": hasNext, "LDAP": s.ldap != nil && s.ldap.Enabled(), "Webhook": s.hooks != nil && s.hooks.Enabled()}})
+	nearlyFull := nearlyFullQuotas(users, func(userID string) (store.UserQuota, error) {
+		return s.db.GetUserQuota(r.Context(), userID)
+	}, func(userID string) (store.Usage, error) {
+		return s.db.UserUsage(r.Context(), userID)
+	})
+	s.render(w, r, "users", pageData{Title: "用户", Nav: "users", Data: map[string]any{"Users": rows, "Page": page, "HasNext": hasNext, "LDAP": s.ldap != nil && s.ldap.Enabled(), "Webhook": s.hooks != nil && s.hooks.Enabled(), "NearlyFull": nearlyFull}})
 }
 
 func (s *Server) userNewPage(w http.ResponseWriter, r *http.Request) {
