@@ -500,6 +500,7 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 		}()
 	}
 	wg.Wait()
+	detail.AgentOnline = guestErr == nil
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
 	detail.Backups, backupErr = s.ListBackups(ctx, hostID, name)
@@ -1279,7 +1280,7 @@ func formatMemoryStats(output string) string {
 		case key == "swap_in" || key == "swap_out" || key == "major_fault" || key == "minor_fault":
 			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
 		case key == "last_update":
-			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
+			lines = append(lines, fmt.Sprintf("%s: %s", label, time.Unix(int64(number), 0).Format("2006-01-02 15:04:05")))
 		default:
 			lines = append(lines, label+": "+humanBytes(number*1024))
 		}

@@ -1,6 +1,10 @@
 {{define "content"}}
+<style>
+/* 虚拟机详情页局部样式：行内表单复选框不被拉宽。 */
+.inline-form input[type="checkbox"]{min-width:0}
+</style>
 <div class="page-head detail-hero">
-  <div><p class="page-kicker">虚拟机详情</p><button type="button" class="help-tip" aria-label="说明" data-tip="集中查看状态、设备和配置。多数配置需要先关机再修改。">?</button><h1>{{.Data.VM}}</h1><p class="muted">{{.Data.Host.Name}} · 状态 <span class="pill {{statusClass .Data.Detail.Domain.State}}">{{statusName .Data.Detail.Domain.State}}</span></p></div>
+  <div><p class="page-kicker">虚拟机详情</p><h1>{{.Data.VM}}<button type="button" class="help-tip" aria-label="说明" data-tip="集中查看状态、设备和配置。多数配置需要先关机再修改。">?</button></h1><p class="muted">{{.Data.Host.Name}} · 状态 <span class="pill {{statusClass .Data.Detail.Domain.State}}">{{statusName .Data.Detail.Domain.State}}</span></p></div>
   <div class="actions"><a class="btn" href="/hosts/{{.Data.Host.ID}}/vms">返回列表</a>{{if and (or (eq .User.Role "admin") (eq .User.Role "operator") .Data.ConsoleAllowed) (consoleAvailable .Data.Detail.Domain.State)}}<a class="btn primary" href="/console/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">VNC 控制台</a><a class="btn" href="/serial/{{.Data.Host.ID}}/{{pathEscape .Data.VM}}">串口终端</a>{{end}}</div>
 </div>
 {{range .Data.ConsoleWarnings}}<div class="flash error"><strong>控制台安全：</strong>{{.}}</div>{{end}}
@@ -40,7 +44,13 @@
     <label class="confirm"><input type="checkbox" name="confirm" value="yes" required>我了解磁盘不会随定义一起删除</label>
     <button class="btn danger" data-confirm="确定永久删除虚拟机定义吗？">删除虚拟机定义</button>
   </form>
-  {{else}}<p class="hint">虚拟机当前为 <strong>{{statusName .Data.Detail.Domain.State}}</strong>。请先正常关机；强制断电只应由运维人员在确认风险后执行。</p>{{end}}
+  {{else}}<p class="hint">虚拟机当前为 <strong>{{statusName .Data.Detail.Domain.State}}</strong>。请先正常关机；强制断电只应由运维人员在确认风险后执行。</p>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="stack" aria-disabled="true">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="undefine">
+    <label>输入虚拟机名称 <code>{{.Data.VM}}</code> 以确认<input name="confirm_name" autocomplete="off" required disabled></label>
+    <label class="confirm"><input type="checkbox" name="confirm" value="yes" required disabled>我了解磁盘不会随定义一起删除</label>
+    <button class="btn danger" disabled>删除虚拟机定义</button>
+  </form>{{end}}
 </section>{{end}}
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}
 <section class="panel">
@@ -437,7 +447,7 @@
 </section>
 <section class="panel">
   <h2>磁盘与内存诊断</h2>
-  <section class="panel"><h2>24 小时资源趋势</h2><canvas id="vm-history" data-url="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/metrics" aria-label="虚拟机历史资源趋势"></canvas></section>
+  <section class="panel"><h2>24 小时资源趋势</h2><canvas id="vm-history" style="width:100%;height:120px" data-url="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/metrics" aria-label="虚拟机历史资源趋势"></canvas></section>
 <div class="grid two">
     <div><h3>块设备错误</h3><pre class="output">{{if .Data.Detail.BlockErrors}}{{.Data.Detail.BlockErrors}}{{else}}没有报告块设备错误。{{end}}</pre></div>
     <div><h3>guest 内存统计</h3><pre class="output">{{if .Data.Detail.MemoryStats}}{{.Data.Detail.MemoryStats}}{{else}}guest agent 未返回内存统计。{{end}}</pre></div>
@@ -451,11 +461,11 @@
   <pre class="output">{{if .Data.Detail.Events}}{{.Data.Detail.Events}}{{else}}检查窗口内没有新事件。{{end}}</pre>
 </section>
 {{end}}
-<div class="grid two">
+<div class="grid two" style="align-items:start">
   <section class="panel"><h2>摘要</h2><dl class="kv">{{range .Data.InfoRows}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl></section>
   <section class="panel"><h2>客户机代理<button type="button" class="help-tip" aria-label="说明" data-tip="通过虚拟机内的 QEMU Guest Agent 读取真实主机名、IP 和磁盘。冻结文件系统只用于备份或快照前让客户机短暂停止写入，不会在客户机里执行任意命令。">?</button></h2>
 <p class="hint">用来确认客户机真实身份和地址，或在备份前暂停写入。客户机必须已安装并运行 qemu-guest-agent。冻结后请及时解冻；这里不提供任意命令执行。</p>
-<p class="hint">{{if .Data.Detail.GuestAgent}}代理在线。{{else}}代理未响应。Windows 安装 QEMU Guest Agent，Linux 安装并启动 qemu-guest-agent。{{end}}</p>
+<p class="hint">{{if .Data.Detail.AgentOnline}}代理在线。{{else}}代理未响应。Windows 安装 QEMU Guest Agent，Linux 安装并启动 qemu-guest-agent。{{end}}</p>
 <h3>主机名</h3><pre class="output">{{.Data.GuestHostname}}</pre>
 {{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="guest-fsfreeze"><button class="btn" data-confirm="冻结会让客户机文件系统暂停写入。确定现在冻结吗？">冻结文件系统</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="guest-fsthaw"><button class="btn">解冻文件系统</button></form>{{end}}
 <h3>操作系统</h3><pre class="output">{{.Data.GuestOS}}</pre><h3>内部磁盘</h3><pre class="output">{{.Data.GuestFilesystems}}</pre>

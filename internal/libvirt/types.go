@@ -91,6 +91,9 @@ type DomainDetail struct {
 	MemoryStats string
 	Events      string
 	GuestAgent  string
+	// AgentOnline reports whether the QEMU guest agent answered. GuestAgent
+	// still carries the agent output or the failure text for display.
+	AgentOnline bool
 	Backups     []Backup
 	// PowerRequest reports a pending guest ACPI shutdown or reboot request.
 	// An empty value means libvirt currently reports no pending request.
