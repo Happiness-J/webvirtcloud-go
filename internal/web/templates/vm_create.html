@@ -1,6 +1,6 @@
 {{define "content"}}
 <div class="page-head"><div><p class="page-kicker">新建资源</p><h1>创建虚拟机</h1><p class="muted">{{.Data.Host.Name}} · 默认只要选系统和规格、写一个名字。其余都已填好，需要时再展开高级区。</p></div><a class="btn" href="/vms">返回列表</a></div>
-<section class="panel narrow"><form method="post" class="stack" id="vm-create-form" novalidate>
+<section class="panel narrow" style="margin-inline:auto"><form method="post" class="stack" id="vm-create-form" novalidate>
 <input type="hidden" name="_csrf" value="{{.CSRF}}">
 <section class="panel"><h2>从模板开始<button type="button" class="help-tip" aria-label="说明" data-tip="模板保存常用规格、系统和首次启动的主机名、用户、网络。它不保存密码或私钥。选择后仍可在提交前修改。">?</button></h2><p class="hint">用来减少重复安装。选择模板会填入受控字段；SSH 公钥仍需本次手动粘贴。</p>{{if .Data.Templates}}<label>模板<select id="vm-template"><option value="">不使用模板</option>{{range .Data.Templates}}<option value="{{.Name}}" data-vcpus="{{.VCPUs}}" data-memory="{{.MemoryGB}}" data-disk="{{.DiskGB}}" data-network="{{.Network}}" data-os="{{.OSVariant}}" data-hostname="{{.Hostname}}" data-user="{{.Username}}" data-address="{{.Address}}" data-gateway="{{.Gateway}}" data-dns="{{.DNS}}">{{.Name}}</option>{{end}}</select></label>{{else}}<p class="empty">还没有模板。填写下面的配置后可以保存为一份模板。</p>{{end}}</section>
 <section class="create-basic">
