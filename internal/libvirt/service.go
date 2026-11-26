@@ -340,9 +340,14 @@ func (s *Service) ListSnapshots(ctx context.Context, hostID, name string) ([]Sna
 	if err := ValidateName(name); err != nil {
 		return nil, err
 	}
-	res, err := s.run(ctx, hostID, []string{"snapshot-list", name, "--parent", "--current"}, 10*time.Second)
+	res, err := s.run(ctx, hostID, []string{"snapshot-list", name, "--parent"}, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	currentRes, currentErr := s.run(ctx, hostID, []string{"snapshot-current", name, "--name"}, 10*time.Second)
+	current := ""
+	if currentErr == nil {
+		current = strings.TrimSpace(currentRes.Stdout)
 	}
 	rows := ParseTable(res.Stdout)
 	out := make([]Snapshot, 0, len(rows))
@@ -360,7 +365,7 @@ func (s *Service) ListSnapshots(ctx context.Context, hostID, name string) ([]Sna
 		if len(row) > 3 && row[3] != "-" && ValidateName(row[3]) == nil {
 			snapshot.Parent = row[3]
 		}
-		if len(row) > 4 && row[4] == "yes" {
+		if snapshot.Name == current {
 			snapshot.Current = true
 		}
 		out = append(out, snapshot)
