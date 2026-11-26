@@ -241,7 +241,7 @@ details summary { cursor: pointer; color: var(--brand); }
 .api-example { min-width: 0; }
 .api-example-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .api-example-head h3 { margin: 0; font-size: 14px; }
-.api-example pre { margin: 0; min-height: 168px; }
+.api-example pre { margin: 0; min-height: 168px; white-space: pre; overflow-x: auto; overflow-wrap: normal; }
 .btn.copied { color: var(--ok); border-color: #b9dfc9; background: #f2fbf6; }
 
 @media (max-width: 900px) {
