@@ -797,7 +797,7 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 			s.logRequestError(r, "load storage pool info", infoErr)
 			page.Flash, page.FlashType = "无法读取存储池信息，请查看服务日志。", "error"
 		} else {
-			data["PoolInfo"] = sortedKV(info)
+			data["PoolInfo"] = poolInfoRows(info)
 		}
 		volumes, volumeErr := s.libvirt.ListVolumes(r.Context(), host.ID, pool)
 		if volumeErr != nil {
@@ -818,6 +818,13 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 			data["SharedVolumes"] = sharedVolumePaths(volumes, data["VolumeUsage"].(map[string][]volumeUsage))
 		}
 	}
+	otherPools := 0
+	for _, available := range pools {
+		if available.Name != pool {
+			otherPools++
+		}
+	}
+	data["HasOtherPools"] = otherPools > 0
 	volumes, _ := data["Volumes"].([]libvirt.Volume)
 	data["CapacityHints"] = poolCapacityHints(pools, volumes)
 	s.render(w, r, "storage", page)
@@ -1475,12 +1482,40 @@ func parsePage(raw string) int {
 	return page
 }
 
-func sortedKV(values map[string]string) []kvRow {
-	rows := make([]kvRow, 0, len(values))
-	for key, value := range values {
-		rows = append(rows, kvRow{Key: key, Value: value})
+// poolInfoRows 把 virsh pool-info 的英文键名翻译成中文展示，
+// 未知键名保持原样排在后面。
+func poolInfoRows(info map[string]string) []kvRow {
+	labels := map[string]string{
+		"Name": "名称", "UUID": "UUID", "State": "状态", "Persistent": "持久",
+		"Autostart": "自启动", "Capacity": "容量", "Allocation": "已分配", "Available": "可用",
 	}
-	sort.Slice(rows, func(i, j int) bool { return rows[i].Key < rows[j].Key })
+	order := []string{"Name", "State", "Capacity", "Allocation", "Available", "Autostart", "Persistent", "UUID"}
+	rows := make([]kvRow, 0, len(info))
+	seen := make(map[string]bool, len(info))
+	for _, key := range order {
+		value, ok := info[key]
+		if !ok {
+			continue
+		}
+		seen[key] = true
+		switch key {
+		case "State":
+			value = poolStateName(value)
+		case "Autostart", "Persistent":
+			value = flagName(value)
+		}
+		rows = append(rows, kvRow{Key: labels[key], Value: value})
+	}
+	rest := make([]string, 0)
+	for key := range info {
+		if !seen[key] {
+			rest = append(rest, key)
+		}
+	}
+	sort.Strings(rest)
+	for _, key := range rest {
+		rows = append(rows, kvRow{Key: key, Value: info[key]})
+	}
 	return rows
 }
 
@@ -2215,7 +2250,7 @@ func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) imageLibraryPage(w http.ResponseWriter, r *http.Request) {
 	images, err := listLibraryImages(s.cfg.ImageDir, r.URL.Query().Get("q"), r.URL.Query().Get("category"))
 	mounted, failed := s.mountedInstallers(r)
-	page := pageData{Title: "镜像库", Nav: "hosts", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category"), "Unused": unusedInstallers(images, mounted, failed)}}
+	page := pageData{Title: "镜像库", Nav: "images", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category"), "Unused": unusedInstallers(images, mounted, failed)}}
 	if err != nil {
 		page.Flash, page.FlashType = "无法读取镜像目录。", "error"
 	}

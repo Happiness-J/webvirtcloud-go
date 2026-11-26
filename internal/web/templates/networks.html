@@ -27,7 +27,7 @@
   <input type="hidden" name="_csrf" value="{{.CSRF}}">
   <label>名称<input name="name" required maxlength="64"></label>
   <label>网段<input name="cidr" required placeholder="192.0.2.0/24"></label>
-  <label class="confirm"><input type="checkbox" name="floating" value="yes">浮动 IP 池</label>
+  <label class="checkline"><input type="checkbox" name="floating" value="yes">浮动 IP 池</label>
   <button class="btn primary">创建地址池</button>
 </form>{{end}}
 {{if .Data.IPPools}}{{range .Data.IPPools}}
