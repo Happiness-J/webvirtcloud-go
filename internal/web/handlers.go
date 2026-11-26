@@ -1519,15 +1519,6 @@ func poolInfoRows(info map[string]string) []kvRow {
 	return rows
 }
 
-func sortedKV(values map[string]string) []kvRow {
-	rows := make([]kvRow, 0, len(values))
-	for key, value := range values {
-		rows = append(rows, kvRow{Key: key, Value: value})
-	}
-	sort.Slice(rows, func(i, j int) bool { return rows[i].Key < rows[j].Key })
-	return rows
-}
-
 func auditActionName(action string) string {
 	labels := auditActionLabels()
 	if label, ok := labels[action]; ok {
