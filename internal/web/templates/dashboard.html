@@ -35,6 +35,8 @@
     <div class="panel-head"><h2>计算主机</h2><a href="/hosts">全部</a></div>
     <h3>失联仍在运行 <button type="button" class="help-tip" aria-label="说明" data-tip="最近一次探活失败、而且当时仍有虚拟机在运行的主机会列在这里。没有探活记录的主机不列出。这里只提示，不疏散、不重启。">?</button></h3>
     {{if .Data.UnreachableRunning}}<ul class="plain-list">{{range .Data.UnreachableRunning}}<li><a href="/hosts/{{.HostID}}">{{.HostName}}</a> <span class="muted">{{.Running}} 台运行中</span></li>{{end}}</ul>{{else}}<p class="hint">没有探活失败且仍有运行中虚拟机的主机。</p>{{end}}
+    <h3>探活已过期 <button type="button" class="help-tip" aria-label="说明" data-tip="最近一次探活早于一天的主机会列在这里。没有探活记录的不列出。这里只提示，不重新探活。">?</button></h3>
+    {{if .Data.StaleProbes}}<ul class="plain-list">{{range .Data.StaleProbes}}<li><a href="/hosts/{{.HostID}}">{{.HostName}}</a> <span class="muted">{{.When}}</span></li>{{end}}</ul>{{else}}<p class="hint">没有探活早于一天的主机。</p>{{end}}
     <h3>即将写满的存储池 <button type="button" class="help-tip" aria-label="说明" data-tip="可用空间不到容量一成的存储池会列在这里。用来在概览上发现快满的磁盘，不用逐台打开存储页。这里只提示，不会迁移虚拟机，也不会扩容。">?</button></h3>
     {{if .Data.FullPools}}<ul class="plain-list">{{range .Data.FullPools}}<li><a href="/hosts/{{.HostID}}/storage?pool={{.Name}}">{{.HostName}} · {{.Name}}</a> <span class="muted">可用 {{.Free}}</span></li>{{end}}</ul>{{else}}<p class="hint">没有可用空间低于一成的存储池。</p>{{end}}
     {{if .Data.Hosts}}
