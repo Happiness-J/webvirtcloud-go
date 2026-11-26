@@ -44,7 +44,7 @@ func TestJobsPageRendersRepeatedTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := rendered.String()
-	for _, want := range []string{"同一目标", "web", "3", "不会重试"} {
+	for _, want := range []string{"同一目标", "web", "3", "不会重试", "table-wrap"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("missing %s", want)
 		}
