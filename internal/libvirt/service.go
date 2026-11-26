@@ -257,7 +257,7 @@ func (s *Service) MemoryStats(ctx context.Context, hostID, name string) (string,
 	if err != nil {
 		return res.Output(), err
 	}
-	return formatMemoryStats(res.Stdout), nil
+	return formatMemoryStats(res.Stdout)
 }
 
 func (s *Service) GuestOSInfo(ctx context.Context, hostID, name string) (string, error) {
@@ -1249,7 +1249,7 @@ func (s *Service) RunQMPQuery(ctx context.Context, hostID string, args []string,
 	return s.runWithAccess(ctx, hostID, args, timeout, false)
 }
 
-func formatMemoryStats(output string) string {
+func formatMemoryStats(output string) (string, error) {
 	labels := map[string]string{
 		"actual": "当前分配", "swap_in": "换入页", "swap_out": "换出页",
 		"major_fault": "主缺页", "minor_fault": "次缺页", "unused": "客户机未使用",
@@ -1279,10 +1279,15 @@ func formatMemoryStats(output string) string {
 		case key == "swap_in" || key == "swap_out" || key == "major_fault" || key == "minor_fault":
 			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
 		case key == "last_update":
-			lines = append(lines, fmt.Sprintf("%s: %d", label, number))
+			if number > uint64(maxInt64) {
+				return "", fmt.Errorf("内存统计的更新时间超出可表示范围")
+			}
+			lines = append(lines, fmt.Sprintf("%s: %s", label, time.Unix(int64(number), 0).Format("2006-01-02 15:04:05")))
 		default:
 			lines = append(lines, label+": "+humanBytes(number*1024))
 		}
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "\n"), nil
 }
+
+const maxInt64 = int64(^uint64(0) >> 1)

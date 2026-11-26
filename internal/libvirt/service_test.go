@@ -377,9 +377,19 @@ func TestReadableCapacity(t *testing.T) {
 }
 
 func TestFormatMemoryStats(t *testing.T) {
-	got := formatMemoryStats("actual 8388608\nunused 1048576\nswap_in 4\n")
+	got, err := formatMemoryStats("actual 8388608\nunused 1048576\nswap_in 4\n")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(got, "当前分配: 8.0 GB") || !strings.Contains(got, "客户机未使用: 1.0 GB") || !strings.Contains(got, "换入页: 4") {
 		t.Fatalf("formatMemoryStats() = %q", got)
+	}
+	updated, err := formatMemoryStats("last_update 1764000000\n")
+	if err != nil || strings.Contains(updated, "1764000000") || !strings.Contains(updated, "最近更新时间: ") {
+		t.Fatalf("formatMemoryStats(last_update) = %q, %v", updated, err)
+	}
+	if _, err := formatMemoryStats("last_update 9223372036854775808\n"); err == nil || !strings.Contains(err.Error(), "超出可表示范围") {
+		t.Fatalf("overflow error = %v", err)
 	}
 }
 
