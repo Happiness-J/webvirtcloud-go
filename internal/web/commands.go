@@ -136,9 +136,9 @@ func (s *Server) commandTarget(ctx context.Context, hostID string) (store.Host, 
 	return host, target, nil
 }
 
-func snapshotCreateArgs(vm, snapshot, state string) []string {
+func snapshotCreateArgs(vm, snapshot, state string, agentOnline bool) []string {
 	args := []string{"snapshot-create-as", vm, snapshot}
-	if state == "running" {
+	if state == "running" && agentOnline {
 		args = append(args, "--quiesce")
 	}
 	return args
@@ -189,7 +189,7 @@ func actionArgs(action, vm, snapshot string) ([]string, bool, error) {
 		}
 		switch action {
 		case "snapshot-create":
-			return snapshotCreateArgs(vm, snapshot, ""), false, nil
+			return snapshotCreateArgs(vm, snapshot, "", false), false, nil
 		case "snapshot-revert":
 			return []string{"snapshot-revert", vm, snapshot}, true, nil
 		case "snapshot-delete":
@@ -515,7 +515,8 @@ func (s *Server) vmAction(w http.ResponseWriter, r *http.Request) {
 				s.redirectError(w, r, vmRedirect(host.ID, vmName), "无法确认虚拟机状态")
 				return
 			}
-			args = snapshotCreateArgs(vmName, operand, detail.Domain.State)
+			_, agentErr := s.libvirt.GuestAgentInfo(r.Context(), host.ID, vmName)
+			args = snapshotCreateArgs(vmName, operand, detail.Domain.State, agentErr == nil)
 		}
 		if err != nil {
 			s.redirectError(w, r, "/hosts/"+host.ID+"/vms/"+url.PathEscape(vmName), err.Error())

@@ -86,8 +86,11 @@ func TestCloneAndSnapshotNamesAcceptSpaces(t *testing.T) {
 	if err != nil || destructive || strings.Join(args, " ") != "snapshot-create-as web prod before upgrade" {
 		t.Fatalf("snapshot args = %#v destructive=%v err=%v", args, destructive, err)
 	}
-	if strings.Join(snapshotCreateArgs("web prod", "before upgrade", "running"), " ") != "snapshot-create-as web prod before upgrade --quiesce" {
-		t.Fatal("running snapshot must quiesce")
+	if strings.Join(snapshotCreateArgs("web prod", "before upgrade", "running", true), " ") != "snapshot-create-as web prod before upgrade --quiesce" {
+		t.Fatal("running snapshot with an agent must quiesce")
+	}
+	if strings.Join(snapshotCreateArgs("web prod", "before upgrade", "running", false), " ") != "snapshot-create-as web prod before upgrade" {
+		t.Fatal("running snapshot without an agent must not quiesce")
 	}
 }
 
