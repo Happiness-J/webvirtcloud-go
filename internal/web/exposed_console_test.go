@@ -40,6 +40,9 @@ func TestVMListRendersExposedConsole(t *testing.T) {
 	if strings.Count(body, "控制台暴露") < 2 || !strings.Contains(body, "修改监听和密码") {
 		t.Fatal("marker missing")
 	}
+	if !strings.Contains(body, `class="status-pills"`) {
+		t.Fatal("status markers are not grouped inline")
+	}
 	if strings.Contains(body, "0.0.0.0") {
 		t.Fatal("listener address was rendered")
 	}
