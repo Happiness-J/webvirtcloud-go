@@ -119,6 +119,7 @@
   <h3>重复挂载 <button type="button" class="help-tip" aria-label="说明" data-tip="同一路径在这台虚拟机上挂了两次或更多次。启动和扩容前先确认哪一个目标才是数据盘。这里只列出，不会卸载。">?</button></h3>
   {{if .Data.DuplicateDisks}}<ul class="plain-list">{{range .Data.DuplicateDisks}}<li><code>{{.Name}}</code>：{{range $i, $target := .Targets}}{{if $i}}、{{end}}{{$target}}{{end}}</li>{{end}}</ul>{{else}}<p class="hint">没有同一路径被挂载两次。</p>{{end}}
 {{template "writethrough" .}}
+{{template "diskbus" .}}
   <h2>磁盘容量</h2>
   {{if .Data.Detail.BlockList}}<table><thead><tr><th>类型</th><th>用途</th><th>目标</th><th>源</th></tr></thead><tbody>{{range .Data.Detail.BlockList}}<tr><td>{{.Type}}</td><td>{{.Device}}</td><td><code>{{.Target}}</code></td><td><code>{{.Source}}</code></td></tr>{{end}}</tbody></table>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/disk-resize" class="inline-form">
@@ -472,4 +473,7 @@
 {{end}}
 {{define "writethrough"}}  <h3>写穿透磁盘 <button type="button" class="help-tip" aria-label="说明" data-tip="缓存模式为写穿透时，每次写入都要落到宿主机后才返回。这里只列出这些磁盘，不改缓存。">?</button></h3>
   {{if .Data.WriteThrough}}<ul class="plain-list">{{range .Data.WriteThrough}}<li><code>{{.Target}}</code>{{if .Source}} <span class="muted">{{.Source}}</span>{{end}}</li>{{end}}</ul>{{else}}<p class="hint">没有缓存模式为写穿透的磁盘。</p>{{end}}
+{{end}}
+{{define "diskbus"}}  <h3>总线不一致 <button type="button" class="help-tip" aria-label="说明" data-tip="通用、Linux 和 BSD 推荐 virtio 数据盘。这里只对照当前总线和推荐值，不改总线。">?</button></h3>
+  {{if .Data.DiskBus}}<ul class="plain-list">{{range .Data.DiskBus}}<li><code>{{.Target}}</code> <span class="muted">当前 {{.Bus}}，推荐 {{.Want}}</span></li>{{end}}</ul>{{else}}<p class="hint">数据盘总线与推荐的 virtio 一致。</p>{{end}}
 {{end}}
