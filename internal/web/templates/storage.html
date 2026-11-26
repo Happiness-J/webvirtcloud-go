@@ -75,7 +75,8 @@
       <label>目标存储池<select name="target_pool" required>{{range .Data.Pools}}{{if ne .Name $.Data.SelectedPool}}<option value="{{.Name}}">{{.Name}}</option>{{end}}{{end}}</select></label>
       <label>目标卷名称<input name="name" required maxlength="128"></label>
       <p class="hint">先导出再导入。源卷保留，确认目标卷可用后再手动删除源卷。</p>
-      <button class="btn" {{if not .Data.Volumes}}disabled{{end}}>开始移动</button>
+      {{if not .Data.HasOtherPools}}<p class="hint">只有一个存储池，没有可移动的目标。</p>{{end}}
+      <button class="btn" {{if or (not .Data.Volumes) (not .Data.HasOtherPools)}}disabled{{end}}>开始移动</button>
     </form>
   </div>
   <div class="grid two">
