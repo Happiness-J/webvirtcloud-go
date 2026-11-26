@@ -412,7 +412,7 @@ func (s *Server) vmResourceAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func readableStats(values map[string]string) []kvRow {
-	labels := map[string]string{"user": "用户态 CPU", "system": "内核态 CPU", "idle": "空闲 CPU", "iowait": "IO 等待", "total": "总内存", "free": "空闲内存", "buffers": "缓冲区", "cached": "缓存"}
+	labels := map[string]string{"user": "用户态 CPU", "system": "内核态 CPU", "idle": "空闲 CPU", "iowait": "IO 等待", "total": "总内存", "free": "空闲内存", "buffers": "缓冲区", "cached": "缓存", "cpu model": "CPU 型号", "cpu(s)": "CPU 数量", "cpu frequency": "CPU 频率", "cpu socket(s)": "CPU 插槽", "core(s) per socket": "每插槽核心数", "thread(s) per core": "每核心线程数", "numa cell(s)": "NUMA 节点数", "memory size": "内存容量"}
 	rows := make([]kvRow, 0, len(values))
 	for key, value := range values {
 		normalized := strings.ToLower(strings.Trim(strings.TrimSpace(key), ":"))
