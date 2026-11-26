@@ -108,7 +108,7 @@ input[type=checkbox] { width: auto; }
 details summary { cursor: pointer; color: var(--brand); }
 .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .action-form { background: #f8fafc; border: 1px solid var(--line); border-radius: 9px; padding: 7px; }
-.confirm { font-size: 12px; font-weight: 500; color: var(--bad); display: inline-flex; }
+.confirm { font-size: 12px; font-weight: 500; color: var(--bad); display: inline-flex; align-items: center; gap: 6px; }
 .inline-form { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .inline-form input, .inline-form select { width: auto; min-width: 130px; }
 .batch-bar { padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
