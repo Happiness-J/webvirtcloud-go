@@ -690,7 +690,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	}
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
 		"Drills": drills, "Schedules": schedules,
-		"Host": host, "VM": vmName, "Detail": detail, "WriteThrough": writeThroughDisks(detail.XML), "MigrationCheck": s.migrationPrecheck(r, host.ID, detail.BlockList), "BackupChainReady": backupChainReady(detail.Backups), "BackupReport": buildBackupReport(detail.Backups, drills, store.BackupPolicy{}), "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
+		"Host": host, "VM": vmName, "Detail": detail, "WriteThrough": writeThroughDisks(detail.XML), "DiskBus": diskBusMismatches(detail.XML), "MigrationCheck": s.migrationPrecheck(r, host.ID, detail.BlockList), "BackupChainReady": backupChainReady(detail.Backups), "BackupReport": buildBackupReport(detail.Backups, drills, store.BackupPolicy{}), "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
 		"ConsoleWarnings": consoleWarnings, "ConsoleAllowed": consoleAllowed,
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
