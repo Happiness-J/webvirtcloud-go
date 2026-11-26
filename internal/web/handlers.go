@@ -822,6 +822,7 @@ func (s *Server) storagePage(w http.ResponseWriter, r *http.Request) {
 			data["ResizableVolumes"] = resizable
 			data["VolumeUsage"] = s.volumeUsages(r.Context(), host.ID, volumes)
 			data["SharedVolumes"] = sharedVolumePaths(volumes, data["VolumeUsage"].(map[string][]volumeUsage))
+			data["Unreferenced"] = unreferencedVolumes(volumes, data["VolumeUsage"].(map[string][]volumeUsage))
 		}
 	}
 	otherPools := 0

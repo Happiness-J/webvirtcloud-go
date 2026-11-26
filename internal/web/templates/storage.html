@@ -27,6 +27,8 @@
   {{$hint := index .Data.CapacityHints .Data.SelectedPool}}
   {{if $hint.Known}}<p class="hint {{if $hint.Over}}warn-text{{end}}">{{$hint.Detail}}</p>{{end}}
   <dl class="kv">{{range .Data.PoolInfo}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
+  <h3>没有虚拟机引用的卷 <button type="button" class="help-tip" aria-label="说明" data-tip="这些卷的路径没有出现在可见虚拟机的磁盘里。安装镜像和准备中的磁盘也会出现。这里只提示，不删除。">?</button></h3>
+  {{if .Data.Unreferenced}}<ul class="plain-list">{{range .Data.Unreferenced}}<li><code>{{.Name}}</code>{{if .Capacity}} <span class="muted">{{.Capacity}}</span>{{end}}</li>{{end}}</ul>{{else}}<p class="hint">这个存储池里的卷都有虚拟机引用。</p>{{end}}
   <h3>同一路径被多台虚拟机使用 <button type="button" class="help-tip" aria-label="说明" data-tip="这些卷的同一路径挂在两台或更多虚拟机上。迁移或删除前先确认它们是不是同一份磁盘。这里只汇总，不会解除引用。">?</button></h3>
   {{if .Data.SharedVolumes}}<ul class="plain-list">{{range .Data.SharedVolumes}}<li><code>{{.Path}}</code>：{{range $i, $vm := .VMs}}{{if $i}}、{{end}}{{$vm}}{{end}}</li>{{end}}</ul>{{else}}<p class="hint">这个存储池里没有被多台虚拟机同时引用的路径。</p>{{end}}
   <p class="hint">卷使用关系按虚拟机磁盘路径只读匹配。删除前先看“使用中”一列；这里只提示，不会自动解除引用。</p>
