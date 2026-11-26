@@ -884,6 +884,7 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	due := []dueSchedule{}
+	disabled := []disabledSchedule{}
 	if page == 1 {
 		hosts, err := s.visibleHosts(r)
 		if err != nil {
@@ -895,10 +896,16 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 			} else {
 				due = schedulesDueSoon(items, hosts, time.Now())
 			}
+			disabledItems, err := s.db.ListDisabledVMSchedules(r.Context())
+			if err != nil {
+				s.log.Warn("load disabled schedules", "error", err)
+			} else {
+				disabled = disabledSchedules(disabledItems, hosts)
+			}
 		}
 	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due,
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due, "DisabledSchedules": disabled,
 	}})
 }
 
