@@ -56,6 +56,7 @@ type dashboardData struct {
 	Live               []dashboardHostLive
 	FullPools          []nearlyFullPool
 	UnreachableRunning []unreachableRunningHost
+	StaleProbes        []staleProbeHost
 }
 
 type dashboardHostLive struct {
@@ -122,6 +123,7 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 			Hosts: hosts, HostCount: len(hosts), VMCount: vmCount, UserCount: userCount,
 			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats, Live: live, FullPools: full,
 			UnreachableRunning: unreachableRunningHosts(hosts, healthRows),
+			StaleProbes:        staleProbeHosts(hosts, healthRows, time.Now()),
 		},
 	})
 }
