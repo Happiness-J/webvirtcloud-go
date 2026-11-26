@@ -35,7 +35,7 @@ func TestVMListRendersAutostartGap(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := pageData{Title: "vms", CSRF: "csrf", User: &store.User{Role: "operator"}, Data: map[string]any{
-		"Unbacked": map[string]bool{}, "NoAgent": map[string]bool{}, "Exposed": map[string]bool{}, "Groups": []vmGroup{{Host: store.Host{ID: "host", Name: "compute"}, Domains: []libvirt.Domain{
+		"Unbacked": map[string]bool{}, "NoAgent": map[string]bool{}, "Exposed": map[string]bool{}, "NoAddress": map[string]bool{}, "Groups": []vmGroup{{Host: store.Host{ID: "host", Name: "compute"}, Domains: []libvirt.Domain{
 			{Name: "web", State: "shut off", Autostart: "yes"},
 			{Name: "db", State: "running", Autostart: "enable"},
 		}}},
