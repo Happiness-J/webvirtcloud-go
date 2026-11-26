@@ -2215,7 +2215,7 @@ func (s *Server) apiDocsPage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) imageLibraryPage(w http.ResponseWriter, r *http.Request) {
 	images, err := listLibraryImages(s.cfg.ImageDir, r.URL.Query().Get("q"), r.URL.Query().Get("category"))
 	mounted, failed := s.mountedInstallers(r)
-	page := pageData{Title: "镜像库", Nav: "hosts", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category"), "Unused": unusedInstallers(images, mounted, failed)}}
+	page := pageData{Title: "镜像库", Nav: "images", Data: map[string]any{"Images": images, "Query": r.URL.Query().Get("q"), "Category": r.URL.Query().Get("category"), "Unused": unusedInstallers(images, mounted, failed)}}
 	if err != nil {
 		page.Flash, page.FlashType = "无法读取镜像目录。", "error"
 	}
