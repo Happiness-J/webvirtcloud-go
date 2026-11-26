@@ -41,7 +41,12 @@ func listLibraryImages(dir, query, category string) ([]libraryImage, error) {
 		if err != nil || !info.Mode().IsRegular() {
 			continue
 		}
-		item := libraryImage{Name: entry.Name(), Path: path, Kind: libraryKind(entry.Name()), Category: libraryCategory(entry.Name()), Size: formatBytes(uint64(info.Size()))}
+		size := info.Size()
+		if size < 0 {
+			size = 0
+		}
+		// #nosec G115 -- regular file size was clamped to >= 0 above, so the conversion cannot overflow.
+		item := libraryImage{Name: entry.Name(), Path: path, Kind: libraryKind(entry.Name()), Category: libraryCategory(entry.Name()), Size: formatBytes(uint64(size))}
 		if category != "" && category != "all" && item.Category != category {
 			continue
 		}
