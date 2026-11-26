@@ -883,8 +883,22 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 			targets = repeatedFailureTargets(failed)
 		}
 	}
+	due := []dueSchedule{}
+	if page == 1 {
+		hosts, err := s.visibleHosts(r)
+		if err != nil {
+			s.log.Warn("load visible hosts for schedules", "error", err)
+		} else {
+			items, err := s.db.ListVMSchedulesDueBefore(r.Context(), time.Now().Add(scheduleDueWithin))
+			if err != nil {
+				s.log.Warn("load schedules due soon", "error", err)
+			} else {
+				due = schedulesDueSoon(items, hosts, time.Now())
+			}
+		}
+	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "LongQueued": longQueuedJobs(jobs, time.Now()),
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due,
 	}})
 }
 
