@@ -909,7 +909,11 @@ func (s *Server) jobPage(w http.ResponseWriter, r *http.Request) {
 		job.Error = ""
 	}
 	var args []string
-	_ = json.Unmarshal([]byte(job.ArgsJSON), &args)
+	if err := json.Unmarshal([]byte(job.ArgsJSON), &args); err == nil {
+		if pretty, err := json.MarshalIndent(args, "", "  "); err == nil {
+			job.ArgsJSON = string(pretty)
+		}
+	}
 	commandLine := command.CommandLine(job.Tool, args)
 	if protected {
 		commandLine = job.Tool + " [敏感参数已隐藏]"
