@@ -31,6 +31,8 @@
 </section>
 
 <section class="panel">
+  <h3>很久没用的 API 令牌 <button type="button" class="help-tip" aria-label="说明" data-tip="只统计当前账号里仍有效的令牌：上次使用已超过三十天，或创建后从未使用且已超过三十天。已吊销和已过期的不计入。这里只计数，不吊销。">?</button></h3>
+  {{if .Data.StaleTokens}}<p class="hint">有 {{.Data.StaleTokens}} 个令牌超过三十天未使用。</p>{{else}}<p class="hint">没有超过三十天未使用的令牌。</p>{{end}}
   <h2>API 令牌</h2>
   <form method="post" action="/account/security/tokens" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
