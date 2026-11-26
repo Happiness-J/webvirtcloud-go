@@ -874,6 +874,7 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := []failureCategory{}
 	targets := []failureTarget{}
+	failedStarts := []failedStart{}
 	if page == 1 {
 		failed, err := s.db.ListFailedJobs(r.Context(), sess.User.ID, sess.User.Role == "admin", 100)
 		if err != nil {
@@ -881,6 +882,12 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 		} else {
 			groups = failureGroups(failed)
 			targets = repeatedFailureTargets(failed)
+		}
+		recent, err := s.db.ListJobsPage(r.Context(), sess.User.ID, sess.User.Role == "admin", 100, 0)
+		if err != nil {
+			s.log.Warn("load recent jobs for start status", "error", err)
+		} else {
+			failedStarts = latestFailedStarts(recent)
 		}
 	}
 	due := []dueSchedule{}
@@ -905,7 +912,7 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due, "DisabledSchedules": disabled,
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "FailedStarts": failedStarts, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due, "DisabledSchedules": disabled,
 	}})
 }
 
