@@ -42,6 +42,7 @@ h1 > .help-tip, h2 > .help-tip, h3 > .help-tip { flex: 0 0 auto; }
 p { line-height: 1.6; }
 .muted { color: var(--muted); }
 .tiny { font-size: 12px; }
+.status-pills { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
 .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 22px; }
 .page-head p { margin: 0; }
