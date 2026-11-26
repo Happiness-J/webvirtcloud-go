@@ -34,7 +34,8 @@ a:hover { text-decoration: underline; }
 .topbar .link { color: #b9c7db; }
 .container { width: min(1500px, calc(100% - 40px)); margin: 28px auto; flex: 1; }
 .login-wrap { flex: 1; display: grid; place-items: center; padding: 30px; }
-footer { text-align: center; color: #98a2b3; font-size: 12px; padding: 20px; }
+footer { display: flex; justify-content: center; gap: 8px; color: #98a2b3; font-size: 12px; padding: 20px; }
+footer span + span::before { content: "·"; margin-right: 8px; }
 h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.5px; }
 h2 { font-size: 17px; margin: 0 0 14px; }
 h1, h2, h3 { display: flex; align-items: center; flex-wrap: nowrap; gap: 2px; }
