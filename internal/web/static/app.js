@@ -258,8 +258,21 @@ document.addEventListener('change', (event) => {
 (() => {
   const canvas = document.getElementById('vm-history');
   if (!canvas) return;
+  const paintEmpty = (message) => {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(320, Math.floor(rect.width * devicePixelRatio));
+    canvas.height = Math.floor(120 * devicePixelRatio);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#66758c';
+    ctx.font = `${13 * devicePixelRatio}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+  };
   fetch(canvas.dataset.url, {credentials:'same-origin', headers:{'Accept':'application/json'}}).then(r => r.ok ? r.json() : null).then(payload => {
     const samples = payload && payload.samples || [];
+    if (!samples.length) { paintEmpty('暂无 24 小时历史数据'); return; }
     const values = samples.map(sample => sample.MemoryPercent || 0);
     const rect = canvas.getBoundingClientRect();
     canvas.width = Math.max(320, Math.floor(rect.width * devicePixelRatio));
@@ -273,7 +286,7 @@ document.addEventListener('change', (event) => {
       if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
-  }).catch(() => {});
+  }).catch(() => paintEmpty('历史数据暂时不可用'));
 })();
 
 (() => {
