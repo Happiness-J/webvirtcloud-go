@@ -112,6 +112,7 @@ details summary { cursor: pointer; color: var(--brand); }
 .confirm { font-size: 12px; font-weight: 500; color: var(--bad); display: inline-flex; align-items: center; gap: 6px; }
 .inline-form { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .inline-form input, .inline-form select { width: auto; min-width: 130px; }
+.inline-form input[type=checkbox] { min-width: 0; }
 .batch-bar { padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
 .batch-bar .hint { margin: 0; max-width: 560px; }
 .hidden { display: none !important; }
@@ -215,6 +216,7 @@ details summary { cursor: pointer; color: var(--brand); }
 .table-wrap { overflow-x: auto; }
 .table-wrap > table { width: max-content; min-width: 100%; }
 .audit-action code { white-space: nowrap; }
+.nowrap { white-space: nowrap; }
 .ops-table { min-width: 860px; }
 .ops-table td:nth-child(n+5), .ops-table th:nth-child(n+5) { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -240,7 +242,7 @@ details summary { cursor: pointer; color: var(--brand); }
 .api-example { min-width: 0; }
 .api-example-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .api-example-head h3 { margin: 0; font-size: 14px; }
-.api-example pre { margin: 0; min-height: 168px; }
+.api-example pre { margin: 0; min-height: 168px; white-space: pre; overflow-x: auto; overflow-wrap: normal; }
 .btn.copied { color: var(--ok); border-color: #b9dfc9; background: #f2fbf6; }
 
 @media (max-width: 900px) {

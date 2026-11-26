@@ -2,7 +2,7 @@
 <div class="page-head"><div><p class="page-kicker">首次运行</p><h1>准备这台控制面<button type="button" class="help-tip" aria-label="说明" data-tip="检测本机是否能运行 KVM。默认存储池和网络只会在已启用的本机 libvirt 主机上创建、启动并设置开机自启。">?</button></h1><p class="muted">确认虚拟化可用，然后初始化默认存储池和默认网络。</p></div><a class="btn" href="/">返回概览</a></div>
 <section class="panel">
   <h2>本机检测</h2>
-  <dl class="kv">{{range .Data.Checks}}<dt>{{.Key}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
+  <dl class="kv">{{range .Data.Checks}}<dt>{{.Key}}</dt><dd>{{if eq .Value "可用"}}<span class="pill ok">可用</span>{{else if eq .Value "未检测到"}}<span class="pill warn">未检测到</span>{{else}}{{.Value}}{{end}}</dd>{{end}}</dl>
   <p class="hint">未检测到不阻止继续。远程主机的检测请在主机页使用健康检查。</p>
 </section>
 <section class="panel">
