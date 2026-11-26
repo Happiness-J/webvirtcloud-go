@@ -45,16 +45,17 @@ type auditPageData struct {
 }
 
 type dashboardData struct {
-	Hosts     []store.Host
-	HostCount int
-	VMCount   int
-	UserCount int
-	Tools     []command.Tool
-	Jobs      []store.Job
-	Audit     []store.Audit
-	Stats     store.QueueStats
-	Live      []dashboardHostLive
-	FullPools []nearlyFullPool
+	Hosts              []store.Host
+	HostCount          int
+	VMCount            int
+	UserCount          int
+	Tools              []command.Tool
+	Jobs               []store.Job
+	Audit              []store.Audit
+	Stats              store.QueueStats
+	Live               []dashboardHostLive
+	FullPools          []nearlyFullPool
+	UnreachableRunning []unreachableRunningHost
 }
 
 type dashboardHostLive struct {
@@ -111,11 +112,16 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	live := s.dashboardLive(r.Context(), hosts)
 	full := s.nearlyFullHostPools(r, hosts)
+	healthRows, err := s.db.ListHostHealth(r.Context())
+	if err != nil {
+		s.log.Warn("load dashboard host health", "error", err)
+	}
 	s.render(w, r, "dashboard", pageData{
 		Title: "概览", Nav: "dashboard",
 		Data: dashboardData{
 			Hosts: hosts, HostCount: len(hosts), VMCount: vmCount, UserCount: userCount,
 			Tools: s.runner.Tools(), Jobs: jobs, Audit: audits, Stats: stats, Live: live, FullPools: full,
+			UnreachableRunning: unreachableRunningHosts(hosts, healthRows),
 		},
 	})
 }
