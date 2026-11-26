@@ -397,7 +397,7 @@ func (s *Server) hostVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), []store.Host{host})
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": groups}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
 }
 
 func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
