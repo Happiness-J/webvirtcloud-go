@@ -410,7 +410,7 @@ func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), hosts)
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
 }
 
 func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]bool {
@@ -433,6 +433,12 @@ func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]b
 		}
 	}
 	return out
+}
+
+func (s *Server) bootMenus(r *http.Request, groups []vmGroup) map[string]bool {
+	return bootMenuOpen(groups, func(hostID, name string) (string, error) {
+		return s.libvirt.DomainXML(r.Context(), hostID, name)
+	})
 }
 
 func (s *Server) noCurrentSnapshots(r *http.Request, groups []vmGroup) map[string]bool {
