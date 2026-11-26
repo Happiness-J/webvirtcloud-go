@@ -410,7 +410,7 @@ func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), hosts)
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
 }
 
 func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]bool {
@@ -428,6 +428,22 @@ func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]b
 				continue
 			}
 			if consoleExposed(domain.State, libvirt.ParseGraphics(xmlText)) {
+				out[group.Host.ID+"/"+domain.Name] = true
+			}
+		}
+	}
+	return out
+}
+
+func (s *Server) noCurrentSnapshots(r *http.Request, groups []vmGroup) map[string]bool {
+	out := map[string]bool{}
+	for _, group := range groups {
+		if group.Err != "" {
+			continue
+		}
+		for _, domain := range group.Domains {
+			snapshots, err := s.libvirt.ListSnapshots(r.Context(), group.Host.ID, domain.Name)
+			if noCurrentSnapshot(snapshots, err) {
 				out[group.Host.ID+"/"+domain.Name] = true
 			}
 		}
