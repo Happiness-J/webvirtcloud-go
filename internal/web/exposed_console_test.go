@@ -30,7 +30,7 @@ func TestVMListRendersExposedConsole(t *testing.T) {
 	page := pageData{Title: "vms", CSRF: "csrf", User: &store.User{Role: "operator"}, Data: map[string]any{
 		"Groups":   []vmGroup{{Host: store.Host{ID: "host", Name: "compute"}, Domains: []libvirt.Domain{{Name: "web", State: "running", Autostart: "enable"}}}},
 		"Unbacked": map[string]bool{}, "NoAgent": map[string]bool{},
-		"Exposed": map[string]bool{"host/web": true},
+		"Exposed": map[string]bool{"host/web": true}, "NoAddress": map[string]bool{},
 	}}
 	var rendered strings.Builder
 	if err := templates["vms"].ExecuteTemplate(&rendered, "base", page); err != nil {

@@ -410,7 +410,7 @@ func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), hosts)
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
 }
 
 func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]bool {
@@ -433,6 +433,16 @@ func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]b
 		}
 	}
 	return out
+}
+
+func (s *Server) noAddressVMs(r *http.Request, groups []vmGroup) map[string]bool {
+	return noAddressFromProbe(groups, func(hostID, name string) bool {
+		_, err := s.libvirt.GuestAgentInfo(r.Context(), hostID, name)
+		return err == nil
+	}, func(hostID, name string) bool {
+		addresses, err := s.libvirt.GuestAddresses(r.Context(), hostID, name)
+		return err == nil && len(addresses) > 0
+	})
 }
 
 func (s *Server) noAgentVMs(r *http.Request, groups []vmGroup) map[string]bool {
