@@ -1,4 +1,11 @@
 {{define "content"}}
+<style>
+/* 主机详情页局部样式：双列卡片按内容高度对齐、行内表单复选框不被拉宽、操作区提示气泡向左展开、时间列不换行。 */
+.grid.two{align-items:start}
+.inline-form input[type="checkbox"]{min-width:0}
+.actions .help-tip[data-tip]::after{left:auto;right:0}
+.nowrap{white-space:nowrap}
+</style>
 <div class="page-head">
   <div><p class="page-kicker">主机详情</p><h1>{{.Data.Host.Name}}<button type="button" class="help-tip" aria-label="说明" data-tip="查看连接状态并进入虚拟机、存储和网络。维护模式会阻止新虚拟机部署，但不会自动迁移现有虚拟机。">?</button></h1><p class="muted">{{if .Data.Host.Description}}{{.Data.Host.Description}}{{else}}尚未填写主机说明。{{end}}</p></div>
   <div class="actions"><a class="btn primary" href="/hosts/{{.Data.Host.ID}}/ops">运维工作台</a>{{if eq .User.Role "admin"}}<form method="post" action="/hosts/{{.Data.Host.ID}}/maintenance" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="enabled" value="{{if .Data.Host.Maintenance}}0{{else}}1{{end}}"><button class="btn">{{if .Data.Host.Maintenance}}退出维护{{else}}进入维护{{end}}</button></form><a class="btn" href="/hosts/{{.Data.Host.ID}}/edit">编辑</a>{{end}}{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<form method="post" action="/hosts/{{.Data.Host.ID}}/test" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn">测试连接</button><button type="button" class="help-tip" aria-label="说明" data-tip="用当前保存的连接信息试一次。失败时先检查地址、账号和网络，不会修改虚拟机。">?</button></form><form method="post" action="/hosts/{{.Data.Host.ID}}/health" class="inline"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="hypervisor" value="qemu"><button class="btn">健康检查</button></form>{{end}}</div>
@@ -34,7 +41,7 @@
 </section>
 <section class="panel">
   <div class="panel-head"><h2>该主机的最近任务</h2><a href="/jobs">全部任务</a></div>
-  {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td>{{.UserName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>这台主机还没有任务</strong><span>创建、迁移或调整资源后，任务会显示在这里。</span></div>{{end}}
+  {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>工具</th><th>状态</th><th>发起人</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td>{{.UserName}}</td><td class="muted nowrap">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>这台主机还没有任务</strong><span>创建、迁移或调整资源后，任务会显示在这里。</span></div>{{end}}
 </section>
 {{if and (eq .User.Role "admin") .Data.Host.Maintenance}}<section class="panel"><h2>疏散虚拟机</h2><form method="post" action="/hosts/{{.Data.Host.ID}}/evacuate" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input name="target" placeholder="qemu+ssh://target/system" required><button class="btn danger" data-confirm="将把运行中的虚拟机迁移到目标主机，确定继续吗？">开始疏散</button></form></section>{{end}}
 {{if eq .User.Role "admin"}}

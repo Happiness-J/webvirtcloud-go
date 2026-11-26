@@ -381,6 +381,10 @@ func TestFormatMemoryStats(t *testing.T) {
 	if !strings.Contains(got, "当前分配: 8.0 GB") || !strings.Contains(got, "客户机未使用: 1.0 GB") || !strings.Contains(got, "换入页: 4") {
 		t.Fatalf("formatMemoryStats() = %q", got)
 	}
+	updated := formatMemoryStats("last_update 1764000000\n")
+	if strings.Contains(updated, "1764000000") || !strings.Contains(updated, "最近更新时间: ") {
+		t.Fatalf("formatMemoryStats(last_update) = %q", updated)
+	}
 }
 
 func TestSnapshotMetadataAndOrder(t *testing.T) {

@@ -1,4 +1,10 @@
 {{define "content"}}
+<style>
+/* 概览页局部样式：资源卡标签不折成单字、双列卡片按内容高度对齐、时间列不换行。 */
+.resource-card dt{white-space:nowrap;flex-shrink:0}
+.grid.two{align-items:start}
+.nowrap{white-space:nowrap}
+</style>
 {{if eq .Data.HostCount 0}}<section class="panel"><div class="empty-state"><strong>开始首次运行</strong><span>检测本机虚拟化，添加主机，并初始化默认存储池和网络。</span><a class="btn primary" href="/setup">打开向导</a></div></section>{{end}}
 <div class="page-head">
   <div><p class="page-kicker">总览</p><h1>基础设施概览</h1><p class="muted">虚拟机操作进入任务队列，主机和用户变更会写入审计。</p></div>
@@ -49,11 +55,11 @@
 <div class="grid two">
   <section class="panel">
     <div class="panel-head"><h2>最近任务</h2><a href="/jobs">全部</a></div>
-    {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>状态</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a><div class="tiny muted">{{.UserName}} · {{.Tool}}</div></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有任务。</p>{{end}}
+    {{if .Data.Jobs}}<table><thead><tr><th>任务</th><th>状态</th><th>时间</th></tr></thead><tbody>{{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a><div class="tiny muted">{{.UserName}} · {{.Tool}}</div></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted nowrap">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<p class="empty">还没有任务。</p>{{end}}
   </section>
   <section class="panel">
     <div class="panel-head"><h2>最近审计</h2>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a href="/audit">全部</a>{{end}}</div>
-    {{if .Data.Audit}}<table><tbody>{{range .Data.Audit}}<tr><td>{{.Action}}</td><td>{{.ActorName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有审计记录</strong><span>登录、主机变更和任务结果会出现在这里。</span></div>{{end}}
+    {{if .Data.Audit}}<table><tbody>{{range .Data.Audit}}<tr><td>{{.Action}}</td><td>{{.ActorName}}</td><td class="muted nowrap">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有审计记录</strong><span>登录、主机变更和任务结果会出现在这里。</span></div>{{end}}
   </section>
 </div>
 {{end}}

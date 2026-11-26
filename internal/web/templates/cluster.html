@@ -28,7 +28,7 @@
       <label>主机<select name="host_id" required>{{range .Data.Hosts}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
       <label>虚拟机名称<input name="vm" required maxlength="128"></label>
       <label class="confirm"><input type="checkbox" name="protected" value="1" checked>纳入高可用</label>
-      <button class="btn">保存</button>
+      <button class="btn primary">保存</button>
     </form>
   </section>
 </div>
@@ -41,9 +41,9 @@
       <header><a href="/hosts/{{.ID}}">{{.Name}}</a>{{if gt $trend.Points 0}}<span class="muted">{{$trend.Points}} 个采样</span>{{end}}</header>
       {{if gt $trend.Points 0}}
       <div class="trend-lines">
-        <figure><svg viewBox="0 0 240 52" role="img" aria-label="CPU 趋势"><polyline points="{{$trend.CPUPoints}}"></polyline></svg><figcaption>CPU 最近 {{printf "%.0f" $trend.LatestCPU}}% · 最高 {{printf "%.0f" $trend.PeakCPU}}%</figcaption></figure>
-        <figure><svg viewBox="0 0 240 52" role="img" aria-label="内存趋势"><polyline points="{{$trend.MemPoints}}"></polyline></svg><figcaption>内存 最近 {{printf "%.0f" $trend.LatestMem}}% · 最高 {{printf "%.0f" $trend.PeakMem}}%</figcaption></figure>
-        <figure><svg viewBox="0 0 240 52" role="img" aria-label="运行中虚拟机趋势"><polyline points="{{$trend.VMPoints}}"></polyline></svg><figcaption>运行中虚拟机 {{$trend.MinVMs}}–{{$trend.MaxVMs}}</figcaption></figure>
+        <figure><svg viewBox="0 0 240 52" preserveAspectRatio="none" role="img" aria-label="CPU 趋势"><polyline points="{{$trend.CPUPoints}}"></polyline></svg><figcaption>CPU 最近 {{printf "%.0f" $trend.LatestCPU}}% · 最高 {{printf "%.0f" $trend.PeakCPU}}%</figcaption></figure>
+        <figure><svg viewBox="0 0 240 52" preserveAspectRatio="none" role="img" aria-label="内存趋势"><polyline points="{{$trend.MemPoints}}"></polyline></svg><figcaption>内存 最近 {{printf "%.0f" $trend.LatestMem}}% · 最高 {{printf "%.0f" $trend.PeakMem}}%</figcaption></figure>
+        <figure><svg viewBox="0 0 240 52" preserveAspectRatio="none" role="img" aria-label="运行中虚拟机趋势"><polyline points="{{$trend.VMPoints}}"></polyline></svg><figcaption>运行中虚拟机 {{$trend.MinVMs}}–{{$trend.MaxVMs}}</figcaption></figure>
       </div>
       {{else}}<p class="hint">还没有采样。开启面板后，每分钟探活会记下可达主机的容量，大约一天后这里能看出变化。</p>{{end}}
     </article>
