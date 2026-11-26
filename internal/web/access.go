@@ -45,7 +45,7 @@ func (s *Server) renderAccountSecurity(w http.ResponseWriter, r *http.Request, u
 		"TOTPEnabled": user.TOTPEnabled(),
 		"Pending":     pending,
 		"Sessions":    sessions, "IdleSessions": idleSessionCount(sessions, time.Now()),
-		"Tokens":       tokens,
+		"Tokens": tokens, "StaleTokens": staleTokenCount(tokens, time.Now()),
 		"Roles":        tokenRoles(user.Role),
 		"CreatedToken": createdToken,
 	}})
