@@ -43,10 +43,11 @@ type Volume struct {
 }
 
 type BlockDevice struct {
-	Type   string
-	Device string
-	Target string
-	Source string
+	Type          string
+	Device        string
+	Target        string
+	Source        string
+	CapacityBytes uint64
 }
 
 type Network struct {

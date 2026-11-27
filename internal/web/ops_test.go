@@ -84,6 +84,31 @@ func TestVMResourceArgs(t *testing.T) {
 	}
 }
 
+func TestBlockResizeTargetKiB(t *testing.T) {
+	tests := []struct {
+		name    string
+		current uint64
+		delta   uint64
+		want    uint64
+	}{
+		// Regression: 40 GiB + 1 GiB must become 43000576 KiB (41 GiB).
+		// Passing the byte value straight to virsh blockresize made the
+		// disk 41 TiB instead, because blockresize reads the size as KiB.
+		{name: "40G plus 1G", current: 40 << 30, delta: 1 << 30, want: 41 << 20},
+		{name: "exact KiB", current: 10 << 10, delta: 0, want: 10},
+		{name: "rounds up", current: 1025, delta: 0, want: 2},
+		{name: "one byte", current: 1, delta: 0, want: 1},
+		{name: "zero", current: 0, delta: 0, want: 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := blockResizeTargetKiB(tc.current, tc.delta); got != tc.want {
+				t.Fatalf("blockResizeTargetKiB(%d, %d) = %d, want %d", tc.current, tc.delta, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestBuildOpsVMRows(t *testing.T) {
 	domains := []libvirt.Domain{
 		{Name: "web", ID: "7", State: "running", Autostart: "enable", VCPUs: 4, UsedMemoryKiB: 1 << 20, MaxMemoryKiB: 4 << 20},

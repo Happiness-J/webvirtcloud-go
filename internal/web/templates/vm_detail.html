@@ -121,16 +121,16 @@
 {{template "writethrough" .}}
 {{template "diskbus" .}}
   <h2>磁盘容量</h2>
-  {{if .Data.Detail.BlockList}}<table><thead><tr><th>类型</th><th>用途</th><th>目标</th><th>源</th></tr></thead><tbody>{{range .Data.Detail.BlockList}}<tr><td>{{.Type}}</td><td>{{.Device}}</td><td><code>{{.Target}}</code></td><td><code>{{.Source}}</code></td></tr>{{end}}</tbody></table>
+  {{if .Data.Detail.BlockList}}<table><thead><tr><th>类型</th><th>用途</th><th>目标</th><th>容量</th><th>源</th></tr></thead><tbody>{{range .Data.Detail.BlockList}}<tr><td>{{.Type}}</td><td>{{.Device}}</td><td><code>{{.Target}}</code></td><td>{{if .CapacityBytes}}{{bytes .CapacityBytes}}{{else}}<span class="muted">未知</span>{{end}}</td><td><code>{{.Source}}</code></td></tr>{{end}}</tbody></table>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/disk-resize" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
     <select name="disk_target" required>{{range .Data.Detail.BlockList}}{{if and (eq .Device "disk") (or (eq .Type "file") (eq .Type "block"))}}<option value="{{.Target}}">{{.Target}} · {{.Source}}</option>{{end}}{{end}}</select>
     <select name="disk_mode"><option value="grow">扩容</option><option value="shrink" {{if ne .Data.Detail.Domain.State "shut off"}}disabled{{end}}>缩容</option></select>
-    <input name="disk_amount" value="10G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]?">
+    <label>增加量<input name="disk_amount" value="10G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]?"></label>
     <input name="confirm_text" placeholder="缩容时输入 SHRINK">
     <button class="btn danger" data-confirm="调整磁盘容量前请确认分区和文件系统状态，继续吗？">调整磁盘</button>
   </form>
-  <p class="hint bad-text">在线扩容会扩展虚拟磁盘；如果客户机代理在线，会同时通知客户机刷新块设备。分区和文件系统仍需在客户机内扩展。缩容必须先关机，并在 guest 内先缩小文件系统/分区；错误缩容可能破坏磁盘数据。</p>
+  <p class="hint bad-text">在线扩容会扩展虚拟磁盘；如果客户机代理在线，会同时通知客户机刷新块设备。分区和文件系统仍需在客户机内扩展。容量填的是增加量：填 10G 表示在当前容量上再加 10G，而不是改成 10G。缩容必须先关机，并在 guest 内先缩小文件系统/分区；错误缩容可能破坏磁盘数据。</p>
   {{else}}<p class="empty">没有可调整的数据磁盘。</p>{{end}}
 </section>
 <section class="panel">
