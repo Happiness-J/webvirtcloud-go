@@ -98,6 +98,46 @@ document.addEventListener('change', (event) => {
   });
 });
 
+// The snapshot form shares one submit button for create, restore and
+// delete, but its confirm preview must describe the selected action.
+// Keep the preview text and the "restore/delete needs confirmation"
+// checkbox in sync whenever the action or the snapshot name changes;
+// the preview is read from the button at click time, so updating the
+// attribute here is enough.
+function syncSnapshotConfirm(form) {
+  const select = form.querySelector('select[name="action"]');
+  const button = form.querySelector('button[data-confirm]');
+  const confirmBox = form.querySelector('input[name="confirm"]');
+  const nameInput = form.querySelector('input[name="snapshot"]');
+  if (!select || !button) return;
+  const name = nameInput ? nameInput.value.trim() : '';
+  const shown = name || '所选快照';
+  const messages = {
+    'snapshot-create': '创建快照时会先通过客户机代理冻结文件系统，确定继续吗？',
+    'snapshot-revert': '恢复会回滚磁盘和内存，未保存的数据会丢失。确定恢复到 ' + shown + ' 吗？',
+    'snapshot-delete': '确定删除快照 ' + shown + ' 吗？删除后无法恢复。',
+  };
+  if (messages[select.value]) button.dataset.confirm = messages[select.value];
+  if (confirmBox) confirmBox.required = select.value !== 'snapshot-create';
+}
+
+function snapshotFormOf(target) {
+  const form = target.closest('form');
+  if (!form) return null;
+  const select = form.querySelector('select[name="action"]');
+  if (!select || !select.querySelector('option[value="snapshot-create"]')) return null;
+  return form;
+}
+
+document.addEventListener('change', (event) => {
+  const form = snapshotFormOf(event.target);
+  if (form) syncSnapshotConfirm(form);
+});
+document.addEventListener('input', (event) => {
+  const form = snapshotFormOf(event.target);
+  if (form) syncSnapshotConfirm(form);
+});
+
 (() => {
   const panel = document.getElementById('job-output-panel');
   if (!panel) return;
