@@ -26,9 +26,9 @@
     <form method="post" action="/cluster/protect" class="stack">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
       <label>主机<select name="host_id" required>{{range .Data.Hosts}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
-      <label>虚拟机名称<input name="vm" required maxlength="128"></label>
+      <label>虚拟机名称<input name="vm" required maxlength="128" placeholder="例如 test1"></label>
       <label class="confirm"><input type="checkbox" name="protected" value="1" checked>纳入高可用</label>
-      <button class="btn">保存</button>
+      <button class="btn primary">保存</button>
     </form>
   </section>
 </div>

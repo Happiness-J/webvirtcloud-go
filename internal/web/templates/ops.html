@@ -22,8 +22,8 @@
       <option value="autostart-on">启用自启动</option><option value="autostart-off">取消自启动</option>
       <option value="snapshot">创建快照</option><option value="migrate">热迁移</option>
     </select></label>
-    <label>快照名<input name="snapshot" placeholder="batch" maxlength="64"></label>
-    <label>迁移目标<input name="target" placeholder="qemu+ssh://迁移目标/system" maxlength="256"></label>
+    <label data-batch-field="snapshot">快照名<input name="snapshot" placeholder="batch" maxlength="64"></label>
+    <label data-batch-field="migrate">迁移目标<input name="target" placeholder="qemu+ssh://迁移目标/system" maxlength="256"></label>
     <label class="confirm"><input type="checkbox" name="confirm" value="yes">关机、重启或挂起时勾选确认</label>
     <button class="btn primary" data-confirm="将对已勾选的虚拟机批量提交任务。关机、重启和挂起会影响业务可用性，确定继续吗？">执行批量任务</button>
     <span class="hint">单次最多 50 台。启动和自启动可以直接提交；关机、重启、挂起必须勾选确认。状态不匹配时整批不会提交。</span>
