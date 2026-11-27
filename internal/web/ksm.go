@@ -19,5 +19,9 @@ func (s *Server) hostKSM(w http.ResponseWriter, r *http.Request) {
 		s.redirectError(w, r, "/hosts/"+host.ID, "无法提交 KSM 设置")
 		return
 	}
-	http.Redirect(w, r, "/hosts/"+host.ID, http.StatusSeeOther)
+	action := "开启 KSM"
+	if enabled == "0" {
+		action = "关闭 KSM"
+	}
+	http.Redirect(w, r, flashURL("/hosts/"+host.ID, "已提交 KSM 任务："+action+"，可在任务队列查看进度", "ok"), http.StatusSeeOther)
 }

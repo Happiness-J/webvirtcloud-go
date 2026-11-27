@@ -1607,9 +1607,25 @@ func TestEnqueueJobRejectsUnknownKind(t *testing.T) {
 	}
 }
 
+func TestEnqueueJobAcceptsHostAction(t *testing.T) {
+	// KSM 提交用的任务类型，曾经因不在白名单里导致提交直接失败。
+	db := newTestStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	user := createTestUser(t, db, "admin")
+	host := createTestHost(t, db)
+	err := db.EnqueueJob(ctx, Job{
+		ID: id.New("job"), UserID: user.ID, HostID: host.ID, Kind: "host-action", Label: "设置 KSM", Tool: "virsh",
+		ArgsJSON: "[\"node-memory-tune\", \"shm-merge\", \"1\"]", TimeoutSeconds: 60,
+	})
+	if err != nil {
+		t.Fatalf("EnqueueJob host-action = %v", err)
+	}
+}
+
 func TestValidJobKindIncludesEveryQueuedOperation(t *testing.T) {
 	kinds := []string{
-		"command", "vm-create", "vm-clone", "vm-action", "host-test", "filesystem-inspect",
+		"command", "vm-create", "vm-clone", "vm-action", "host-test", "host-action", "filesystem-inspect",
 		"storage-action", "network-action", "disk-action", "vm-resource", "backup-policy",
 		"vm-nic", "vm-firewall", "vm-debug", "vm-video", "vm-disk-controller", "vm-profile",
 		"vm-device", "vm-performance", "vm-boot",
