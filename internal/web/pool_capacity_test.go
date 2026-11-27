@@ -36,7 +36,7 @@ func TestPoolCapacityHintShowsRemainder(t *testing.T) {
 
 func TestPoolCapacityHintWithoutVolumes(t *testing.T) {
 	got := poolCapacityHints([]libvirt.Pool{{Name: "images", Capacity: "20.0 GB", Available: "19.0 GB"}}, nil)["images"]
-	if got.Known || got.Over || got.Committed != "未统计" {
+	if got.Known || got.Over || got.Label != "未统计" || got.Committed != "未统计" {
 		t.Fatalf("hint = %#v", got)
 	}
 }

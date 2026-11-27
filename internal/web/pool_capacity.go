@@ -74,6 +74,7 @@ func summarizePoolCapacity(pool libvirt.Pool, volumes []libvirt.Volume) poolCapa
 	hint.UsedPercent = percentOf(committed, capacity)
 	hint.Label = "未超配"
 	if !hint.Known {
+		hint.Label = "未统计"
 		hint.Detail = "打开这个存储池后，会把卷的承诺容量加总，并和池容量比较。"
 		hint.Committed = "未统计"
 		hint.Remaining = "可用 " + fallbackSize(pool.Available)
