@@ -399,7 +399,7 @@ func (s *Server) hostVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), []store.Host{host})
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "hosts", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "EmptyCDROM": s.emptyCDROMs(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
 }
 
 func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
@@ -410,7 +410,7 @@ func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), hosts)
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "EmptyCDROM": s.emptyCDROMs(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
 }
 
 func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]bool {
@@ -428,6 +428,25 @@ func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]b
 				continue
 			}
 			if consoleExposed(domain.State, libvirt.ParseGraphics(xmlText)) {
+				out[group.Host.ID+"/"+domain.Name] = true
+			}
+		}
+	}
+	return out
+}
+
+func (s *Server) emptyCDROMs(r *http.Request, groups []vmGroup) map[string]bool {
+	out := map[string]bool{}
+	for _, group := range groups {
+		if group.Err != "" {
+			continue
+		}
+		for _, domain := range group.Domains {
+			output, err := s.libvirt.BlockDevices(r.Context(), group.Host.ID, domain.Name)
+			if err != nil {
+				continue
+			}
+			if emptyCDROM(libvirt.ParseBlockDevices(output)) {
 				out[group.Host.ID+"/"+domain.Name] = true
 			}
 		}
