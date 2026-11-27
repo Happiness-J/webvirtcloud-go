@@ -731,7 +731,7 @@ func TestLegacyCommandJobSummariesAreHiddenFromNonAdminLists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	jobs, err := db.ListJobsPage(ctx, user.ID, false, 10, 0)
+	jobs, err := db.ListJobsPage(ctx, user.ID, false, "", 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -748,7 +748,7 @@ func TestLegacyCommandJobSummariesAreHiddenFromNonAdminLists(t *testing.T) {
 	if len(hostJobs) != 1 || hostJobs[0].Label != "virsh [敏感参数已隐藏]" || hostJobs[0].Error != "" {
 		t.Fatalf("legacy command job leaked in host list: %#v", hostJobs)
 	}
-	adminJobs, err := db.ListJobsPage(ctx, user.ID, true, 10, 0)
+	adminJobs, err := db.ListJobsPage(ctx, user.ID, true, "", 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

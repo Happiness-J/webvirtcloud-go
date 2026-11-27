@@ -859,8 +859,14 @@ func parseRequiredCommandArgs(raw string) ([]string, error) {
 func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 	sess, _ := sessionFrom(r.Context())
 	page := parsePage(r.URL.Query().Get("page"))
+	status := r.URL.Query().Get("status")
+	switch status {
+	case "", "queued", "running", "succeeded", "failed", "cancelled":
+	default:
+		status = ""
+	}
 	const pageSize = 100
-	jobs, err := s.db.ListJobsPage(r.Context(), sess.User.ID, sess.User.Role == "admin", pageSize+1, (page-1)*pageSize)
+	jobs, err := s.db.ListJobsPage(r.Context(), sess.User.ID, sess.User.Role == "admin", status, pageSize+1, (page-1)*pageSize)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -884,7 +890,7 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 			groups = failureGroups(failed)
 			targets = repeatedFailureTargets(failed)
 		}
-		recent, err := s.db.ListJobsPage(r.Context(), sess.User.ID, sess.User.Role == "admin", 100, 0)
+		recent, err := s.db.ListJobsPage(r.Context(), sess.User.ID, sess.User.Role == "admin", "", 100, 0)
 		if err != nil {
 			s.log.Warn("load recent jobs for start status", "error", err)
 		} else {
@@ -913,7 +919,7 @@ func (s *Server) jobsPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, "jobs", pageData{Title: "任务", Nav: "jobs", Data: map[string]any{
-		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "FailureGroups": groups, "FailureTargets": targets, "FailedStarts": failedStarts, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due, "DisabledSchedules": disabled,
+		"Jobs": jobs, "Stats": stats, "Page": page, "HasNext": hasNext, "Status": status, "FailureGroups": groups, "FailureTargets": targets, "FailedStarts": failedStarts, "LongQueued": longQueuedJobs(jobs, time.Now()), "DueSchedules": due, "DisabledSchedules": disabled,
 	}})
 }
 
