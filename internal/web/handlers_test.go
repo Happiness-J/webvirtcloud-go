@@ -83,6 +83,16 @@ func TestAuditActionName(t *testing.T) {
 	if auditActionName("job.enqueue") != "提交任务" || auditActionName("auth.login") != "登录成功" || auditActionName("user.password_reset") != "重置登录密码" || auditActionName("custom.action") != "custom.action" {
 		t.Fatal("unexpected audit action label")
 	}
+	// 审计筛选下拉框里实际出现过的操作也必须有中文名，否则概览与审计页仍会显示原始代码。
+	want := map[string]string{
+		"job.finished": "任务完成", "image.deleted": "删除镜像", "ip_pool.deleted": "删除地址池",
+		"user.deleted": "删除用户", "bootstrap.admin_created": "创建初始管理员", "bootstrap.password_reset": "重置初始密码",
+	}
+	for action, label := range want {
+		if got := auditActionName(action); got != label {
+			t.Fatalf("auditActionName(%q) = %q, want %q", action, got, label)
+		}
+	}
 }
 
 func TestHostsWithVMAccessKeepsAssignedHostsOnly(t *testing.T) {

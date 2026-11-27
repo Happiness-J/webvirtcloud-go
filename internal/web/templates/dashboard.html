@@ -57,7 +57,7 @@
   </section>
   <section class="panel">
     <div class="panel-head"><h2>最近审计</h2>{{if or (eq .User.Role "admin") (eq .User.Role "operator")}}<a href="/audit">全部</a>{{end}}</div>
-    {{if .Data.Audit}}<table><tbody>{{range .Data.Audit}}<tr><td>{{.Action}}</td><td>{{.ActorName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有审计记录</strong><span>登录、主机变更和任务结果会出现在这里。</span></div>{{end}}
+    {{if .Data.Audit}}<table><tbody>{{range .Data.Audit}}<tr><td>{{auditActionName .Action}}</td><td>{{.ActorName}}</td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}</tbody></table>{{else}}<div class="empty-state"><strong>还没有审计记录</strong><span>登录、主机变更和任务结果会出现在这里。</span></div>{{end}}
   </section>
 </div>
 {{end}}
