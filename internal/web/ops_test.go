@@ -55,6 +55,8 @@ func TestBatchActionCompatibility(t *testing.T) {
 func TestVMResourceArgs(t *testing.T) {
 	tests := []struct {
 		name, kind, scope, value, state string
+		maxVCPUs                        int
+		maxMemoryKiB                    uint64
 		wantArgs                        []string
 		wantErr                         bool
 	}{
@@ -62,6 +64,10 @@ func TestVMResourceArgs(t *testing.T) {
 		{name: "cpu live", kind: "cpu", scope: "live", value: "8", state: "running", wantArgs: []string{"setvcpus", "vm", "8", "--live", "--config"}},
 		{name: "cpu max", kind: "cpu-max", scope: "live", value: "16", state: "shut off", wantArgs: []string{"setvcpus", "vm", "16", "--maximum", "--config"}},
 		{name: "memory", kind: "memory", scope: "live", value: "8G", state: "paused", wantArgs: []string{"setmem", "vm", "8388608", "--live", "--config"}},
+		{name: "cpu at max", kind: "cpu", scope: "config", value: "4", state: "shut off", maxVCPUs: 4, wantArgs: []string{"setvcpus", "vm", "4", "--config"}},
+		{name: "memory at max", kind: "memory", scope: "config", value: "8G", state: "shut off", maxMemoryKiB: 8 << 20, wantArgs: []string{"setmem", "vm", "8388608", "--config"}},
+		{name: "cpu above max", kind: "cpu", scope: "config", value: "8", state: "shut off", maxVCPUs: 4, wantErr: true},
+		{name: "memory above max", kind: "memory", scope: "config", value: "16G", state: "shut off", maxMemoryKiB: 8 << 20, wantErr: true},
 		{name: "live stopped", kind: "memory", scope: "live", value: "8G", state: "shut off", wantErr: true},
 		{name: "bad cpu", kind: "cpu", scope: "config", value: "0", state: "running", wantErr: true},
 		{name: "bad memory", kind: "memory", scope: "config", value: "4X", state: "running", wantErr: true},
@@ -70,7 +76,7 @@ func TestVMResourceArgs(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			args, _, err := vmResourceArgs(tc.kind, "vm", tc.scope, tc.value, tc.state)
+			args, _, err := vmResourceArgs(tc.kind, "vm", tc.scope, tc.value, tc.state, tc.maxVCPUs, tc.maxMemoryKiB)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatalf("vmResourceArgs() = %#v, nil; want error", args)

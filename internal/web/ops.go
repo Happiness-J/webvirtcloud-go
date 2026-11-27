@@ -308,7 +308,11 @@ func (s *Server) vmBatchAction(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, flashURL("/jobs", message, kind), http.StatusSeeOther)
 }
 
-func vmResourceArgs(kind, vm, scope, rawValue, state string) ([]string, string, error) {
+// vmResourceArgs builds the virsh arguments for a CPU/memory resize.
+// maxVCPUs and maxMemoryKiB are the configured limits; when they are known
+// (greater than zero) targets above them are rejected here instead of
+// failing later as a libvirt job error.
+func vmResourceArgs(kind, vm, scope, rawValue, state string, maxVCPUs int, maxMemoryKiB uint64) ([]string, string, error) {
 	if err := libvirt.ValidateName(vm); err != nil {
 		return nil, "", fmt.Errorf("虚拟机名称无效")
 	}
@@ -338,6 +342,9 @@ func vmResourceArgs(kind, vm, scope, rawValue, state string) ([]string, string, 
 		if err != nil || count < 1 || count > 1024 {
 			return nil, "", fmt.Errorf("vCPU 数量必须在 1-1024 之间")
 		}
+		if kind == "cpu" && maxVCPUs > 0 && count > maxVCPUs {
+			return nil, "", fmt.Errorf("目标 vCPU 数量超过最大上限 %d，请先提高上限（需关机）", maxVCPUs)
+		}
 		if kind == "cpu-max" {
 			return []string{"setvcpus", vm, strconv.Itoa(count), "--maximum", "--config"}, fmt.Sprintf("%s: 设置最大 vCPU 为 %d", vm, count), nil
 		}
@@ -354,6 +361,9 @@ func vmResourceArgs(kind, vm, scope, rawValue, state string) ([]string, string, 
 		kiB := bytes / 1024
 		if kiB < 64*1024 || kiB > 1<<40 {
 			return nil, "", fmt.Errorf("内存容量必须在 64 MiB 到 1 TiB 之间")
+		}
+		if kind == "memory" && maxMemoryKiB > 0 && kiB > maxMemoryKiB {
+			return nil, "", fmt.Errorf("目标内存超过最大内存（%s），请先提高上限（需关机）", formatBytes(maxMemoryKiB*1024))
 		}
 		if kind == "memory-max" {
 			return []string{"setmaxmem", vm, strconv.FormatUint(kiB, 10), "--config"}, fmt.Sprintf("%s: 设置最大内存为 %s", vm, strings.ToUpper(strings.TrimSpace(rawValue))), nil
@@ -391,7 +401,8 @@ func (s *Server) vmResourceAction(w http.ResponseWriter, r *http.Request) {
 	} else {
 		rawValue = r.Form.Get("cpu_count")
 	}
-	args, label, err := vmResourceArgs(kind, vmName, r.Form.Get("scope"), rawValue, info["State"])
+	maxVCPUs, _ := s.libvirt.MaxVCPUs(r.Context(), host.ID, vmName)
+	args, label, err := vmResourceArgs(kind, vmName, r.Form.Get("scope"), rawValue, info["State"], maxVCPUs, parseKiBInfo(info["Max memory"]))
 	if err != nil {
 		s.redirectError(w, r, vmRedirect(host.ID, vmName), err.Error())
 		return

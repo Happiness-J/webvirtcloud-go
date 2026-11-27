@@ -730,6 +730,13 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 	if drillErr != nil {
 		s.logRequestError(r, "load backup drills", drillErr)
 	}
+	// The configured maximum vCPU count bounds resize targets. Fall back
+	// to the current count when the lookup fails so the page still renders
+	// and the forms keep a sane value.
+	maxVCPUs, maxVCPUErr := s.libvirt.MaxVCPUs(r.Context(), host.ID, vmName)
+	if maxVCPUErr != nil || maxVCPUs <= 0 {
+		maxVCPUs, _ = strconv.Atoi(detail.Info["CPU(s)"])
+	}
 	page := pageData{Title: vmName, Nav: "vms", Data: map[string]any{
 		"Drills": drills, "Schedules": schedules,
 		"Host": host, "VM": vmName, "Detail": detail, "WriteThrough": writeThroughDisks(detail.XML), "DiskBus": diskBusMismatches(detail.XML), "MigrationCheck": s.migrationPrecheck(r, host.ID, detail.BlockList), "BackupChainReady": backupChainReady(detail.Backups), "BackupReport": buildBackupReport(detail.Backups, drills, store.BackupPolicy{}), "InfoRows": infoRows, "Actions": actions, "Balloon": balloon,
@@ -737,6 +744,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
+		"MaxVCPUs":          maxVCPUs,
 		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML), "DiskControllers": parseDiskControllers(detail.XML), "Video": parseVideo(detail.XML), "GDB": parseGDB(detail.XML), "Boot": parseBootInventory(detail.XML), "BackupAge": backupFreshness(detail.Backups, time.Now()), "Snapshots": summarizeSnapshots(detail.Snapshots), "CDROMs": cdromMediaList(detail.BlockList), "DuplicateDisks": duplicateDiskMounts(detail.BlockList), "Leftovers": shutdownLeftovers(detail.Domain.State, cdromMediaList(detail.BlockList), vmDevices), "DeleteProtected": vmHasDeleteProtection(vmTags, vmName), "ProtectionGap": protectionMismatch(vmHasDeleteProtection(vmTags, vmName), s.vmHAProtected(r, host.ID, vmName)), "Topology": topology, "GuestOS": guestText(s, r, host.ID, vmName, "os"), "GuestHostname": guestText(s, r, host.ID, vmName, "hostname"), "GuestFilesystems": guestText(s, r, host.ID, vmName, "fs"), "QMPStatus": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "status"), "QMPBlock": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "block"),
 	}}
 	if len(detail.Warnings) > 0 {
