@@ -52,6 +52,19 @@ document.addEventListener('click', (event) => {
   }
 });
 
+// 批量操作只显示当前动作需要的字段，避免无关输入干扰。
+const batchForm = document.getElementById('vm-batch-form');
+if (batchForm) {
+  const batchAction = batchForm.querySelector('select[name="action"]');
+  const toggleBatchFields = () => {
+    batchForm.querySelectorAll('[data-batch-field]').forEach((field) => {
+      field.classList.toggle('hidden', field.dataset.batchField !== batchAction.value);
+    });
+  };
+  batchAction.addEventListener('change', toggleBatchFields);
+  toggleBatchFields();
+}
+
 document.addEventListener('click', async (event) => {
   const button = event.target.closest('button[data-copy]');
   if (!button) return;
