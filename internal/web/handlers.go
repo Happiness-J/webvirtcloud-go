@@ -2364,12 +2364,14 @@ func (s *Server) imageLibraryDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) imageLibraryChecksum(w http.ResponseWriter, r *http.Request) {
-	sum, err := libraryChecksum(s.cfg.ImageDir, strings.TrimSpace(r.Form.Get("name")))
+	name := strings.TrimSpace(r.Form.Get("name"))
+	sum, err := libraryChecksum(s.cfg.ImageDir, name)
 	if err != nil {
 		s.redirectError(w, r, "/images", err.Error())
 		return
 	}
-	s.render(w, r, "diagnostic", pageData{Title: "镜像校验", Nav: "hosts", Data: map[string]any{"Heading": "SHA256 · " + r.Form.Get("name"), "Back": "/images", "Output": sum}})
+	// 校验结果用闪现消息带回镜像库：结果页地址是 POST 专用的，刷新会 404。
+	http.Redirect(w, r, flashURL("/images", "SHA256（"+name+"）："+sum, "ok"), http.StatusSeeOther)
 }
 
 func (s *Server) imageLibraryFetch(w http.ResponseWriter, r *http.Request) {
