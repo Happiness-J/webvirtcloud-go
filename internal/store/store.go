@@ -1815,10 +1815,10 @@ func (s *Store) decryptJob(j *Job) error {
 }
 
 func (s *Store) ListJobs(ctx context.Context, userID string, isAdmin bool, limit int) ([]Job, error) {
-	return s.ListJobsPage(ctx, userID, isAdmin, limit, 0)
+	return s.ListJobsPage(ctx, userID, isAdmin, "", limit, 0)
 }
 
-func (s *Store) ListJobsPage(ctx context.Context, userID string, isAdmin bool, limit, offset int) ([]Job, error) {
+func (s *Store) ListJobsPage(ctx context.Context, userID string, isAdmin bool, status string, limit, offset int) ([]Job, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
@@ -1833,6 +1833,14 @@ func (s *Store) ListJobsPage(ctx context.Context, userID string, isAdmin bool, l
 	if !isAdmin {
 		query += ` WHERE j.user_id=$1`
 		args = append(args, userID)
+	}
+	if status != "" {
+		if len(args) == 0 {
+			query += ` WHERE j.status=$1`
+		} else {
+			query += fmt.Sprintf(` AND j.status=$%d`, len(args)+1)
+		}
+		args = append(args, status)
 	}
 	query += fmt.Sprintf(` ORDER BY j.created_at DESC LIMIT %d OFFSET %d`, limit, offset)
 	rows, err := s.pool.Query(ctx, query, args...)

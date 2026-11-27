@@ -30,9 +30,10 @@
   {{if .Data.FailureTargets}}<div class="table-wrap"><table><thead><tr><th>目标</th><th>主机</th><th>最近失败</th></tr></thead><tbody>{{range .Data.FailureTargets}}<tr><td>{{.Name}}</td><td>{{if .Host}}{{.Host}}{{else}}<span class="muted">-</span>{{end}}</td><td><span class="pill bad">{{.Count}}</span></td></tr>{{end}}</tbody></table></div>{{else}}<div class="empty-state"><strong>没有反复失败的同一目标</strong><span>最近失败没有两次以上指向同一台虚拟机或同一个存储对象。</span></div>{{end}}
 </section>
 <section class="panel">
+<form method="get" action="/jobs" class="inline-form"><label>状态<select name="status"><option value="">全部状态</option><option value="queued" {{if eq .Data.Status "queued"}}selected{{end}}>排队</option><option value="running" {{if eq .Data.Status "running"}}selected{{end}}>运行中</option><option value="succeeded" {{if eq .Data.Status "succeeded"}}selected{{end}}>成功</option><option value="failed" {{if eq .Data.Status "failed"}}selected{{end}}>失败</option><option value="cancelled" {{if eq .Data.Status "cancelled"}}selected{{end}}>已取消</option></select></label><button class="btn small">筛选</button>{{if .Data.Status}}<a class="btn small" href="/jobs">清除</a>{{end}}</form>
 {{if .Data.Jobs}}<div class="table-wrap"><table><thead><tr><th>任务</th><th>发起人</th><th>主机</th><th>工具</th><th>状态<button type="button" class="help-tip" aria-label="说明" data-tip="排队表示还没开始，运行中可以进详情看输出，失败会保留错误原因。">?</button></th><th>时间</th></tr></thead><tbody>
 {{range .Data.Jobs}}<tr><td><a href="/jobs/{{.ID}}">{{.Label}}</a></td><td>{{.UserName}}</td><td>{{jobHostLabel .}}</td><td><code>{{.Tool}}</code></td><td><span class="pill {{statusClass .Status}}">{{statusName .Status}}</span></td><td class="muted">{{date .CreatedAt}}</td></tr>{{end}}
 </tbody></table></div>{{else}}<div class="empty-state"><strong>任务队列是空的</strong><span>创建虚拟机、调整资源或执行维护操作后，进度会显示在这里。</span></div>{{end}}
-{{if gt .Data.Page 1}}<a class="btn small" href="/jobs?page={{sub .Data.Page 1}}">上一页</a>{{end}}{{if .Data.HasNext}}<a class="btn small" href="/jobs?page={{add .Data.Page 1}}">下一页</a>{{end}}
+{{if gt .Data.Page 1}}<a class="btn small" href="/jobs?page={{sub .Data.Page 1}}{{if .Data.Status}}&status={{.Data.Status}}{{end}}">上一页</a>{{end}}{{if .Data.HasNext}}<a class="btn small" href="/jobs?page={{add .Data.Page 1}}{{if .Data.Status}}&status={{.Data.Status}}{{end}}">下一页</a>{{end}}
 </section>
 {{end}}
