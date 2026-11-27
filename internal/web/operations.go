@@ -511,7 +511,11 @@ func (s *Server) vmDiskResize(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			tool = "virsh"
-			args = []string{"blockresize", vmName, disk.Target, strconv.FormatUint(current+delta, 10)}
+			// virsh blockresize takes the new size in KiB, while
+			// BlockDeviceCapacity (domblkinfo) and parseScaledAmount both
+			// work in bytes. Passing the byte value through unchanged made
+			// the disk 1024x larger than requested.
+			args = []string{"blockresize", vmName, disk.Target, strconv.FormatUint(blockResizeTargetKiB(current, delta), 10)}
 			if _, agentErr := s.libvirt.GuestAgentInfo(r.Context(), host.ID, vmName); agentErr == nil {
 				args = append(args, "--guest-notify")
 			}
@@ -555,6 +559,20 @@ func findDiskDevice(devices []libvirt.BlockDevice, target string) (libvirt.Block
 		}
 	}
 	return libvirt.BlockDevice{}, false
+}
+
+// blockResizeTargetKiB converts a target disk size in bytes to the KiB
+// value virsh blockresize expects. The result is rounded up so the resized
+// disk is never smaller than requested. Callers must check current+delta
+// for overflow before calling this helper.
+func blockResizeTargetKiB(currentBytes, deltaBytes uint64) uint64 {
+	// Ceiling division of (currentBytes + deltaBytes) by 1024, computed
+	// without adding the operands so it cannot overflow.
+	target := currentBytes/1024 + deltaBytes/1024
+	if currentBytes%1024+deltaBytes%1024 > 0 {
+		target++
+	}
+	return target
 }
 
 func parseScaledAmount(raw string) (uint64, error) {

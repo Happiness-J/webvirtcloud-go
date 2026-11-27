@@ -506,6 +506,26 @@ func (s *Service) Detail(ctx context.Context, hostID, name string, includeXML bo
 	}
 	wg.Wait()
 	detail.BlockList = ParseBlockDevices(detail.BlockDevs)
+	// Fill in the current capacity of each resizable disk so the detail
+	// page can show it next to the resize form. Lookups are best effort:
+	// a failed lookup leaves CapacityBytes at 0 and the page renders "未知".
+	var capWg sync.WaitGroup
+	for i := range detail.BlockList {
+		if detail.BlockList[i].Device != "disk" {
+			continue
+		}
+		if detail.BlockList[i].Type != "file" && detail.BlockList[i].Type != "block" {
+			continue
+		}
+		capWg.Add(1)
+		go func(idx int) {
+			defer capWg.Done()
+			if cap, err := s.BlockDeviceCapacity(ctx, hostID, name, detail.BlockList[idx].Target); err == nil {
+				detail.BlockList[idx].CapacityBytes = cap
+			}
+		}(i)
+	}
+	capWg.Wait()
 	detail.Snapshots, snapshotErr = s.ListSnapshots(ctx, hostID, name)
 	detail.Backups, backupErr = s.ListBackups(ctx, hostID, name)
 	detail.Warnings = detailWarnings(blockErr, ifaceErr, xmlErr, snapshotErr, backupErr, blockErrorErr, memoryErr, eventErr, guestErr, powerErr, addressErr)
