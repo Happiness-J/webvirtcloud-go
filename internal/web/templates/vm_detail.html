@@ -262,6 +262,7 @@
 </section>
 <section class="panel">
   <div class="panel-head"><h2>图形控制台与显卡</h2></div>
+{{template "consolepassword" .}}
   <p class="hint">当前显卡：{{if .Data.Video.Model}}{{.Data.Video.Model}}{{else}}未设置{{end}}{{if gt .Data.Video.VRAM 0}}，显存 {{.Data.Video.VRAM}} MiB{{end}}。无头显卡不能和 VNC 或 SPICE 同时使用。</p>
   {{if eq .Data.Detail.Domain.State "shut off"}}
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/action" class="inline-form">
@@ -476,4 +477,7 @@
 {{end}}
 {{define "diskbus"}}  <h3>总线不一致 <button type="button" class="help-tip" aria-label="说明" data-tip="通用、Linux 和 BSD 推荐 virtio 数据盘。这里只对照当前总线和推荐值，不改总线。">?</button></h3>
   {{if .Data.DiskBus}}<ul class="plain-list">{{range .Data.DiskBus}}<li><code>{{.Target}}</code> <span class="muted">当前 {{.Bus}}，推荐 {{.Want}}</span></li>{{end}}</ul>{{else}}<p class="hint">数据盘总线与推荐的 virtio 一致。</p>{{end}}
+{{end}}
+{{define "consolepassword"}}  <h3>控制台没有密码 <button type="button" class="help-tip" aria-label="说明" data-tip="这些图形控制台已经配置，但没有密码。回环地址也列在这里。这里只提示，不改密码，也不改监听。">?</button></h3>
+  {{if .Data.OpenConsoles}}<ul class="plain-list">{{range .Data.OpenConsoles}}<li>{{.Protocol}} <span class="muted">{{.Address}}</span></li>{{end}}</ul>{{else}}<p class="hint">已配置的图形控制台都设置了密码，或这台虚拟机没有图形控制台。</p>{{end}}
 {{end}}
