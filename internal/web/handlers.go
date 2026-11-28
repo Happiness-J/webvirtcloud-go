@@ -435,6 +435,18 @@ func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]b
 	return out
 }
 
+func (s *Server) disksOutsideCheckpoints(r *http.Request, hostID, vmName string, detail libvirt.DomainDetail) []unbackedDisk {
+	var xmls []string
+	for _, backup := range detail.Backups {
+		res, err := s.libvirt.RunReadOnly(r.Context(), hostID, []string{"checkpoint-dumpxml", vmName, backup.Name}, 10*time.Second)
+		if err != nil {
+			continue
+		}
+		xmls = append(xmls, res.Stdout)
+	}
+	return disksOutsideCheckpoints(detail.BlockList, xmls)
+}
+
 func (s *Server) unreportedMemory(r *http.Request, groups []vmGroup) map[string]bool {
 	out := map[string]bool{}
 	for _, group := range groups {
@@ -737,7 +749,7 @@ func (s *Server) vmPage(w http.ResponseWriter, r *http.Request) {
 		"ScreenshotAllowed": consoleAllowed && consoleAvailable(detail.Domain.State),
 		"RemovableTargets":  removableDiskTargets(detail.BlockList),
 		"MaxMemoryBytes":    parseKiBInfo(detail.Info["Max memory"]),
-		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML), "OpenConsoles": consolesWithoutPassword(libvirt.ParseGraphics(detail.XML)), "DiskControllers": parseDiskControllers(detail.XML), "Video": parseVideo(detail.XML), "GDB": parseGDB(detail.XML), "Boot": parseBootInventory(detail.XML), "BackupAge": backupFreshness(detail.Backups, time.Now()), "Snapshots": summarizeSnapshots(detail.Snapshots), "CDROMs": cdromMediaList(detail.BlockList), "DuplicateDisks": duplicateDiskMounts(detail.BlockList), "Leftovers": shutdownLeftovers(detail.Domain.State, cdromMediaList(detail.BlockList), vmDevices), "DeleteProtected": vmHasDeleteProtection(vmTags, vmName), "ProtectionGap": protectionMismatch(vmHasDeleteProtection(vmTags, vmName), s.vmHAProtected(r, host.ID, vmName)), "Topology": topology, "GuestOS": guestText(s, r, host.ID, vmName, "os"), "GuestHostname": guestText(s, r, host.ID, vmName, "hostname"), "GuestFilesystems": guestText(s, r, host.ID, vmName, "fs"), "QMPStatus": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "status"), "QMPBlock": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "block"),
+		"HostDevices":       hostDevices, "AssignedDevices": vmDevices, "HostDeviceError": hostdevErr != nil, "NICChoices": parseNICChoices(detail.Ifaces), "GuestDevices": parseGuestDevices(detail.XML), "WatchdogLabel": watchdogLabel(parseGuestDevices(detail.XML).Watchdog), "Graphics": libvirt.ParseGraphics(detail.XML), "OpenConsoles": consolesWithoutPassword(libvirt.ParseGraphics(detail.XML)), "DiskControllers": parseDiskControllers(detail.XML), "Video": parseVideo(detail.XML), "GDB": parseGDB(detail.XML), "Boot": parseBootInventory(detail.XML), "BackupAge": backupFreshness(detail.Backups, time.Now()), "UnbackedDisks": s.disksOutsideCheckpoints(r, host.ID, vmName, detail), "Snapshots": summarizeSnapshots(detail.Snapshots), "CDROMs": cdromMediaList(detail.BlockList), "DuplicateDisks": duplicateDiskMounts(detail.BlockList), "Leftovers": shutdownLeftovers(detail.Domain.State, cdromMediaList(detail.BlockList), vmDevices), "DeleteProtected": vmHasDeleteProtection(vmTags, vmName), "ProtectionGap": protectionMismatch(vmHasDeleteProtection(vmTags, vmName), s.vmHAProtected(r, host.ID, vmName)), "Topology": topology, "GuestOS": guestText(s, r, host.ID, vmName, "os"), "GuestHostname": guestText(s, r, host.ID, vmName, "hostname"), "GuestFilesystems": guestText(s, r, host.ID, vmName, "fs"), "QMPStatus": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "status"), "QMPBlock": qmpPageQuery(s, r, host.ID, vmName, detail.Domain.State, "block"),
 	}}
 	if len(detail.Warnings) > 0 {
 		page.Flash = strings.Join(detail.Warnings, "；") + "。虚拟机基本信息仍可查看，请检查主机连接和 libvirt 日志。"
