@@ -249,8 +249,22 @@ func parseTemplates() (map[string]*template.Template, error) {
 		"consoleAvailable": consoleAvailable,
 		"auditDetail":      auditDetailText,
 		"auditActionName":  auditActionName,
-		"bytes":            formatBytes,
-		"memoryAmount":     memoryAmount,
+		"imageCategoryName": func(category string) string {
+			switch category {
+			case "disk":
+				return "磁盘"
+			case "installer":
+				return "安装 ISO"
+			case "virtio":
+				return "virtio 驱动"
+			case "guest-agent":
+				return "guest agent"
+			default:
+				return category
+			}
+		},
+		"bytes":        formatBytes,
+		"memoryAmount": memoryAmount,
 	}
 	out := make(map[string]*template.Template)
 	for _, page := range pages {
