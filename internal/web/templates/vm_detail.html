@@ -333,25 +333,26 @@
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="cpu">
       <h3>调整 vCPU 数量</h3>
       <label>数量<input type="number" name="cpu_count" min="1" max="1024" value="{{index .Data.Detail.Info "CPU(s)"}}" required></label>
-      <label>生效范围<select name="scope"><option value="config">下次启动生效</option><option value="live">在线并持久化</option></select></label>
+      <label>生效范围<select name="scope"><option value="config"{{if and (ne .Data.Detail.Domain.State "running") (ne .Data.Detail.Domain.State "paused")}} selected{{end}}>下次启动生效</option><option value="live"{{if or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")}} selected{{end}}>在线并持久化</option></select></label>
       <button class="btn" data-confirm="确定调整 vCPU 数量吗？">提交 vCPU 调整</button>
     </form>
     <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/resource" class="stack">
       <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="memory">
       <h3>调整内存</h3>
       <label>容量<input name="memory_amount" value="{{memoryAmount (index .Data.Detail.Info "Used memory")}}" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]"></label>
-      <label>生效范围<select name="scope"><option value="config">下次启动生效</option><option value="live">在线并持久化</option></select></label>
+      <label>生效范围<select name="scope"><option value="config"{{if and (ne .Data.Detail.Domain.State "running") (ne .Data.Detail.Domain.State "paused")}} selected{{end}}>下次启动生效</option><option value="live"{{if or (eq .Data.Detail.Domain.State "running") (eq .Data.Detail.Domain.State "paused")}} selected{{end}}>在线并持久化</option></select></label>
       <button class="btn" data-confirm="确定调整虚拟机内存吗？">提交内存调整</button>
     </form>
   </div>
   <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/resource" class="inline-form">
     <input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="cpu-max">
-    <label>最大 vCPU 上限<input type="number" name="cpu_count" min="1" max="1024" value="{{index .Data.Detail.Info "CPU(s)"}}" required></label>
-    <button class="btn" data-confirm="提高最大 vCPU 上限会改变虚拟机的可热插拔容量，确定继续吗？">更新 CPU 上限</button>
+    <label>最大 vCPU 上限<input type="number" name="cpu_count" min="1" max="1024" value="{{if .Data.MaxVCPUs}}{{.Data.MaxVCPUs}}{{else}}{{index .Data.Detail.Info "CPU(s)"}}{{end}}" required{{if ne .Data.Detail.Domain.State "shut off"}} disabled{{end}}></label>
+    <button class="btn" data-confirm="提高最大 vCPU 上限会改变虚拟机的可热插拔容量，虚拟机需要关机后修改。确定继续吗？"{{if ne .Data.Detail.Domain.State "shut off"}} disabled{{end}}>更新 CPU 上限</button>
   </form>
-  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/resource" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="memory-max"><label>最大内存<input name="memory_amount" value="8G" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]"></label><button class="btn" data-confirm="最大内存决定运行中可热加的上限，虚拟机需要关机后修改。确定继续吗？">更新内存上限</button></form>
+  <form method="post" action="/hosts/{{.Data.Host.ID}}/vms/{{pathEscape .Data.VM}}/resource" class="inline-form"><input type="hidden" name="_csrf" value="{{.CSRF}}"><input type="hidden" name="kind" value="memory-max"><label>最大内存<input name="memory_amount" value="{{memoryAmount (index .Data.Detail.Info "Max memory")}}" required pattern="[1-9][0-9]*[KkMmGgTtPpEe]"{{if ne .Data.Detail.Domain.State "shut off"}} disabled{{end}}></label><button class="btn" data-confirm="最大内存决定运行中可热加的上限，虚拟机需要关机后修改。确定继续吗？"{{if ne .Data.Detail.Domain.State "shut off"}} disabled{{end}}>更新内存上限</button></form>
   <div class="stats"><div class="stat"><strong>{{.Data.Balloon.Current}}</strong><span>当前分配</span></div><div class="stat"><strong>{{.Data.Balloon.GuestUsed}}</strong><span>客户机占用</span></div><div class="stat"><strong>{{.Data.Balloon.Reclaimed}}</strong><span>已回收</span></div></div>
-  <p class="hint">当前配置：{{index .Data.Detail.Info "CPU(s)"}} vCPU，最大内存 {{bytes .Data.MaxMemoryBytes}}。在线调大内存不得超过宿主机和 libvirt 允许的上限。</p>
+  {{if ne .Data.Detail.Domain.State "shut off"}}<p class="hint">虚拟机正在运行，最大 vCPU 上限和最大内存需关机后修改。</p>{{end}}
+  <p class="hint">当前配置：{{index .Data.Detail.Info "CPU(s)"}} vCPU{{if .Data.MaxVCPUs}}（上限 {{.Data.MaxVCPUs}}）{{end}}，最大内存 {{bytes .Data.MaxMemoryBytes}}。在线调大内存不得超过宿主机和 libvirt 允许的上限。</p>
 </section>
     </div>
   </details>
