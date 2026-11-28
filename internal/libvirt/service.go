@@ -583,6 +583,42 @@ func (s *Service) BlockDeviceCapacity(ctx context.Context, hostID, name, target 
 	return capacity, nil
 }
 
+// MaxVCPUs returns the configured maximum vCPU count for a domain, which
+// bounds how far the current vCPU count can grow without first raising
+// the limit (a shutdown-only change).
+func (s *Service) MaxVCPUs(ctx context.Context, hostID, name string) (int, error) {
+	if err := ValidateName(name); err != nil {
+		return 0, err
+	}
+	res, err := s.run(ctx, hostID, []string{"vcpucount", name, "--maximum", "--config"}, 10*time.Second)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %s", err, strings.TrimSpace(res.Output()))
+	}
+	return parseMaxVCPUs(res.Stdout)
+}
+
+// parseMaxVCPUs reads the maximum configured vCPU count from
+// `virsh vcpucount --maximum --config` output. virsh prints either a bare
+// number or the full table; accept both so the parse does not depend on
+// which form a libvirt version emits.
+func parseMaxVCPUs(output string) (int, error) {
+	trimmed := strings.TrimSpace(output)
+	if count, err := strconv.Atoi(trimmed); err == nil && count >= 1 {
+		return count, nil
+	}
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 3 && fields[0] == "maximum" && fields[1] == "config" {
+			count, err := strconv.Atoi(fields[2])
+			if err != nil || count < 1 {
+				return 0, fmt.Errorf("无法解析最大 vCPU 数量")
+			}
+			return count, nil
+		}
+	}
+	return 0, fmt.Errorf("无法解析最大 vCPU 数量")
+}
+
 func (s *Service) PowerRequest(ctx context.Context, hostID, name string) (string, error) {
 	if err := ValidateName(name); err != nil {
 		return "", err

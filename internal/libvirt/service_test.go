@@ -67,6 +67,30 @@ func TestParseTablePreservesSnapshotColumns(t *testing.T) {
 	}
 }
 
+func TestParseMaxVCPUs(t *testing.T) {
+	tests := []struct {
+		name   string
+		output string
+		want   int
+	}{
+		{name: "bare number", output: "4\n", want: 4},
+		{name: "table", output: "maximum      config         4\ncurrent      config         2\n", want: 4},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseMaxVCPUs(tc.output)
+			if err != nil || got != tc.want {
+				t.Fatalf("parseMaxVCPUs(%q) = %d, %v; want %d", tc.output, got, err, tc.want)
+			}
+		})
+	}
+	for _, bad := range []string{"", "0\n", "maximum      config         x\n", "current      config         2\n"} {
+		if _, err := parseMaxVCPUs(bad); err == nil {
+			t.Fatalf("parseMaxVCPUs(%q) accepted invalid output", bad)
+		}
+	}
+}
+
 func TestParseBlockDevices(t *testing.T) {
 	output := ` Type   Device   Target   Source
 ------------------------------------------------------------
