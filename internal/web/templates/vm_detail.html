@@ -376,6 +376,7 @@
 <section class="panel">
   <h3>备份新旧 <button type="button" class="help-tip" aria-label="说明" data-tip="看最近一次增量检查点距现在有多久。超过两周算过期，从来没有检查点会单独标出。这里只提示，不会创建备份，也不会恢复。">?</button></h3>
   <p class="hint">{{.Data.BackupAge.Label}}{{if .Data.BackupAge.When}}，记录时间 {{.Data.BackupAge.When}}{{end}}。{{if eq .Data.BackupAge.Status "stale"}}建议补一次检查点。{{else if eq .Data.BackupAge.Status "none"}}出问题前没有可复核的恢复点。{{end}}</p>
+{{template "unbackeddisks" .}}
   <h2>增量备份检查点<button type="button" class="help-tip" aria-label="说明" data-tip="增量检查点记录磁盘变化链，不是一份可以直接开机的整机副本。恢复校验只核对记录的摘要和检查点名称，不会自动恢复虚拟机。">?</button></h2>
   <p class="hint">用来确认备份链是否连续、恢复演练记录是否指向已知检查点。父检查点为空表示这条链的起点。</p>
   {{if .Data.BackupChainReady}}<p class="hint">当前检查点链完整。</p>{{else}}<p class="hint">当前检查点链缺少父检查点，恢复前需要先核对。</p>{{end}}
@@ -480,4 +481,7 @@
 {{end}}
 {{define "consolepassword"}}  <h3>控制台没有密码 <button type="button" class="help-tip" aria-label="说明" data-tip="这些图形控制台已经配置，但没有密码。回环地址也列在这里。这里只提示，不改密码，也不改监听。">?</button></h3>
   {{if .Data.OpenConsoles}}<ul class="plain-list">{{range .Data.OpenConsoles}}<li>{{.Protocol}} <span class="muted">{{.Address}}</span></li>{{end}}</ul>{{else}}<p class="hint">已配置的图形控制台都设置了密码，或这台虚拟机没有图形控制台。</p>{{end}}
+{{end}}
+{{define "unbackeddisks"}}  <h3>没有进入备份链 <button type="button" class="help-tip" aria-label="说明" data-tip="这些数据盘没有出现在任何增量检查点里。光驱不参与。这里只列出，不创建检查点。">?</button></h3>
+  {{if .Data.UnbackedDisks}}<ul class="plain-list">{{range .Data.UnbackedDisks}}<li><code>{{.Target}}</code>{{if .Source}} <span class="muted">{{.Source}}</span>{{end}}</li>{{end}}</ul>{{else}}<p class="hint">数据盘都出现在检查点里，或这台虚拟机没有数据盘。</p>{{end}}
 {{end}}
