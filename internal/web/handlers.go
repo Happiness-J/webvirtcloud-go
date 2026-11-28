@@ -410,7 +410,7 @@ func (s *Server) allVMsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	groups := s.loadVMGroups(r.Context(), hosts)
 	groups = s.filterDesktopGroups(r, groups)
-	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "EmptyCDROM": s.emptyCDROMs(r, groups), "NoMemory": s.unreportedMemory(r, groups), "Exposed": s.exposedConsoles(r, groups)}})
+	s.render(w, r, "vms", pageData{Title: "虚拟机", Nav: "vms", Data: map[string]any{"Groups": groups, "Idle": idleVMs(groups), "Paused": pausedVMs(groups), "Unbacked": s.unbackedVMs(r, groups), "NoAgent": s.noAgentVMs(r, groups), "NoAddress": s.noAddressVMs(r, groups), "NoCurrent": s.noCurrentSnapshots(r, groups), "BootMenu": s.bootMenus(r, groups), "EmptyCDROM": s.emptyCDROMs(r, groups), "NoMemory": s.unreportedMemory(r, groups), "Exposed": s.exposedConsoles(r, groups), "DeepSnapshots": s.deepSnapshots(r, groups)}})
 }
 
 func (s *Server) exposedConsoles(r *http.Request, groups []vmGroup) map[string]bool {
@@ -445,6 +445,25 @@ func (s *Server) disksOutsideCheckpoints(r *http.Request, hostID, vmName string,
 		xmls = append(xmls, res.Stdout)
 	}
 	return disksOutsideCheckpoints(detail.BlockList, xmls)
+}
+
+func (s *Server) deepSnapshots(r *http.Request, groups []vmGroup) []deepSnapshot {
+	var out []deepSnapshot
+	for _, group := range groups {
+		if group.Err != "" {
+			continue
+		}
+		snapshots := map[string][]libvirt.Snapshot{}
+		for _, domain := range group.Domains {
+			items, err := s.libvirt.ListSnapshots(r.Context(), group.Host.ID, domain.Name)
+			if err != nil {
+				continue
+			}
+			snapshots[domain.Name] = items
+		}
+		out = append(out, deepSnapshotChains(group.Host.ID, group.Host.Name, group.Domains, snapshots)...)
+	}
+	return out
 }
 
 func (s *Server) unreportedMemory(r *http.Request, groups []vmGroup) map[string]bool {
