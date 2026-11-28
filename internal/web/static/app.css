@@ -217,6 +217,8 @@ details summary { cursor: pointer; color: var(--brand); }
 .table-wrap { overflow-x: auto; }
 .table-wrap > table { width: max-content; min-width: 100%; }
 .audit-action code { white-space: nowrap; }
+.audit-detail { max-width: 520px; }
+.audit-detail code { overflow-wrap: anywhere; }
 .nowrap { white-space: nowrap; }
 .ops-table { min-width: 860px; }
 .ops-table td:nth-child(n+5), .ops-table th:nth-child(n+5) { text-align: right; font-variant-numeric: tabular-nums; }
